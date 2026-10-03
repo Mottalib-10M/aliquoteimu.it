@@ -1,0 +1,41 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+import { diffRate } from '../../lib/diff-build';
+import { capoluoghi } from '../../lib/stats';
+const lang = 'it';
+const c = comune('H501')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const R = 1000;
+const NP = diffRate('H501', /reddito fondiario/)!, ED = diffRate('H501', /47\.62\.10/)!, BOT = diffRate('H501', /Bottega storica/)!, IACP = diffRate('H501', /IACP/)!, ONLUS = diffRate('H501', /ONLUS/, 'altri')!, D3 = diffRate('H501', /D\/3 Teatri/, 'D')!;
+const magg = capoluoghi.filter((k) => ratesOf(k).altri > P.limiti.altri_max).map((k) => k.name).filter((n) => n !== 'Roma');
+const sc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const base = calcolaImu({ categoria: 'A2', rendita: R, aliquota: P.limiti.altri_max });
+const lusso = calcolaImu({ categoria: 'A8', rendita: 3500, aliquota: r.ap, uso: 'ap' });
+const negozio = calcolaImu({ categoria: 'C1', rendita: 2500, aliquota: r.altri });
+const edicola = calcolaImu({ categoria: 'C1', rendita: 2500, aliquota: ED });
+const faqs = [
+  { q: `Perché a Roma l’IMU sulla seconda casa è all’${al(r.altri)} e non all’${al(P.limiti.altri_max)}?`, a: `Perché Roma applica la maggiorazione dello ${al(P.limiti.maggiorazione_ex_tasi)} che la legge 160 del 2019 (comma 755) consente ai comuni che la applicavano già come TASI fino al 2019. Su una casa con ${$(R)} di rendita la maggiorazione costa ${$(sc.imposta - base.imposta)} l’anno in più rispetto al massimo ordinario. Il comune può solo ridurla, non aumentarla.` },
+  { q: 'Roma ha pubblicato le aliquote IMU 2026?', a: `Al ${P.retrieved_at} sul sito del Dipartimento delle Finanze c’è il prospetto 2025, approvato con delibera n. ${c.delibera} del ${c.data}, e non ancora quello 2026. Se Roma non lo pubblica entro il 28 ottobre 2026, le aliquote 2025 valgono anche per il saldo di dicembre, come prevede il comma 767.` },
+  { q: 'Chi ha un’edicola o una bottega storica a Roma paga meno IMU?', a: `Sì, se l’immobile è un negozio C/1 usato per quell’attività: il prospetto di Roma prevede lo ${al(ED)} per le edicole (codice ATECO 47.62.10) e lo ${al(BOT)} per le botteghe storiche o artigiane, invece dell’${al(r.altri)}. Su un negozio con 2 500 euro di rendita fa ${$(negozio.imposta - edicola.imposta)} di risparmio all’anno.` },
+];
+---
+<CityPage lang={lang} city="roma" rendita={R} title={`IMU Roma 2026: aliquote, maggiorazione all’${al(r.altri)} e calcolo`}
+  description={`IMU Roma 2026: seconda casa all’${al(r.altri)} con la maggiorazione ex TASI, lusso allo ${al(r.ap)}, aliquote ridotte per edicole, botteghe storiche e terzo settore.`}
+  h1="IMU a Roma nel 2026: aliquote e calcolo"
+  intro="Roma tassa le seconde case con l’aliquota più alta consentita in Italia, ma il suo prospetto prevede una decina di eccezioni, soprattutto per commercio e terzo settore."
+  resume={`A Roma l’IMU sugli altri fabbricati, cioè seconde case, appartamenti affittati, uffici e negozi, è all’${al(r.altri)}: il massimo ordinario dell’${al(P.limiti.altri_max)} più la maggiorazione ex TASI dello ${al(P.limiti.maggiorazione_ex_tasi)}, che la capitale applica da prima del 2020. Un appartamento con ${$(R)} di rendita catastale paga quindi ${$(sc.imposta)} l’anno, in due rate da ${$(sc.acconto)} il 16 giugno e il 16 dicembre. Le abitazioni principali di lusso (A/1, A/8, A/9) pagano lo ${al(r.ap)} con la detrazione di ${$(P.detrazione_ap)}; i capannoni e gli altri immobili del gruppo D l’${al(r.D)}, le aree fabbricabili l’${al(r.aree)}. Il prospetto in vigore è quello del 2025, perché al ${P.retrieved_at} Roma non ha ancora pubblicato il 2026. Le aliquote ridotte riguardano edicole, botteghe storiche, alloggi popolari, teatri e cinema, immobili degli enti del terzo settore: le trovi nella tabella sotto il calcolatore.`}
+  faqs={faqs} related={['home', 'aliquote', 'confronto', 'secondaCasa', 'negozi', 'lusso', 'saldo']}>
+  <h2>La maggiorazione che pochi comuni hanno</h2>
+  <p>Solo i comuni che nel 2015 applicavano la maggiorazione TASI e l’hanno confermata fino al 2019 possono superare l’{al(P.limiti.altri_max)}: tra i capoluoghi di provincia, oltre a Roma, lo fanno {magg.length}: {magg.join(', ')}. Per una casa da {$(R)} di rendita la differenza rispetto a un comune al massimo ordinario è di {$(sc.imposta - base.imposta)} l’anno. È la ragione per cui un romano che eredita una casa in provincia, a parità di rendita, paga spesso di meno fuori città.</p>
+  <h2>Negozi, edicole e botteghe storiche</h2>
+  <p>Il prospetto di Roma usa la possibilità di differenziare per attività: un negozio C/1 o un laboratorio C/3 usato direttamente dal proprietario come immobile non produttivo di reddito fondiario paga lo {al(NP)} su un solo immobile; lo stesso vale per i negozi locati o usati come edicola e per le botteghe storiche o artigiane. Un negozio da 2 500 euro di rendita ordinario paga {$(negozio.imposta)}, come edicola {$(edicola.imposta)}. La condizione è nell’uso effettivo dell’immobile, non nel nome dell’insegna.</p>
+  <h2>Terzo settore, alloggi popolari, teatri</h2>
+  <p>Gli immobili delle ONLUS e degli enti del terzo settore usati direttamente da loro, comprese aree e terreni, pagano lo {al(ONLUS)}; gli alloggi regolarmente assegnati dagli ex IACP lo {al(IACP)}. Teatri e cinema D/3 e i fabbricati commerciali D/8 usati direttamente dal proprietario hanno lo {al(D3)} invece dell’{al(r.D)} del gruppo D. Roma ha scelto anche di assimilare all’abitazione principale la casa dell’anziano o del disabile ricoverato in modo permanente, purché non sia affittata.</p>
+  <h2>Abitazioni di lusso in centro</h2>
+  <p>Nel centro storico molte abitazioni principali sono accatastate A/1 o A/8 e quindi pagano l’IMU anche se sono la residenza del proprietario. Con lo {al(r.ap)} una casa A/8 da 3 500 euro di rendita paga {$(lusso.imposta)} dopo la detrazione. Il codice tributo è {P.f24.ap}, il codice ente {c.code}: lo stesso per tutti i municipi, perché il soggetto attivo è il comune di Roma Capitale.</p>
+</CityPage>

@@ -1,0 +1,32 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, webPageSchema } from '../../lib/seo';
+import { COUNTS, N_IMU } from '../../lib/stats';
+import { META } from '../../lib/comuni';
+import { formatNumber, formatAliquota, formatPercent } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const n = (v: number) => formatNumber(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const M = P.base.moltiplicatori;
+---
+<PageLayout title="IMU 2026: metodologia del calcolo, formule, dati e limiti" description="Metodologia del calcolo IMU 2026: formula della legge 160/2019, prospetti MEF dei comuni, acconto e saldo, arrotondamento F24, test e limiti del calcolatore." lang={lang} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Metodologia', path: route('method', lang) }]), webPageSchema({ name: 'Metodologia', description: 'Metodologia del calcolo IMU', path: route('method', lang), lang })]} breadcrumbs={[{ label: 'Metodologia' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Metodologia: come calcoliamo l’IMU</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <h2>La formula</h2>
+    <p>Per un fabbricato: base imponibile = rendita catastale × {formatPercent(1 + P.base.rivalutazione_rendita, 0, lang)} × moltiplicatore (comma 745 della legge 160 del 2019). Per un terreno: reddito dominicale × {formatPercent(1 + P.base.rivalutazione_dominicale, 0, lang)} × {P.base.moltiplicatore_terreni}. Per un’area fabbricabile: il valore venale al 1° gennaio, inserito dall’utente. L’imposta è la base, ridotta se spetta una riduzione, per l’aliquota, per la quota di possesso e per i mesi di possesso diviso dodici; si toglie poi la detrazione di {P.detrazione_ap} euro per l’abitazione principale di lusso, in proporzione a quota e mesi.</p>
+    <ContentTable headers={['Categoria', 'Moltiplicatore']} align={['l', 'r']} rows={[['Gruppo A (escluso A/10), C/2, C/6, C/7', String(M.A)], ['Gruppo B, C/3, C/4, C/5', String(M.B)], ['A/10 e D/5', String(M.A10)], ['Gruppo D escluso D/5', String(M.D)], ['C/1', String(M.C1)]]} />
+    <h2>Riduzioni applicate</h2>
+    <p>Base dimezzata per comodato a parenti di primo grado (escluse A/1, A/8, A/9), immobili storici e inagibili (comma 747): il calcolatore ne applica una alla volta. Imposta al {formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)} per il canone concordato (comma 760) e a metà per i pensionati residenti all’estero (legge 178 del 2020, comma 48). Esenzione dell’abitazione principale non di lusso (comma 740) e dei terreni di coltivatori diretti e IAP o dichiarati esenti nel prospetto (comma 758). Gruppo D: quota Stato dello {al(P.limiti.D_quota_stato)} e quota comune separate.</p>
+    <h2>Acconto, saldo e F24</h2>
+    <p>L’acconto è l’imposta del primo semestre calcolata con l’aliquota dell’anno precedente; il saldo è l’imposta dell’anno con l’aliquota in vigore meno l’acconto (comma 762). I mesi di possesso si ripartiscono tra i semestri secondo che l’immobile sia posseduto da gennaio o fino a dicembre. Ogni rigo dell’F24 è arrotondato all’euro, per difetto fino a 49 centesimi (legge 296 del 2006, comma 166).</p>
+    <h2>Le aliquote dei comuni</h2>
+    <p>Abbiamo scaricato gli archivi regionali dei prospetti 2025 e 2026 dal sito del Dipartimento delle Finanze e letto {n(META.prospetti_letti)} prospetti con uno script che estrae le aliquote delle fattispecie di base e le aliquote differenziate. Per ogni comune dell’elenco ISTAT teniamo il prospetto più recente: {n(COUNTS.P26)} comuni hanno quello 2026, {n(COUNTS.P25)} quello 2025, valido finché non pubblicano il nuovo (comma 767). Per {n(COUNTS.B)} comuni senza prospetto conforme usiamo le aliquote di base della legge. I {n(COUNTS.ILIA + COUNTS.IMIS + COUNTS.IMI)} comuni del Friuli Venezia Giulia e delle province di Trento e Bolzano non applicano l’IMU e il calcolatore lo segnala. Copertura: {formatPercent((COUNTS.P26 + COUNTS.P25) / N_IMU, 1, lang)} dei {n(N_IMU)} comuni IMU. Lettura del {META.retrieved_at}.</p>
+    <h2>Controlli</h2>
+    <p>Il motore è coperto da test automatici con i casi della legge: moltiplicatori, esenzione dell’abitazione principale, detrazione, comodato, canone concordato, pensionati esteri, gruppo D con le due quote, terreni, aree, acconto con aliquota diversa, mesi del rogito, arrotondamento, sanzioni del ravvedimento. Tutte le aliquote estratte rispettano i limiti di legge: nessuna supera l’{al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)}, nessuna aliquota del gruppo D scende sotto lo {al(P.limiti.D_min)}, nessuna aliquota dei rurali supera lo {al(P.aliquote_base.rur)}.</p>
+    <h2>Limiti</h2>
+    <p>Il calcolatore non conosce le condizioni soggettive delle aliquote differenziate: le elenca con il testo del prospetto e lascia a te la scelta di applicarle. Non calcola l’ILIA, l’IMIS, l’IMI né la TARI. Per le aree fabbricabili usa il valore che inserisci e non i valori di riferimento del comune. L’inagibilità parziale nell’anno va gestita con i mesi. Il ravvedimento non include il tasso di interesse legale, che devi inserire tu: non pubblichiamo un valore che non abbiamo verificato. Per i comuni senza prospetto 2026 al 28 ottobre, l’aliquota del saldo resta quella 2025: dopo quella data aggiorneremo i dati.</p>
+    <p>Vedi anche la <a href={route('editorial', lang)}>politica editoriale</a> e le <a href={route('aliquote', lang)}>aliquote per comune</a>.</p>
+  </div>
+</PageLayout>

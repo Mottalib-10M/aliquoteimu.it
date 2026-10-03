@@ -1,0 +1,35 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('L219')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const CC = diffRate('L219', /art\. 2, comma 3/)!, STU = diffRate('L219', /studenti/)!;
+const R = 800;
+const empty = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const students = calcolaImu({ categoria: 'A2', rendita: R, aliquota: STU });
+const agreed = calcolaImu({ categoria: 'A2', rendita: R, aliquota: CC, canoneConcordato: true });
+const faqs = [
+  { q: 'I bought a flat in Turin to let to university students: what IMU applies?', a: `Turin’s 2026 schedule charges ${al(STU)} on homes let under the student lease of art. 5, paragraph 2, of Law 431/1998, instead of ${al(r.altri)}. On ${$(R)} of cadastral income that is ${$(students.imposta)} a year rather than ${$(empty.imposta)}. A standard four-plus-four lease at market rent does not qualify.` },
+  { q: 'What does Turin charge on building land?', a: `${al(r.aree)}, below the ${al(P.limiti.altri_max)} that many cities apply. The tax is calculated on the plot’s market value on 1 January; for a plot worth ${$(150000)} it comes to ${$(150000 * r.aree / 100)} a year. Registered farmers who farm a plot themselves are treated differently, as farmland.` },
+  { q: 'Do I pay less IMU in Turin if I lend my flat to my son?', a: `Under the national rule the taxable value is halved if the free loan is registered, your son lives there as his main home and you meet the residence and ownership conditions of paragraph 747. Owners living abroad usually fail the condition of residence in the same comune, so they pay ${al(r.altri)} like any second home.` },
+];
+---
+<CityPage lang={lang} city="torino" rendita={R} title={`IMU Turin 2026: Rates for Student and Agreed-Rent Lets`}
+  description={`IMU in Turin for 2026: ${al(r.altri)} on second homes, ${al(STU)} on student, agreed-rent and transitional lets, ${al(r.aree)} on building land. Official 2026 rates.`}
+  h1="IMU in Turin in 2026: rates and calculator"
+  intro="Turin rewards owners who let to students or at the agreed rent with a rate of about half the ordinary one."
+  resume={`Turin’s ${P.year} rate schedule, approved by resolution no. ${c.delibera} of ${c.data}, keeps the ordinary rate for second homes at ${al(r.altri)} but cuts it to ${al(CC)} for three kinds of regulated lease: agreed-rent contracts where the tenant lives in the flat, leases to university students and short transitional leases, all defined by Law 431 of 1998. For a flat in category A/2 with ${$(R)} of cadastral income, that is ${$(empty.imposta)} a year if it stands empty, ${$(students.imposta)} if it is let to students, and ${$(agreed.imposta)} at agreed rent, because the national 25 % reduction is added on top. Building land pays ${al(r.aree)}, luxury main homes ${al(r.ap)}, and companies using their own factory buildings get a reduced group D rate. The rates are the same as in 2025, so both instalments are equal.`}
+  faqs={faqs} related={['home', 'locati', 'concordato', 'esteri', 'aliquote', 'confronto', 'aree']}>
+  <h2>A student city with student-friendly rates</h2>
+  <p>Home to a university and a polytechnic, Turin chose to make regulated lets cheaper for owners. The agreed-rent rate requires the tenant to use the flat as a main home; the student rate applies to leases signed under the specific student contract; the transitional rate to the short leases of art. 5, paragraph 3. Only the agreed-rent lease also gets the national cut to 75 %.</p>
+  <h2>What foreign owners should check</h2>
+  <p>The lower rates follow the type of contract, not the tenant’s nationality or the length of the stay, so keep a copy of the registered lease. If the flat is let for a few months and empty for the rest of the year, the months under a qualifying lease and the empty months may be taxed at different rates; the calculator works out one rate for the year, so split the year by hand if needed.</p>
+  <h2>Paying and deadlines</h2>
+  <p>Payments go to comune code {c.code} with tax code {P.f24.altri} for a flat. The June instalment uses the 2025 rates, which are identical to the 2026 ones in Turin. A missed payment can be regularised with the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> before the comune sends a notice.</p>
+</CityPage>

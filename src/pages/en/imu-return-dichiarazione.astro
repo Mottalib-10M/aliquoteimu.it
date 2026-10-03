@@ -1,0 +1,60 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const SD = P.sanzioni_dichiarazione, MAX = P.limiti.altri_max;
+const due = displayDate(P.scadenze.dichiarazione, 'en-GB');
+const pen = [50, 600, 1200, 2500].map((t) => [$(t), $(Math.max(SD.minimo, t * SD.omessa)), $(Math.max(SD.minimo, t * SD.infedele)), $(Math.max(SD.minimo, t * SD.omessa) * SD.acquiescenza)]);
+const unfit = calcolaImu({ categoria: 'A4', rendita: 450, aliquota: MAX, riduzione: 'inagibile' });
+const full = calcolaImu({ categoria: 'A4', rendita: 450, aliquota: MAX });
+const situations = [
+  ['You buy a holiday home through an Italian notary', 'Usually no return: the deed reaches the comune'],
+  ['You inherit a share of a house and the succession is registered', 'Usually no return'],
+  [`Your house becomes unfit for use and you claim the ${formatPercent(1 - P.riduzioni.inagibile_base, 0, lang)} reduction`, 'Documentation goes with the return (para. 747 b)'],
+  ['Your property is occupied illegally and you have reported it', 'You notify the comune with the return model, and again when it ends'],
+  ['Nothing changes from one year to the next', 'No new return: the last one stays valid'],
+];
+const faqs = [
+  { q: 'Do I have to file an IMU return every year as a foreign owner?', a: 'No. An IMU return (dichiarazione IMU) is filed only when ownership starts or relevant details change in a way the comune cannot learn from public records, and it then remains valid for later years. Most non-resident owners who buy through a notary and pay the ordinary second home rate never file one. Only non-commercial bodies file every year.' },
+  { q: 'What is the deadline for an IMU return about 2026?', a: `30 June of the following year, so ${due} for anything that started or changed in 2026 (paragraph 768-bis of Law 160/2019). It can only be filed electronically, using the ministerial models approved in 2022 and 2023; an Italian accountant (commercialista) or tax assistance centre (CAF) can file it for you.` },
+  { q: 'What happens if I should have filed an IMU return and did not?', a: `The comune can charge ${formatPercent(SD.omessa, 0, lang)} of the unpaid tax as a penalty, with a minimum of ${$(SD.minimo)}, or ${formatPercent(SD.infedele, 0, lang)} for an inaccurate return (paragraph 775). If you accept the assessment and pay within the appeal period, the penalty drops to one third. The late payment penalty can apply on top.` },
+];
+---
+<Guide lang={lang} id="dichiarazione" title="IMU Return (Dichiarazione IMU): When It Is Required"
+  description={`IMU return (dichiarazione IMU) for owners: when you must file, the ${due} deadline for 2026 changes, electronic filing and the penalties of paragraph 775.`}
+  h1="The IMU return: rarely needed, costly to forget"
+  intro="Paying IMU and declaring it are two separate obligations. Most owners only ever do the first; a few situations require the second as well."
+  resume={`The IMU return, dichiarazione IMU in Italian, tells the comune about facts that change your tax but that it cannot see in public records. Paragraph 768-bis of Law 160 of 2019 says it is filed only electronically, by 30 June of the year after ownership began or relevant details changed: for events in 2026 the deadline is ${due}. Once filed, it stays valid for the following years as long as nothing changes. Purchases through a notary, registered successions and land registry updates reach the comune on their own, so a foreign owner who simply pays IMU on a holiday home at the ordinary rate normally never files one. The return becomes essential when you claim a relief that has to be documented, such as the reduction for a building unfit for use, which cut the tax on an A/4 house with 450 euro of rendita from ${$(full.imposta)} to ${$(unfit.imposta)} a year. Forgetting it can cost ${formatPercent(SD.omessa, 0, lang)} of the unpaid tax, with a ${$(SD.minimo)} minimum.`}
+  faqs={faqs} related={['home', 'esteri', 'inagibili', 'occupati', 'ravvedimento', 'scadenze', 'secondaCasa', 'f24']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_agevolazioni', 'dlgs471')}>
+  <MiniSim client:visible kind="dichiarazione" lang={lang} href={route('ravvedimento', lang)} />
+  <h2>What the law says, in plain English</h2>
+  <p>The rule sits in paragraph 768-bis. The return is electronic only, due by 30 June of the year after the change, and valid for later years unless the data change in a way that alters the tax. A ministerial decree defines the cases in which it is required; until a new decree is issued, owners use the models approved by the Ministry of Economy and Finance on 29 July 2022 and 4 May 2023. Returns filed in the past for IMU and the former TASI remain valid where compatible.</p>
+
+  <h2>Typical situations for owners</h2>
+  <ContentTable headers={['Situation', 'Return?']} align={['l', 'l']} rows={situations} />
+  <p>The principle behind the table: if the comune can learn something from the land registry, the population register or notarial deeds, you do not need to tell it. If a fact that lowers your tax exists only in your hands, a technical report, a police complaint, a specific status, the return is how you make it count.</p>
+
+  <h2>Reliefs that need paperwork</h2>
+  <p>For a building declared unfit for use (inagibile or inabitabile) and actually not used, the taxable value is halved for the months the condition lasts. The comune’s technical office ascertains it with a report paid by the owner, who attaches the documentation to the return; alternatively, the owner files a sworn statement based on the report of a qualified technician. The <a href={route('inagibili', lang)}>unfit buildings guide</a> covers the conditions. For a property occupied illegally, once you have reported it to the authorities it is exempt, and you notify the comune with the return model, then again when you regain possession; see the guide on <a href={route('occupati', lang)}>squatted property</a>.</p>
+  <p>The law also requires the return to attest the requirements for a few reliefs that rarely concern foreign owners: social housing used as a main home, the single home of members of the armed forces, police and fire service, and buildings built by companies for sale.</p>
+
+  <h2>Penalties under paragraph 775</h2>
+  <p>A missing return costs {formatPercent(SD.omessa, 0, lang)} of the tax not paid, an inaccurate one {formatPercent(SD.infedele, 0, lang)}, both with a minimum of {$(SD.minimo)}. Accepting the comune’s assessment and paying within the time allowed for an appeal reduces them to one third. Failing to answer a questionnaire from the comune costs between 100 and 500 euro. The table applies these rules to a few amounts of unpaid tax.</p>
+  <ContentTable headers={['Unpaid tax', `No return (${formatPercent(SD.omessa, 0, lang)})`, `Inaccurate (${formatPercent(SD.infedele, 0, lang)})`, 'No return, accepted']} align={['r', 'r', 'r', 'r']} rows={pen} />
+  <p>These penalties concern the return. If the tax itself was not paid, the {formatPercent(P.ravvedimento.sanzione_base, 0, lang)} late payment penalty is a separate matter, and it can be reduced by settling voluntarily through the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> before the comune acts.</p>
+
+  <h2>Filing from abroad</h2>
+  <p>The return goes through the electronic channels of the Italian tax administration. Owners without Italian digital identity usually ask a commercialista or a CAF to file it as an intermediary; they will need your codice fiscale, the cadastral identifiers of the property from the visura, your share and the dates the situation started and ended, plus any supporting document such as the technician’s report. Keep the filing receipt with your payment records: comuni can issue assessments until 31 December of the fifth year after the return or payment was due.</p>
+
+  <h2>When the situation ends</h2>
+  <p>A return also matters at the end of a relief. When an unfit house is repaired and used again, or when you regain possession of a squatted flat, the reduction or exemption stops from that month, and the ordinary tax is due again. For the occupied property the law expressly requires a new notification when the exemption ends. Telling the comune promptly avoids the impression that you kept a relief you were no longer entitled to.</p>
+  <h2>Return and payment: keep them aligned</h2>
+  <p>The return does not replace the payment, and paying a reduced amount does not replace the return. An owner who pays IMU at the halved value for an unfit house without the supporting documentation risks back tax plus the penalty for a missing return. Before filing, recompute the tax for each year concerned with the <a href={route('home', lang)}>IMU calculator</a>, using your comune’s rate, and check the dates in the <a href={route('scadenze', lang)}>deadlines guide</a>.</p>
+</Guide>

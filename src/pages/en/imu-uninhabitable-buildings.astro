@@ -1,0 +1,69 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const RID = formatPercent(1 - P.riduzioni.inagibile_base, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+let lines = 0; const zero: string[] = [];
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) {
+  const h = v.d.filter((d) => /inagibil/i.test(d[2])); if (!h.length) continue; lines++;
+  const c = byCode.get(code); if (c && h.some((d) => d[1] === 0)) zero.push(c.name);
+}
+const R = 450;
+const cats = [['Farmhouse A/3', 'A3', 450], ['Rural cottage A/6', 'A6', 180], ['Village house A/4', 'A4', 300], ['Detached house A/7', 'A7', 900]] as const;
+const rows = cats.map(([l, c, r]) => { const a = calcolaImu({ categoria: c, rendita: r, aliquota: MAX }); const b = calcolaImu({ categoria: c, rendita: r, aliquota: MAX, riduzione: 'inagibile' }); return [l, $(r), $(a.imposta), $(b.imposta)]; });
+const full = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const half = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, riduzione: 'inagibile' });
+const faqs = [
+  { q: 'I bought a ruin in Italy to restore. Do I pay IMU while it is unfit to live in?', a: `If it is still registered with a cadastral income and has been declared unfit (inagibile) and is not used, you pay IMU on half its value: ${$(half.imposta)} instead of ${$(full.imposta)} for an A/3 with ${$(R)} of rendita at ${al(MAX)}. Once major renovation starts, the law switches the base to the value of the plot until the works end (paragraph 746).` },
+  { q: 'Can a surveyor abroad certify that my Italian house is unfit?', a: 'The law refers to a technician qualified in Italy (tecnico abilitato), such as a geometra, architect or engineer, whose finding you then declare in a sworn statement under DPR 445/2000. The alternative is an inspection by the comune’s technical office at your expense. Either way the comune can check the building.' },
+  { q: 'Does an earthquake-damaged home automatically pay less IMU?', a: `Not automatically under national law: it must be declared unfit and left unused, and the reduction covers only that period. Many comuni add their own relief. ${n(lines)} rate schedules have a line for unfit buildings, often for those damaged by natural disasters, and ${n(zero.length)} set a zero rate for at least one such case.` },
+];
+---
+<Guide lang={lang} id="inagibili" title={`IMU on Uninhabitable Buildings 2026: Value Cut by ${RID}`}
+  description={`IMU on a derelict or unfit building in Italy: value halved only while it is declared unfit and unused, the technician’s report, renovation rules, comune rates.`}
+  h1="IMU on derelict and uninhabitable buildings in Italy"
+  intro="Bought a ruined farmhouse, inherited a crumbling village house, or own a home damaged by an earthquake? IMU still applies, but on half the value while the building is officially unfit."
+  resume={`A building that has been declared unfit for use or habitation (inagibile or inabitabile) and is in fact not used pays IMU on half its taxable value, for the part of the year during which those conditions last. The rule is paragraph 747 b of Law 160/2019. The unfit condition is established either by the comune’s technical office, with an inspection paid for by the owner, or by the owner’s sworn statement under DPR 445/2000 that a qualified technician has certified it. Comuni may define in their regulations what kind of decay, beyond what maintenance can fix, qualifies. On an A/3 farmhouse with ${$(R)} of cadastral income at ${al(MAX)}, IMU falls from ${$(full.imposta)} to ${$(half.imposta)} a year. Many foreign buyers of houses to restore are in exactly this position, and comuni sometimes go further: ${n(lines)} rate schedules include a specific line for unfit buildings.`}
+  faqs={faqs} related={['home', 'storici', 'esteri', 'compravendita', 'aree', 'rendita', 'dichiarazione', 'secondaCasa']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti')}>
+  <MiniSim client:visible kind="inagibili" lang={lang} href={route('home', lang)} />
+  <h2>What counts as unfit</h2>
+  <p>The relief is for buildings that cannot be used safely, not for homes that are simply empty or old-fashioned. Think of a collapsed roof, structural cracks, floors that are unsafe, or damage from an earthquake or a flood: decay that ordinary or extraordinary maintenance cannot put right. A flat with outdated wiring, no furniture or a kitchen to redo is still usable in the eyes of the comune. The building must also be genuinely unused: storing goods in it, or letting someone live there, rules out the reduction.</p>
+
+  <h2>Typical figures for houses to restore</h2>
+  <p>Rural properties often carry low cadastral incomes, so the IMU on them is modest even at the full rate. The halving still matters over the years a restoration can take.</p>
+  <ContentTable caption={`Full year at ${al(MAX)}, one owner`} headers={['Property', 'Rendita', 'IMU, usable', 'IMU, declared unfit']} align={['l', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Getting the building declared unfit</h2>
+  <p>You have two routes. The comune’s technical office can inspect the building and issue a report, at your expense; the documents then go with your IMU return. Or a technician qualified in Italy, usually a geometra, architect or engineer, examines it and certifies the condition, and you file a sworn statement (dichiarazione sostitutiva) under DPR 445/2000 saying so. The second route is faster and is what most owners use. A false statement is a criminal matter in Italy, so make sure the building really meets the comune’s definition, which you will find in its IMU regulations.</p>
+
+  <h2>Only while the condition lasts</h2>
+  <p>The reduction runs from the moment the building is unfit, and documented as such, until that stops. Months are counted under the usual rule: a month goes to whichever situation lasted more than half of it. If the building is made habitable again in the autumn, it pays half for the earlier months and the full amount afterwards. The calculator above splits the year this way.</p>
+
+  <h2>When restoration starts</h2>
+  <p>Paragraph 746 has a rule that surprises many people restoring Italian houses. During demolition, new construction or major renovation works (the interventi di recupero of the building code, DPR 380/2001, article 3), the taxable base is no longer the building but the value of the plot, treated as building land, until the works are finished or the building is used, whichever comes first. The <a href={route('aree', lang)}>building land guide</a> explains how that value is set. When the works end, a new cadastral income is assigned and the property pays on it from that date.</p>
+
+  <h2>Comune rates for damaged buildings</h2>
+  <p>Beyond the national rule, some comuni write their own relief into the rate schedule. We found lines on unfit buildings in {n(lines)} schedules, several tied to natural disasters. The most generous apply a zero rate to former main homes made unfit, so that a family forced out of its house does not suddenly pay second home IMU; {zero.slice(0, 4).join(', ')} are among the {n(zero.length)} comuni with a zero rate for at least one unfit case. Other lines cover situations that do not meet the national definition; there the full value is taxed at the lower rate. The calculator lists each line for the comune you choose.</p>
+
+  <h2>Ruins with no cadastral income</h2>
+  <p>Some ruins are no longer registered as dwellings at all. When the land registry has reclassified a unit as collapsed (unità collabente), it carries no cadastral income, and IMU on buildings is calculated from a cadastral income, so there is nothing to apply the rate to as a building. That does not always mean nothing is due: if the planning rules allow building on the plot, the comune can treat it as building land and tax its market value. Ask a local geometra how your property is registered before assuming either outcome, and check the comune’s reference values for building land.</p>
+
+  <h2>Telling the comune</h2>
+  <p>Paragraph 768-bis provides the IMU return (dichiarazione IMU), due by 30 June of the year after a change affecting the tax; the law expressly links the technician’s report or sworn statement to it. Report again when the building becomes usable. Applying the reduction without informing the comune invites an assessment for the difference, with penalties and interest, which the comune can issue up to five years later.</p>
+
+  <h2>One reduction at a time in our calculator</h2>
+  <p>The calculator applies a single reduction of the taxable value. If your building is both listed and unfit, or unfit and lent to a relative, ask the comune’s tax office how it combines them. The <a href={route('storici', lang)}>listed buildings guide</a> covers the other {RID} reduction.</p>
+</Guide>

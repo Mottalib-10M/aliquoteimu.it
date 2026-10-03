@@ -1,0 +1,121 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import ImuCalculator from '../../components/calc/ImuCalculator';
+import ContentTable from '../../components/ContentTable.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import { YEAR, LAST_UPDATED, AUTHOR_NAME, LANG_TAGS } from '../../data/site-config';
+import { route, CITTA } from '../../i18n/routes';
+import { label, cityName, GROUPS } from '../../i18n/nav';
+import { webApplicationSchema, faqSchema, breadcrumbSchema, organizationSchema, personSchema, websiteSchema } from '../../lib/seo';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { distribuzione, quanti, N_IMU, COUNTS, cambiati } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import { fitTitle, fitDescription } from '../../lib/snippet';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const title = fitTitle(`IMU Calculator ${YEAR}: Italian Property Tax by Comune`, lang);
+const description = fitDescription(`IMU calculator for ${YEAR} with the official rates of ${n(COUNTS.P26 + COUNTS.P25)} Italian comuni: second homes, rentals, land, June and December instalments and F24 lines, in English.`, lang);
+const AB = P.aliquote_base, M = P.base.moltiplicatori;
+const dist = distribuzione('altri');
+const at106 = dist.find((d) => d.aliquota === P.limiti.altri_max)?.n ?? 0;
+const sotto = quanti('altri', (v) => v < AB.altri);
+const nCamb = cambiati('altri').length;
+const R = 800;
+const ex = calcolaImu({ categoria: 'A2', rendita: R, aliquota: P.limiti.altri_max });
+const imuIn = (code: string) => calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(comune(code)!).altri }).imposta;
+const pens = calcolaImu({ categoria: 'A2', rendita: R, aliquota: P.limiti.altri_max, pensionatoEstero: true });
+const esempi = [
+  ['Holiday flat, A/2', 800, 'A2', {}],
+  ['Village house, A/4', 350, 'A4', {}],
+  ['Seaside villa, A/7', 1400, 'A7', {}],
+  ['Flat let at agreed rent, A/3', 650, 'A3', { canoneConcordato: true }],
+  ['Flat of a pensioner living abroad, A/3', 650, 'A3', { pensionatoEstero: true }],
+  ['Garage, C/6', 120, 'C6', {}],
+] as const;
+const rows = esempi.map(([lbl, r, cat, extra]) => { const x = calcolaImu({ categoria: cat, rendita: r, aliquota: P.limiti.altri_max, ...(extra as object) }); return [lbl, $(r), $(x.imposta), $(x.acconto), $(x.saldo)]; });
+const cittaRows = CITTA.map((c) => { const k = comune(c.code)!; const r = ratesOf(k); return [`<a href="${route(`citta-${c.id}`, lang)}">${cityName(c.id, lang)}</a>`, al(r.altri), k.st === 'P26' ? '2026' : '2025', $(calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri }).imposta)]; });
+const faqs = [
+  { q: 'Do foreigners pay IMU on a house in Italy?', a: `Yes. IMU is owed by whoever owns property in Italy, whatever their nationality or residence, unless the property is their main home. A holiday home owned by someone living abroad is taxed like any second home: a flat with ${$(R)} of cadastral income pays ${$(ex.imposta)} a year at the usual ${al(P.limiti.altri_max)} rate. Non-residents have no main home exemption in Italy.` },
+  { q: 'How do I find the cadastral income (rendita) of my Italian property?', a: 'It is on the visura catastale, the cadastral record, which you can download from the Agenzia delle Entrate website with SPID or CIE, or ask a notary, geometra or your comune for. Your purchase deed (rogito) also quotes it. Use the figure as shown, without the 5 % revaluation: the calculator adds it.' },
+  { q: 'When is IMU due in 2026?', a: `In two instalments: the first by Tuesday 16 June 2026 and the balance by Wednesday 16 December 2026. You may pay the whole year in one go by 16 June. The June payment uses last year’s rate; the December balance uses the rate the comune has published for ${YEAR} and corrects any difference.` },
+  { q: 'How can I pay IMU from abroad?', a: 'With an F24 form if you have an Italian bank account, or by international bank transfer straight to the comune’s treasury account, quoting your Italian tax code, the comune’s cadastral code, the IMU tax codes and the year. Each comune publishes its IBAN and BIC for non-residents. The calculator lists the codes and amounts to quote.' },
+  { q: 'I receive a foreign pension: do I pay half IMU?', a: `Only if you live abroad, receive a pension earned under an international social security agreement with Italy (for example combining Italian and foreign contributions), and the home is not let or lent. The relief halves the tax on one dwelling: ${$(pens.imposta)} instead of ${$(ex.imposta)} on a ${$(R)} rendita at ${al(P.limiti.altri_max)}.` },
+  { q: 'Is IMU the same in every Italian town?', a: `No. The law sets a base rate of ${al(AB.altri)} for second homes and lets each comune move between zero and ${al(P.limiti.altri_max)}, or ${al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} where an old surcharge survives. ${n(at106)} comuni apply ${al(P.limiti.altri_max)}, ${n(sotto)} are below the base rate. The same flat costs ${$(imuIn('H501'))} in Rome and ${$(imuIn('A326'))} in Aosta.` },
+  { q: 'Do I pay IMU in Friuli Venezia Giulia or South Tyrol?', a: `Not IMU. Friuli Venezia Giulia replaced it with ILIA in 2023, the province of Trento has IMIS and the province of Bolzano (South Tyrol) has IMI, each with its own rules. That concerns ${n(COUNTS.ILIA + COUNTS.IMIS + COUNTS.IMI)} comuni; the calculator flags them instead of showing an IMU you do not owe.` },
+];
+const related = ['esteri', 'aliquote', 'confronto', 'secondaCasa', 'locati', 'acconto', 'saldo', 'f24', 'ravvedimento'].map((id) => ({ href: route(id, lang), name: label(id, lang), description: '' }));
+const sources = src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti', 'mef_agevolazioni', 'legge178', 'codici_tributo', 'corte209');
+const jsonLd = [webApplicationSchema({ name: `IMU calculator ${YEAR}`, description, path: route('home', lang), lang }), faqSchema(faqs, lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }]), organizationSchema(lang), personSchema(lang), websiteSchema(lang)];
+---
+<PageLayout title={title} description={description} lang={lang} jsonLd={jsonLd} faqs={faqs} related={related} sources={sources}>
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-navy-900 md:text-4xl">IMU calculator {YEAR}: Italian property tax with your comune’s rates</h1>
+    <p class="mt-3 text-lg text-navy-600">Pick the comune, the type of property and its cadastral income. The rate comes from the comune’s official schedule, the June instalment uses last year’s rate and the December balance this year’s, with the F24 lines ready to copy.</p>
+    <p class="mt-3"><span class="inline-block rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-600">Department of Finance schedules for {n(COUNTS.P26 + COUNTS.P25)} comuni · checked on <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, LANG_TAGS[lang])}</time> by {AUTHOR_NAME}</span></p>
+  </header>
+  <ImuCalculator client:load lang={lang} methodHref={route('method', lang)} />
+  <p class="mt-8 text-navy-700">IMU (imposta municipale propria) is the yearly property tax that Italian comuni levy on every building and plot that is not the owner’s main home. If you live in the UK, the US, Germany or anywhere else and own a flat in Rome, a farmhouse in Umbria or a house by the sea, you pay it every year, in June and December, whether or not you use the place. It is worked out in four steps. Take the cadastral income (rendita catastale) shown on the land registry record, add 5 %, multiply by {M.A} for a dwelling, and apply the rate set by the comune. Then scale it to your share of ownership and the months you owned it. A flat with {$(R)} of rendita pays {$(ex.imposta)} a year at {al(P.limiti.altri_max)}, the most common rate. It pays {$(imuIn('H501'))} in Rome and {$(imuIn('A326'))} in Aosta, because each comune sets its own rate. That is why this calculator starts from the rate schedule your comune filed with the Department of Finance, and tells you when that schedule is still last year’s.</p>
+  <AdSlot slot="home-1" />
+  <section class="prose prose-slate mt-10 max-w-none">
+    <h2>How IMU is calculated in {YEAR}</h2>
+    <p>The rules are in Law 160 of 2019, article 1, paragraphs 738 to 783, which merged the old IMU and TASI into one tax in 2020. The base is the <a href={route('rendita', lang)}>cadastral income</a>, a notional value the land registry assigns to every unit. It has little to do with the price you paid or the rent you could get: a large flat in an old building can have a lower rendita than a small new one. It is revalued by 5 % and multiplied by a <a href={route('coefficienti', lang)}>coefficient that depends on the category</a>: {M.A} for homes and for cellars, garages and sheds (C/2, C/6, C/7), {M.B} for group B and workshops, {M.A10} for offices A/10 and banks D/5, {M.D} for other group D buildings, {M.C1} for shops C/1.</p>
+    <p>The comune’s rate is then applied to that value. For second homes, rented flats, shops and offices the national base rate is {al(AB.altri)}; the comune may go up to {al(P.limiti.altri_max)}, or {al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} where it kept an old TASI surcharge, or down to zero. Agricultural land starts at {al(AB.ter)}, rural farm buildings at {al(AB.rur)}, and group D buildings such as warehouses and hotels at {al(AB.D)}, of which {al(P.limiti.D_quota_stato)} always goes to the State.</p>
+    <p>The yearly amount is split by your share and by the months you owned the property. A month counts when you owned it for more than half its days, and the day of the deed counts for the buyer, so buying on the 16th of a 31-day month makes the whole month yours. Some situations halve the taxable value: a home <a href={route('comodato', lang)}>lent free to a child or parent</a> under a registered contract, a building <a href={route('inagibili', lang)}>declared unfit</a>, a <a href={route('storici', lang)}>listed building</a>. Letting at the <a href={route('concordato', lang)}>agreed rent</a> (canone concordato) cuts the tax to 75 %, and <a href={route('esteri', lang)}>pensioners living abroad</a> may pay half on one home.</p>
+    <p>You pay in two instalments. The <a href={route('acconto', lang)}>June instalment</a> is half the tax at last year’s rate; the <a href={route('saldo', lang)}>December balance</a> applies this year’s rate and settles the difference. The calculator does this for each comune when both schedules exist, and lists the lines for the F24 payment form with the <a href={route('f24', lang)}>tax codes</a> and the comune’s cadastral code.</p>
+
+    <h2>Why your comune’s rate changes everything</h2>
+    <p>Two owners with identical flats can pay very different amounts, and the difference is the comune’s decision. Since 2025 every comune must publish its choices in a standard rate schedule (prospetto delle aliquote) generated on the Department of Finance’s portal, which prevails over its own regulations. We read every published schedule: {n(COUNTS.P26)} comuni already have a {YEAR} schedule, {n(COUNTS.P25)} are still on 2025, and {n(COUNTS.B)} never filed a valid one, so the statutory base rates apply there. Out of {n(N_IMU)} comuni that levy IMU, we cover {n(COUNTS.P26 + COUNTS.P25)}.</p>
+    <p>For second homes, {n(at106)} comuni charge {al(P.limiti.altri_max)}, while {n(sotto)} stay below the {al(AB.altri)} base rate. Between 2025 and {YEAR}, {n(nCamb)} comuni changed their second home rate, which is exactly the case where the June and December payments differ. Schedules also hold targeted rates: lower ones for homes let at agreed rent or lent to relatives, higher ones for empty homes, special rates for hotels or shops in historic centres. When your comune has them, the calculator lists them under the result, in the Italian wording of the schedule, with a button to apply each one. To see every rate of a comune, use the <a href={route('aliquote', lang)}>rates by comune</a> page; to compare two towns, the <a href={route('confronto', lang)}>comparison tool</a>.</p>
+
+    <h2>Who pays and who is exempt</h2>
+    <h3>Your main home</h3>
+    <p>The home where you live and are registered as resident pays no IMU, nor do its pertinenze (at most one cellar C/2, one garage C/6 and one shed C/7), unless it is classed A/1, A/8 or A/9. You need both Italian residence (residenza anagrafica) and actual dwelling there. Since the Constitutional Court ruling 209 of 2022, each spouse may claim the exemption on the home where he or she genuinely lives, even if the other lives elsewhere. Details are in the <a href={route('primaCasa', lang)}>main home guide</a>.</p>
+    <h3>Second homes and rentals</h3>
+    <p>Everything else pays: the <a href={route('secondaCasa', lang)}>holiday home</a>, the inherited flat that stands empty, the house <a href={route('locati', lang)}>let to tenants</a>, the shop or office. The owner or the holder of a usufruct pays, never the tenant. Co-owners each pay their own share on their own F24.</p>
+    <h3>Land</h3>
+    <p><a href={route('terreni', lang)}>Agricultural land</a> is exempt when owned and farmed by registered farmers, and in the mountain and hill comuni listed in a 1993 circular: {n(quanti('ter', (v) => v < 0))} comuni list their farmland as exempt. <a href={route('aree', lang)}>Building land</a> pays on its market value on 1 January.</p>
+
+    <h2>Rates and parameters for {YEAR}</h2>
+    <ContentTable headers={['Parameter', 'Value', 'Law 160/2019']} align={['l', 'r', 'l']} rows={[
+      ['Revaluation of cadastral income', formatPercent(P.base.rivalutazione_rendita, 0, lang), 'para. 745'],
+      ['Multiplier: homes, C/2, C/6, C/7', String(M.A), 'para. 745 a'],
+      ['Multiplier: B, C/3, C/4, C/5', String(M.B), 'para. 745 b'],
+      ['Multiplier: A/10 and D/5', String(M.A10), 'para. 745 c-d'],
+      ['Multiplier: group D (not D/5)', String(M.D), 'para. 745 e'],
+      ['Multiplier: C/1 shops', String(M.C1), 'para. 745 f'],
+      ['Base rate, luxury main home', `${al(AB.ap)} (max ${al(P.limiti.ap_max)})`, 'para. 748'],
+      ['Deduction, luxury main home', $(P.detrazione_ap), 'para. 749'],
+      ['Base rate, other buildings', `${al(AB.altri)} (max ${al(P.limiti.altri_max)})`, 'para. 754'],
+      ['Base rate, farmland', al(AB.ter), 'para. 752'],
+      ['Base rate, group D (State share)', `${al(AB.D)} (${al(P.limiti.D_quota_stato)})`, 'paras. 744, 753'],
+      ['Free loan, listed, unfit buildings', `${formatPercent(1 - P.riduzioni.comodato_base, 0, lang)} off the value`, 'para. 747'],
+      ['Agreed rent (canone concordato)', `tax at ${formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)}`, 'para. 760'],
+      ['Instalments', '16 June and 16 December 2026', 'para. 762'],
+    ]} />
+    <h2>Worked examples</h2>
+    <p>Calculated by the same engine as the calculator, at the {al(P.limiti.altri_max)} rate most comuni apply to second homes, for one owner holding the property all year.</p>
+    <ContentTable headers={['Property', 'Rendita', 'IMU per year', 'June', 'December']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+  </section>
+  <AdSlot slot="home-2" />
+  <section class="prose prose-slate mt-10 max-w-none">
+    <h2>IMU in major Italian cities</h2>
+    <p>Second home rates in force and the IMU on a flat with {$(R)} of rendita. Each city page lists its targeted rates and opens the calculator on that comune.</p>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th scope="col" class="text-left">City</th><th scope="col" class="text-right">Second home rate</th><th scope="col" class="text-right">Schedule</th><th scope="col" class="text-right">IMU example</th></tr></thead>
+      <tbody>{cittaRows.map((r) => <tr><td set:html={r[0]} />{r.slice(1).map((c) => <td class="tabular-nums text-right">{c}</td>)}</tr>)}</tbody></table></div>
+    <h2>Tips for owners living abroad</h2>
+    <ol>
+      <li><strong>Get your codice fiscale and visura first.</strong> The Italian tax code identifies you on every payment, and the visura gives the rendita and category the tax is based on.</li>
+      <li><strong>Pay each comune separately.</strong> Two properties in two towns mean two sets of payments, each with its own comune code.</li>
+      <li><strong>Watch the December balance.</strong> If the comune raised its rate for {YEAR}, the second instalment is larger than the first.</li>
+      <li><strong>Pay late rather than never.</strong> The <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> cuts the 25 % penalty to a fraction if you settle before the comune contacts you.</li>
+      <li><strong>Keep the receipts.</strong> Comuni can check five years back; a bank transfer receipt with the right reference is your proof.</li>
+    </ol>
+    <h2>Guides for every situation</h2>
+    <p>{[...GROUPS.immobili, ...GROUPS.riduzioni, ...GROUPS.situazioni].map((id, i) => <>{i > 0 && ' · '}<a href={route(id, lang)}>{label(id, lang)}</a></>)}</p>
+  </section>
+</PageLayout>

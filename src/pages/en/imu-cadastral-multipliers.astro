@@ -1,0 +1,74 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, baseFabbricato, moltiplicatore, type Categoria } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota, formatDecimal, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max, M = P.base.moltiplicatori, RIV = P.base.rivalutazione_rendita;
+const k = formatDecimal(1 + RIV, 2, lang);
+const R = 700;
+const cats: Array<[string, Categoria]> = [
+  ['Flat or house (A/2 to A/9, A/11)', 'A3'],
+  ['Cellar C/2, garage C/6, shed C/7', 'C6'],
+  ['Workshop C/3, sports premises C/4, beach establishment C/5', 'C3'],
+  ['Group B (schools, institutions)', 'B'],
+  ['Office or practice A/10', 'A10'],
+  ['Bank or insurance branch D/5', 'D5'],
+  ['Hotel, warehouse, factory (group D, not D/5)', 'D'],
+  ['Shop C/1', 'C1'],
+];
+const rows = cats.map(([l, c]) => { const b = baseFabbricato(R, c); return [l, String(moltiplicatore(c)), $(b), $(b * MAX / 100)]; });
+const holiday = [
+  ['Two-bedroom flat, A/2', 'A2', 820],
+  ['Garage under the flat, C/6', 'C6', 110],
+  ['Ground floor shop let to a café, C/1', 'C1', 1900],
+  ['Small guesthouse building, group D', 'D', 4200],
+] as const;
+const hRows = holiday.map(([l, c, r]) => { const x = calcolaImu({ categoria: c, rendita: r, aliquota: MAX }); return [l, $(r), String(moltiplicatore(c)), $(x.base), $(x.imposta)]; });
+const total = holiday.reduce((s, [, c, r]) => s + calcolaImu({ categoria: c, rendita: r, aliquota: MAX }).imposta, 0);
+const home = baseFabbricato(R, 'A3'), shop = baseFabbricato(R, 'C1');
+const faqs = [
+  { q: 'Does my garage in Italy use the same multiplier as the flat?', a: `Yes. Garages C/6, cellars C/2 and sheds C/7 share the ${M.A} multiplier with homes (Law 160/2019, paragraph 745 a). If you live abroad and the flat is a second home, the garage is taxed too, on its own rendita: 110 euro of rendita gives a taxable value of ${$(baseFabbricato(110, 'C6'))} and ${$(baseFabbricato(110, 'C6') * MAX / 100)} of IMU at ${al(MAX)}.` },
+  { q: 'Can a comune change the multipliers?', a: 'No. The multipliers are set by national law and are identical in every comune. What a comune decides is the rate, within the limits of paragraphs 748 to 755, through the rate schedule it files with the Department of Finance. A higher bill in one town than another always comes from the rate or the rendita, never from the coefficient.' },
+  { q: 'Which multiplier applies to an office I converted into a holiday flat?', a: `The one matching the category on the land registry record. Until the change of use is registered and the unit reclassified, an A/10 office keeps the ${M.A10} multiplier, even if you use it as a home. Once it becomes A/2 or A/3 the multiplier rises to ${M.A} and the rendita is recalculated, so check the new visura before paying.` },
+];
+---
+<Guide lang={lang} id="coefficienti" title={`IMU Multipliers 2026: ${M.A}, ${M.B}, ${M.A10}, ${M.D}, ${M.C1} by Category`}
+  description={`IMU cadastral multipliers for 2026: ${M.A} for homes and garages, ${M.B} for group B, ${M.A10} for offices, ${M.D} for group D, ${M.C1} for shops, with examples on one rendita.`}
+  h1="IMU multipliers: how the category of your property changes the tax"
+  intro="Between the rendita on your visura and the rate of your comune sits one more number, fixed by law for each cadastral category."
+  resume={`The IMU multiplier, coefficiente or moltiplicatore in Italian, turns the cadastral income into the taxable value on which the comune’s rate is charged. Paragraph 745 of Law 160 of 2019 sets five of them, the same everywhere in Italy: ${M.A} for homes and for cellars, garages and sheds; ${M.B} for group B and for workshops, sports premises and beach establishments; ${M.A10} for offices A/10 and banks D/5; ${M.D} for other group D buildings such as hotels and warehouses; ${M.C1} for shops C/1. The rendita is first raised by ${formatPercent(RIV, 0, lang)}. So the same ${$(R)} of rendita becomes a taxable value of ${$(home)} on a flat and only ${$(shop)} on a shop, and at ${al(MAX)} the yearly IMU is ${$(home * MAX / 100)} against ${$(shop * MAX / 100)}. Knowing the multiplier explains why owners of mixed property, a house plus a shop or a garage, receive such uneven bills.`}
+  faqs={faqs} related={['home', 'rendita', 'secondaCasa', 'negozi', 'uffici', 'capannoni', 'pertinenze', 'esteri']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti')}>
+  <MiniSim client:visible kind="coefficienti" lang={lang} href={route('home', lang)} />
+  <h2>Every category on the same rendita</h2>
+  <p>To isolate the effect of the coefficient, the table applies each category to the same rendita of {$(R)} and to the {al(MAX)} rate that most comuni charge on property other than a main home. The formula behind each line is rendita × {k} × multiplier × rate.</p>
+  <ContentTable headers={['Category', 'Multiplier', 'Taxable value', `IMU at ${al(MAX)}`]} align={['l', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Where the category comes from</h2>
+  <p>The category is written on the visura catastale next to the rendita, as a letter and a number: A/2 for a standard flat, A/7 for a detached house, C/6 for a garage, C/1 for a shop. It records the use the unit was registered for, not the use you make of it today. A country house bought with a barn and a stable may therefore come with several lines: the house in group A, the barn as C/2 or as a rural building, the stable as C/6. Each line is a separate unit for IMU, with its own multiplier, and the guide to <a href={route('rendita', lang)}>reading the rendita</a> explains the other fields.</p>
+
+  <h2>A foreign owner’s typical portfolio</h2>
+  <p>Many non-resident buyers own more than a flat: a garage, a shop on the ground floor, sometimes a small building used for tourism. The example adds them up in a comune at {al(MAX)}, showing how the multiplier spreads the tax.</p>
+  <ContentTable headers={['Unit', 'Rendita', 'Multiplier', 'Taxable value', 'IMU per year']} align={['l', 'r', 'r', 'r', 'r']} rows={hRows} />
+  <p>The four units together pay {$(total)} a year. The shop, despite the highest rendita among the first three, is taxed on less than three times its rendita because of the {M.C1} multiplier, while the garage, with a tiny rendita, still adds a visible amount because it shares the {M.A} coefficient of homes.</p>
+
+  <h2>Homes, garages and the main home rules</h2>
+  <p>For residents, garages and cellars that serve the main home, one per category, are exempt with it. That rule does not help a non-resident owner, because a home in Italy cannot be the main home of someone who lives and is registered elsewhere. Every garage and cellar line of a holiday flat pays, at the same rate as the flat. The guide on <a href={route('pertinenze', lang)}>garages and cellars</a> covers the cases where a pertinenza is exempt.</p>
+
+  <h2>Group D: hotels, warehouses and the State share</h2>
+  <p>Productive buildings in group D use the {M.D} multiplier, except banks and insurance offices D/5, which use {M.A10}. Part of their tax, calculated at {al(P.limiti.D_quota_stato)}, always goes to the State and is paid with a different code from the comune’s part. Rural farm buildings, even when classed D/10, also use {M.D} but have their own low rate, at most {al(P.aliquote_base.rur)}. A group D building not yet registered and owned by a business is valued from its accounting costs until a rendita is requested. The <a href={route('capannoni', lang)}>group D guide</a> has the details.</p>
+
+  <h2>Land and building plots have no multiplier of this kind</h2>
+  <p>Farmland is valued from its reddito dominicale, raised by {formatPercent(P.base.rivalutazione_dominicale, 0, lang)} and multiplied by {P.base.moltiplicatore_terreni}. Building plots are valued at their market value on 1 January, without any coefficient. A plot with planning permission next to your house can therefore cost more in IMU than the house itself, even though it produces no income.</p>
+
+  <h2>Checking an estimate you were given</h2>
+  <p>Agents and online portals sometimes quote a yearly IMU figure in listings. To check it, ask for the category and rendita of each unit, multiply the rendita by {k} and by the multiplier of its category, and apply the comune’s rate for second homes. If the quoted figure is two or three times yours, the estimate probably used the home multiplier for a shop or an office, or applied a rate the comune does not use. If it is much lower, it may assume a main home exemption that a non-resident cannot claim.</p>
+  <h2>Mistakes that inflate the bill</h2>
+  <p>Applying {M.A} to every unit is the classic error of online estimates: it overstates the tax on shops by about three times and on offices by two. The opposite mistake is using a lower multiplier because the unit is “not really” a home, for instance a cellar furnished as a guest room; IMU follows the registry, and if the registry is wrong, the fix is a land registry update, not a different coefficient. Finally, never apply the multiplier to the rendita already raised by {formatPercent(RIV, 0, lang)} twice: the uplift happens once, and the <a href={route('home', lang)}>IMU calculator</a> does it for you.</p>
+</Guide>

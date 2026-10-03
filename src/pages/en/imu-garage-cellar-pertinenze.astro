@@ -1,0 +1,62 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const M = P.base.moltiplicatori, MAX = P.limiti.altri_max;
+const garage = 150, cellar = 55, space = 80;
+const g = (cat: 'C6' | 'C2', r: number) => calcolaImu({ categoria: cat, rendita: r, aliquota: MAX }).imposta;
+const rows = ([
+  ['Resident: flat + garage C/6 + cellar C/2', 0],
+  ['Resident: flat + garage C/6 + parking space C/6', g('C6', space)],
+  ['Not resident (holiday home): flat + garage + cellar', g('C6', garage) + g('C2', cellar)],
+  ['Resident: garage let to a neighbour', g('C6', garage)],
+] as const).map(([l, v]) => [l, $(v), $(v / 2)]);
+const faqs = [
+  { q: 'Our holiday flat in Liguria has a garage and a cellar: do they pay IMU separately?', a: `Yes. Outside the main home there is no exemption and no limit: each unit pays on its own cadastral income × 1.05 × ${M.C6} at the comune’s rate for other buildings. With ${$(garage)} and ${$(cellar)} of rendita at ${al(MAX)} they add ${$(g('C6', garage) + g('C2', cellar))} a year to the flat’s IMU.` },
+  { q: 'Which of my two parking spaces is exempt with my Italian main home?', a: `Only one, because both are category C/6 and the law exempts one pertinenza per category (Law 160/2019, art. 1, para. 741 b). Treat as exempt the one with the higher rendita; the other pays as an ordinary building, about ${$(g('C6', space))} a year on ${$(space)} of rendita at ${al(MAX)}.` },
+  { q: 'Is a cellar that is included in my flat’s cadastral record counted as a pertinenza?', a: 'Yes. The one-per-category limit applies even to pertinenze registered together with the dwelling. If your flat’s visura already includes a cellar, you have used your C/2 allowance, and another cellar registered separately would pay IMU as an ordinary building (paragraph 741 b of Law 160/2019).' },
+];
+---
+<Guide lang={lang} id="pertinenze" title="IMU on Garages and Cellars 2026: Pertinenze in Italy"
+  description={`IMU on garages, cellars and parking spaces in Italy for 2026: one C/2, one C/6 and one C/7 exempt with a main home, the rest taxed at rendita × 1.05 × ${M.C6}.`}
+  h1="Garages, cellars and parking spaces: when a pertinenza pays IMU"
+  intro="In Italy a garage, a cellar or a parking space usually has its own cadastral record and its own rendita. Whether it pays IMU depends on the home it serves."
+  resume={`An Italian property often comes with separate units for the garage, the cellar or the parking space, each with its own entry in the land registry and its own cadastral income (rendita catastale). The tax treatment follows the home they serve. With a main home, one unit per category is exempt: one C/2 (cellar, loft, storeroom), one C/6 (garage, carport, parking space) and one C/7 (shed or canopy), under article 1, paragraph 741 b), of Law 160/2019. A second unit in the same category pays as an ordinary building. With a holiday home or any home where you are not resident, there is no exemption and no limit: every garage and cellar pays, on its rendita × 1.05 × ${M.C6}, at the comune’s rate for other buildings. A garage with ${$(garage)} of rendita costs ${$(g('C6', garage))} a year at ${al(MAX)}, the rate most comuni apply, so a non-resident owner with a flat, a garage and a cellar pays three amounts on three lines of the same F24 code.`}
+  faqs={faqs} related={['home', 'primaCasa', 'secondaCasa', 'lusso', 'rendita', 'coefficienti', 'esteri', 'aliquote']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_agevolazioni')}>
+  <MiniSim client:visible kind="pertinenze" lang={lang} href={route('home', lang)} />
+  <h2>Why your garage has its own rendita</h2>
+  <p>The Italian land registry (catasto) records each unit separately: the flat, the garage in the basement, the storeroom in the loft. Each has a category and a cadastral income. When you buy, the deed (rogito) usually lists all the units, and the IMU is calculated unit by unit. Check your visura catastale: if the garage appears with its own sub-number (subalterno) and category C/6, it is a separate unit for IMU purposes.</p>
+
+  <h2>The three categories that can be pertinenze</h2>
+  <p>Only three categories can share the main home exemption: C/2 for storerooms, cellars and lofts, C/6 for garages, stables and parking spaces, C/7 for open or closed sheds. One of each at most. A workshop (C/3) or a shop (C/1) is never a pertinenza for IMU, however you use it. The limit also counts a unit registered together with the flat: a loft included in the flat’s rendita uses up your C/2 allowance.</p>
+
+  <h2>Common situations</h2>
+  <p>Figures at {al(MAX)} for other buildings, with a garage of {$(garage)}, a cellar of {$(cellar)} and a parking space of {$(space)} of rendita.</p>
+  <ContentTable headers={['Situation', 'IMU per year on the extra units', 'Each instalment']} align={['l', 'r', 'r']} rows={rows} />
+
+  <h2>Holiday homes: everything pays</h2>
+  <p>Most foreign owners are in this case. Since a holiday home is not your main home, its garage and cellar are taxed too, each on its own rendita. The amounts are small compared with the flat, but they are due and comuni do check them: an owner who pays only on the flat leaves the other units unpaid, which can surface years later as an assessment with interest and penalties. The calculator handles each unit if you select the matching profile (garage, cellar or parking space not a pertinenza).</p>
+
+  <h2>Garages let to someone else</h2>
+  <p>The comuni’s rate schedules recall that pertinenze are not taxed autonomously because, under article 817 of the Civil Code, they share the regime of the property they serve. A garage you let to a neighbour no longer serves your home, so it pays as an ordinary building even if it is the only garage you own. Some comuni set a specific rate for category C units that are let: the calculator lists it under the result when the schedule has one.</p>
+
+  <h2>Pertinenze of a luxury main home</h2>
+  <p>If you live in an A/1, A/8 or A/9 home, its garage and cellar pay with the home, at the reduced main home rate, and the {$(P.detrazione_ap)} deduction applies to the total. On the F24 they go under the same code as the home, {P.f24.ap}. Units beyond one per category pay at the ordinary rate under code {P.f24.altri}.</p>
+
+  <h2>A garage bought separately or nearby</h2>
+  <p>The law does not require the garage to be in the same building or bought with the flat. What counts is that it is permanently intended to serve the home. A garage a few streets away that you use for the family car can be your C/6 pertinenza; one in another town is hard to defend as serving the home, and the comune may challenge it.</p>
+
+  <h2>Reading the deed and the visura together</h2>
+  <p>Foreign buyers often receive a deed in Italian that lists several cadastral references: foglio, particella and subalterno for each unit. Each subalterno with its own category is a unit for IMU. A flat sold “with garage and cellar” may be three units, or one unit if the extras were merged into the flat’s record. Ask the notary or a geometra to list the units with their categories and rendite, and keep that list with your tax papers: it is the basis for every IMU payment and for any later check by the comune.</p>
+
+  <h2>Mistakes we see most often</h2>
+  <p>Paying nothing on two garages because both seem to be pertinenze; paying on the only cellar, which was exempt; forgetting the parking space on a holiday home because it was not mentioned in the agent’s description. Reading the visura and listing every unit with its category and rendita avoids all three. If a past year was missed, the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> lets you pay with a reduced penalty before the comune contacts you.</p>
+</Guide>

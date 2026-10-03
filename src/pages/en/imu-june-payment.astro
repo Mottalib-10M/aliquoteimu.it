@@ -1,0 +1,62 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, arrotonda } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { COUNTS, cambiati } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'en-GB');
+const MAX = P.limiti.altri_max, RV = P.ravvedimento;
+const R = 900;
+const x = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const camb = cambiati('altri');
+const leini = comune('E518')!, mazze = comune('F067')!;
+const rows = [leini, mazze, comune('L850')!].map((c) => { const y = calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(c).altri, aliquotaAcconto: ratesAcconto(c).altri }); return [`${c.name} (${c.prov})`, al(ratesAcconto(c).altri), al(ratesOf(c).altri), $(y.acconto), $(y.saldo)]; });
+const bought = [1, 3, 5, 7, 9].map((m) => { const owned = 13 - m; const y = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: owned, periodo: 'fine' }); return [new Date(Date.UTC(2026, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long' }), String(owned), $(y.acconto), $(y.saldo)]; });
+const faqs = [
+  { q: 'How much is the June IMU payment on a holiday home in Italy?', a: `Half of the year’s tax at last year’s rate, if you owned the home from January. A flat with ${$(R)} of cadastral income in a comune charging ${al(MAX)} owes ${$(x.imposta)} a year, so ${$(x.acconto)} by ${d(P.scadenze.acconto)}, written as ${$(arrotonda(x.acconto))} on the F24 form because each line is rounded to the euro.` },
+  { q: 'I bought my Italian house in August: do I pay anything in June?', a: 'No. The June instalment only covers January to June, and you did not own the property then. Your first payment is the December balance, which covers the months from August, or from September if the deed was signed late in August, at the comune’s rate for the current year (Law 160/2019, paragraphs 761 and 762).' },
+  { q: 'Can I pay the whole year’s IMU in June to save a second transfer?', a: 'Yes, paying the full year by the June deadline is allowed by law. For owners abroad it saves a second international transfer. The catch is that you calculate it with the rates known in June: if the comune changes its rate in its schedule for the year, you will owe a top-up in December or be entitled to a refund.' },
+];
+---
+<Guide lang={lang} id="acconto" title="IMU June Payment 2026: Acconto Due by 16 June, Explained"
+  description={`IMU June payment (acconto) 2026: half the year’s tax at the comune’s 2025 rate, due by 16 June, months of ownership, paying the full year at once, F24 form.`}
+  h1="The June IMU instalment (acconto) in 2026"
+  intro="If you own a home in Italy that is not your residence, the first IMU payment of the year falls in mid-June, before most comuni have finalised their rates."
+  resume={`The first IMU instalment of 2026, called the acconto, was due by ${d(P.scadenze.acconto)}. It equals the tax for the first half of the year worked out with the comune’s rate and deduction from the previous year (Law 160 of 2019, article 1, paragraph 762). For an owner who held the property all year that simply means half of the annual tax at the 2025 rate. A flat classed A/2 with ${$(R)} of cadastral income, in a comune that charges ${al(MAX)} on second homes, pays ${$(x.imposta)} a year: ${$(x.acconto)} in June and the same in December if the rate does not change. Buyers who completed after June pay nothing in June; sellers pay only the months they still owned the property. Any change in the comune’s rate for 2026 is settled with the December balance. Since most owners abroad pay by bank transfer, many choose to pay the whole year in June, which the law allows.`}
+  faqs={faqs} related={['home', 'saldo', 'scadenze', 'f24', 'esteri', 'ravvedimento', 'compravendita', 'aliquote']} sources={src(lang, 'legge160', 'mef_versamenti', 'codici_tributo', 'legge296')}>
+  <MiniSim client:visible kind="acconto" lang={lang} href={route('home', lang)} />
+  <h2>Why June uses last year’s rate</h2>
+  <p>Italian comuni have until {d(P.scadenze.inserimento_prospetti)} to upload their rate schedule (prospetto delle aliquote) for the year, and the Department of Finance publishes it by {d(P.scadenze.pubblicazione_prospetti)}. In June, the new rates often do not exist yet. The law therefore splits the year: June is calculated on the rates you already know, those of the previous twelve months, and December corrects the total once the new rates are published. You never have to guess a rate that has not been set.</p>
+  <p>At the time of our check, {n(COUNTS.P26)} comuni had published a 2026 schedule and {n(COUNTS.P25)} were still on 2025. Where no new schedule exists, June and December are identical. Where one does, the calculator uses the 2025 schedule for June and the 2026 one for December.</p>
+
+  <h2>When it is not half the tax</h2>
+  <p>Two things change the June figure: the months you owned the property between January and June, and any change of rate. A month counts if you owned the property for more than half of its days, and the day of the deed (rogito) counts for the buyer (paragraph 761). If you complete on 20 March, March stays with the seller; complete on 10 March and it is yours.</p>
+  <ContentTable caption={`June and December payments by month of purchase, A/2 flat with ${$(R)} rendita at ${al(MAX)}`} headers={['Bought in', 'Months owned', 'June payment', 'December payment']} align={['l', 'r', 'r', 'r']} rows={bought} />
+  <p>If you sold during the first half of the year, the June payment covers January up to the month of the sale and nothing is due in December.</p>
+
+  <h2>Comuni that changed their rate</h2>
+  <p>Comparing each comune’s 2025 and 2026 schedules, we found {n(camb.length)} that changed the rate on second homes and other buildings. In those places the June payment at the old rate is not half of the final tax. Three real examples for the same flat:</p>
+  <ContentTable headers={['Comune', '2025 rate', '2026 rate', 'June', 'December']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Paying the whole year in June</h2>
+  <p>Paragraph 762 lets you pay the full year’s tax by the June deadline. For owners who live abroad and pay by international transfer, one payment instead of two means one bank fee and one thing to remember. It is a safe choice when the comune has already published its 2026 schedule; otherwise, a rate increase decided before the end of October means a top-up by 16 December, and a cut means a credit you claim back with a <a href={route('rimborso', lang)}>refund request</a>.</p>
+
+  <h2>Luxury homes and reductions</h2>
+  <p>If the property is your Italian main home and classed A/1, A/8 or A/9, the {$(P.detrazione_ap)} deduction is applied in proportion to the months: six months’ worth in June. Reductions apply from the first instalment too. A home lent free of charge to a child under a registered contract has its taxable value halved; a home let at agreed rent pays {formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)} of the tax; pensioners living abroad who qualify pay half on one home. See the guides to <a href={route('lusso', lang)}>luxury homes</a> and <a href={route('esteri', lang)}>non-residents</a>.</p>
+
+  <h2>Filling in the F24 line</h2>
+  <p>IMU is paid only with the F24 form or the matching postal slip (paragraph 765). In the section for IMU and other local taxes, each line carries the comune’s cadastral code, the tax code ({P.f24.altri} for a second home, {P.f24.ap} for a luxury main home), the “Acc.” box ticked for the June instalment, the number of properties and the year 2026. Amounts are rounded to the euro per line, down up to 49 cents and up above (Law 296 of 2006, paragraph 166): {$2(x.acconto)} becomes {$(arrotonda(x.acconto))}. If you pay the full year at once, tick both “Acc.” and “Saldo”. The <a href={route('f24', lang)}>F24 tax codes guide</a> lists every code.</p>
+
+  <h2>Missed the June deadline</h2>
+  <p>Pay as soon as you can with the voluntary correction procedure, the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a>. The full penalty of {formatPercent(RV.sanzione_base, 0, lang)} of the unpaid tax is halved for delays up to ninety days and the ravvedimento cuts it to one tenth within thirty days, plus interest at the legal rate for each day of delay. Folding the missed June amount into your December payment does not cancel the delay: the penalty keeps growing until the June amount is paid.</p>
+</Guide>

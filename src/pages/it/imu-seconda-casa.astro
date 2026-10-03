@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatDecimal } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max, BASE = P.aliquote_base.altri, M = P.base.moltiplicatori;
+const top = distribuzione('altri')[0];
+const R = 750;
+const x = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const mare = [['Rimini', 'H294'], ['Sanremo', 'I138'], ['Gallipoli', 'D883'], ['Alghero', 'A192'], ['Viareggio', 'L833'], ['Cortina d’Ampezzo', 'A266']] as const;
+const mareRows = mare.map(([nome, code]) => { const c = comune(code)!; const a = ratesOf(c).altri; return [nome, al(a), c.st === 'P26' ? '2026' : '2025', $(calcolaImu({ categoria: 'A2', rendita: R, aliquota: a }).imposta)]; });
+const sfitti = quanti('altri', () => true);
+const rendite = [400, 600, 800, 1000, 1300, 1800].map((r) => { const y = calcolaImu({ categoria: 'A2', rendita: r, aliquota: MAX }); const z = calcolaImu({ categoria: 'A2', rendita: r, aliquota: BASE }); return [$(r), $(y.base), $(z.imposta), $(y.imposta), $(y.acconto)]; });
+const faqs = [
+  { q: 'Quanto si paga di IMU su una seconda casa con rendita di 750 euro?', a: `Con l’aliquota dell’${al(MAX)}, la più diffusa, la base imponibile è ${$(x.base)} (${$(R)} × ${formatDecimal(1 + P.base.rivalutazione_rendita, 2, lang)} × ${M.A}) e l’IMU annua è ${$(x.imposta)}: ${$(x.acconto)} entro il 16 giugno e ${$(x.saldo)} entro il 16 dicembre. Se il comune applica l’aliquota di base dello ${al(BASE)}, scende a ${$(calcolaImu({ categoria: 'A2', rendita: R, aliquota: BASE }).imposta)}.` },
+  { q: 'La seconda casa sfitta paga di più di quella affittata?', a: `Dipende dal comune. La legge non distingue, ma il prospetto può prevedere aliquote diverse per gli immobili a disposizione e per quelli locati: alcuni comuni premiano chi affitta a canone concordato o a residenti, altri tassano di più le case vuote. Il calcolatore mostra queste aliquote quando il prospetto del tuo comune le contiene.` },
+  { q: 'Chi paga l’IMU della seconda casa ereditata da più fratelli?', a: 'Ciascun erede paga la propria quota, con un proprio F24, dal giorno dell’apertura della successione. Se uno dei fratelli ci vive con la residenza, la sua quota è esente come abitazione principale, mentre gli altri pagano sulla loro parte con l’aliquota degli altri fabbricati. Il coniuge superstite che ha il diritto di abitazione paga invece da solo.' },
+  { q: 'La casa al mare in un altro comune può essere abitazione principale?', a: 'Solo se ci trasferisci davvero residenza anagrafica e dimora abituale. Una residenza fittizia, smentita dai consumi di luce e acqua o dal lavoro in un’altra città, espone all’accertamento del comune con sanzioni e interessi, che può risalire fino a cinque anni indietro. L’agevolazione spetta a una sola casa per persona.' },
+];
+---
+<Guide lang={lang} id="secondaCasa" title={`IMU seconda casa 2026: calcolo, aliquote e scadenze`}
+  description={`IMU seconda casa 2026: rendita × 1,05 × ${M.A}, aliquota del comune dallo ${al(BASE)} all’${al(MAX)}, acconto di giugno, saldo di dicembre ed esempi calcolati.`}
+  h1="IMU sulla seconda casa nel 2026: quanto si paga e come si calcola"
+  intro="La seconda casa è l’immobile che paga l’IMU più spesso: case al mare o in montagna, appartamenti ereditati, case sfitte in attesa di vendita."
+  resume={`Sulla seconda casa l’IMU si paga sempre, che sia abitata qualche settimana l’anno, affittata o vuota, perché l’esenzione vale solo per l’abitazione principale. Il calcolo parte dalla rendita catastale della visura, che si aumenta del 5 % e si moltiplica per ${M.A}: per un appartamento con ${$(R)} di rendita la base imponibile è ${$(x.base)}. A questa base si applica l’aliquota che il comune riserva agli «altri fabbricati». La legge fissa la base allo ${al(BASE)} e lascia ai comuni la possibilità di salire fino all’${al(MAX)}: è proprio questo il valore più frequente, scelto da ${n(top.n)} comuni su ${n(conProspetto.length)}. Con quell’aliquota la stessa casa paga ${$(x.imposta)} l’anno, in due rate da ${$(x.acconto)} il 16 giugno e il 16 dicembre 2026, oppure in un’unica soluzione entro il 16 giugno. Paga chi è proprietario o usufruttuario, in proporzione alla sua quota e ai mesi di possesso; l’inquilino non paga mai l’IMU.`}
+  faqs={faqs} related={['home', 'aliquote', 'confronto', 'locati', 'concordato', 'comodato', 'acconto', 'saldo', 'esteri']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti', 'mef_agevolazioni')}>
+  <MiniSim client:visible kind="seconda" lang={lang} href={route('home', lang)} />
+  <h2>La formula passo per passo</h2>
+  <p>Il calcolo dell’IMU sulla seconda casa segue sempre lo stesso schema. Prendi la rendita catastale non rivalutata, quella scritta nella visura o nel rogito. Aggiungi il 5 %. Moltiplica per {M.A}, il coefficiente di tutte le abitazioni dei gruppi A (tranne gli uffici A/10) e anche di cantine, box e tettoie. Il risultato è il valore fiscale dell’immobile. Moltiplica quel valore per l’aliquota del comune, poi per la tua quota di proprietà e per i mesi di possesso divisi per dodici.</p>
+  <p>Con {$(R)} di rendita: {$(R)} × {formatDecimal(1 + P.base.rivalutazione_rendita, 2, lang)} = {$(R * (1 + P.base.rivalutazione_rendita))}; × {M.A} = {$(x.base)}; × {al(MAX)} = {$(x.imposta)}. Se possiedi metà della casa, la tua IMU è {$(x.imposta / 2)}; se il rogito è del 10 luglio, luglio conta per te, che hai la casa per 22 giorni su 31, e paghi sei mesi, cioè metà dell’importo annuo.</p>
+  <ContentTable headers={['Rendita', 'Base imponibile', `IMU a ${al(BASE)}`, `IMU a ${al(MAX)}`, 'Ogni rata']} align={['r', 'r', 'r', 'r', 'r']} rows={rendite} />
+
+  <h2>L’aliquota non è la stessa ovunque</h2>
+  <p>La differenza tra un comune e l’altro è spesso più grande di quella tra una casa piccola e una grande. L’aliquota degli altri fabbricati può andare da zero a {al(MAX)}, e fino a {al(MAX + P.limiti.maggiorazione_ex_tasi)} nei comuni che hanno mantenuto la vecchia maggiorazione TASI, come Roma e Milano. Nelle località di villeggiatura, dove le seconde case sono la maggioranza e i residenti pochi, i comuni tendono ad applicare il massimo: è lì che si trova buona parte del gettito.</p>
+  <ContentTable caption={`Seconda casa A/2 con ${$(R)} di rendita in alcune località turistiche`} headers={['Comune', 'Aliquota', 'Prospetto', 'IMU annua']} align={['l', 'r', 'r', 'r']} rows={mareRows} />
+  <p>Prima di pagare, controlla nel <a href={route('aliquote', lang)}>prospetto del tuo comune</a> se esiste un’aliquota più bassa per la tua situazione. Molti comuni la prevedono per le case affittate a <a href={route('concordato', lang)}>canone concordato</a>, per quelle date in comodato a parenti o per gli alloggi locati a studenti; pochi la prevedono per le case a disposizione, che anzi sono spesso tassate al massimo.</p>
+
+  <h2>Casa vuota, affittata o usata in vacanza</h2>
+  <p>Per la legge la seconda casa è una sola categoria, gli «altri fabbricati», qualunque sia l’uso. Sono i comuni a distinguere, nei {n(sfitti)} prospetti che abbiamo letto, tra abitazioni a disposizione, locate a canone libero, locate a canone concordato o date in comodato. La casa affittata a canone concordato ha in più una riduzione di legge: l’imposta, calcolata con l’aliquota del comune, si paga al 75 %. Quella affittata a canone libero paga per intero, anche se il canone non copre la spesa.</p>
+  <p>Una casa usata per affitti brevi resta una seconda casa ai fini IMU: il fatto che produca reddito non cambia la categoria catastale, e paga quindi l’aliquota degli altri fabbricati o quella specifica che alcuni comuni hanno introdotto per le abitazioni destinate a strutture turistico-ricettive. Il reddito degli affitti va poi dichiarato a parte, con la cedolare secca o l’Irpef.</p>
+
+  <h2>Box, cantina e posto auto della seconda casa</h2>
+  <p>Le pertinenze seguono la casa a cui servono. Se la casa è la seconda, il box e la cantina pagano con la stessa aliquota, ciascuno sulla propria rendita moltiplicata per {M.C6}. Non c’è limite di numero: il tetto di una pertinenza per categoria vale solo per l’abitazione principale. Chi possiede due box nello stesso palazzo in cui vive, invece, ne ha uno esente e l’altro tassato come altro fabbricato: la guida sulle <a href={route('pertinenze', lang)}>pertinenze</a> spiega il caso.</p>
+
+  <h2>Quando la seconda casa diventa prima</h2>
+  <p>Se trasferisci la residenza e la dimora abituale nella seconda casa, dal mese del trasferimento quella diventa abitazione principale e non paga più, mentre l’altra comincia a pagare. Il mese conta per la casa in cui hai abitato per più della metà dei giorni. Conviene presentare la <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> solo se il comune non può conoscere il cambiamento dall’anagrafe: per un cambio di residenza di solito non serve.</p>
+  <p>Diverso è il caso dei coniugi che vivono in due case diverse: dalla sentenza n. 209 del 2022 della Corte costituzionale ciascuno ha diritto all’esenzione sulla casa in cui risiede e dimora davvero, anche se si trova in un altro comune. Le condizioni sono nella guida sui <a href={route('coniugi', lang)}>coniugi con residenze diverse</a>.</p>
+
+  <h2>Pagare: due rate e un codice</h2>
+  <p>L’IMU della seconda casa si versa con il modello F24, codice tributo {P.f24.altri}, indicando nel campo «codice ente» il codice catastale del comune in cui si trova la casa, non quello in cui vivi. L’acconto del 16 giugno si calcola con l’aliquota dell’anno precedente; il saldo del 16 dicembre con quella dell’anno in corso, recuperando la differenza. Se il comune ha aumentato l’aliquota, il saldo è più alto dell’acconto: la guida sul <a href={route('saldo', lang)}>saldo IMU</a> mostra il conguaglio. Ogni rigo dell’F24 si arrotonda all’euro.</p>
+  <p>Chi vive all’estero può pagare con bonifico verso la tesoreria del comune, indicando codice fiscale, codice del comune, codice tributo e anno: le istruzioni sono nella guida per i <a href={route('esteri', lang)}>residenti all’estero</a>. Se una scadenza è saltata, il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> riduce la sanzione a una frazione.</p>
+
+  <h2>Gli errori che costano di più</h2>
+  <p>Il primo è usare la rendita già rivalutata: la visura riporta la rendita «pura», e aggiungere due volte il 5 % gonfia l’imposta. Il secondo è applicare l’aliquota dell’abitazione principale a una casa in cui non si ha la residenza. Il terzo è dimenticare che dopo una successione ogni erede paga per conto suo: un solo F24 a nome del defunto, o di uno solo dei fratelli, lascia scoperte le altre quote. L’ultimo è non controllare se il comune ha cambiato aliquota: tra il 2025 e il 2026 lo hanno fatto in centinaia.</p>
+</Guide>

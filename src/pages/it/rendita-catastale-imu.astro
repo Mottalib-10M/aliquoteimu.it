@@ -1,0 +1,73 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, baseFabbricato, baseTerreno } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota, formatDecimal, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max, M = P.base.moltiplicatori;
+const RIV = P.base.rivalutazione_rendita, RIVD = P.base.rivalutazione_dominicale, MT = P.base.moltiplicatore_terreni;
+const k = formatDecimal(1 + RIV, 2, lang), kd = formatDecimal(1 + RIVD, 2, lang);
+const R = 642.3;
+const x = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const errore = calcolaImu({ categoria: 'A3', rendita: R * (1 + RIV), aliquota: MAX });
+const passi = [
+  ['Rendita della visura', $2(R)],
+  [`Rivalutazione del ${formatPercent(RIV, 0, lang)}`, $2(R * (1 + RIV))],
+  [`Moltiplicatore abitazioni (×${M.A})`, $(x.base)],
+  [`Aliquota ${al(MAX)}`, $(x.imposta)],
+  ['Acconto di giugno', $(x.acconto)],
+];
+const variazioni = [500, 650, 800, 950].map((r) => { const a = calcolaImu({ categoria: 'A3', rendita: r, aliquota: MAX }); const b = calcolaImu({ categoria: 'A3', rendita: r + 100, aliquota: MAX }); return [$(r), $(r + 100), $(a.imposta), $(b.imposta), $(b.imposta - a.imposta)]; });
+const DOM = 180;
+const t = calcolaImu({ tipo: 'terreno', rendita: DOM, aliquota: P.aliquote_base.ter });
+const faqs = [
+  { q: 'Dove trovo la rendita catastale della mia casa?', a: `Nella visura catastale, che si scarica gratis dal sito dell’Agenzia delle Entrate con SPID, CIE o CNS, indicando comune, foglio, particella e subalterno, oppure partendo dal codice fiscale del titolare. Anche il rogito e la dichiarazione dei redditi la riportano. Va usata così com’è, senza aggiungere il ${formatPercent(RIV, 0, lang)}: lo fa il calcolatore.` },
+  { q: 'Se la rendita cambia a metà anno, quale uso per l’IMU?', a: `La base dell’IMU è la rendita vigente al 1° gennaio (comma 745). Fa eccezione la variazione dovuta a lavori sull’immobile: la nuova rendita conta dalla data di fine lavori o, se prima, da quando il fabbricato è utilizzato. In quel caso l’anno si divide in due periodi, ciascuno con la sua rendita e i suoi mesi.` },
+  { q: 'Che differenza c’è tra rendita catastale e reddito dominicale?', a: `La rendita riguarda i fabbricati iscritti al catasto urbano; il reddito dominicale i terreni del catasto terreni. Per i terreni agricoli la base IMU è il dominicale aumentato del ${formatPercent(RIVD, 0, lang)} e moltiplicato per ${MT}: con ${$(DOM)} di dominicale la base è ${$(baseTerreno(DOM))}. Le aree edificabili, invece, pagano sul valore di mercato.` },
+  { q: 'Una rendita catastale più alta del giusto si può contestare?', a: 'Sì, ma non nel calcolo dell’IMU: si chiede la correzione all’ufficio del catasto dell’Agenzia delle Entrate, con un’istanza di correzione o con un aggiornamento redatto da un tecnico. Finché la rendita in atti non cambia, il comune la usa per l’imposta e l’F24 va calcolato su quella.' },
+];
+---
+<Guide lang={lang} id="rendita" title="Rendita catastale IMU: dove trovarla e come usarla"
+  description={`Rendita catastale per l’IMU 2026: dove leggerla nella visura, rivalutazione del ${formatPercent(RIV, 0, lang)}, moltiplicatori, variazioni in corso d’anno ed errori da evitare.`}
+  h1="La rendita catastale nel calcolo dell’IMU"
+  intro="È il numero da cui parte tutto il calcolo, e il più frainteso: non è un valore di mercato né un reddito che incassi davvero."
+  resume={`La rendita catastale è il reddito convenzionale che il catasto attribuisce a ogni unità immobiliare urbana in base alla zona, alla categoria, alla classe e alla consistenza. Per l’IMU conta quella iscritta in catasto al 1° gennaio dell’anno, che si legge nella visura senza alcuna rivalutazione. Il calcolo la aumenta del ${formatPercent(RIV, 0, lang)}, poi la moltiplica per un coefficiente legato alla categoria: ${M.A} per le abitazioni, ${M.C1} per i negozi, ${M.D} per i capannoni. Con una rendita di ${$2(R)} su un appartamento A/3 la base imponibile è ${$(x.base)}, e all’aliquota dell’${al(MAX)} l’IMU annua è ${$(x.imposta)}. Chi applica per sbaglio la rivalutazione due volte, partendo da un importo già maggiorato, arriva a ${$(errore.imposta)}: ${$(errore.imposta - x.imposta)} in più senza motivo. La rendita non dipende dal prezzo pagato né dall’affitto incassato, e cambia solo con un aggiornamento catastale.`}
+  faqs={faqs} related={['home', 'coefficienti', 'secondaCasa', 'aliquote', 'terreni', 'aree', 'inagibili', 'compravendita']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti', 'istat')}>
+  <MiniSim client:visible kind="rendita" lang={lang} href={route('home', lang)} />
+  <h2>Che cos’è, in concreto, la rendita</h2>
+  <p>Il catasto urbano descrive ogni unità immobiliare con pochi dati: categoria (A/3 abitazione economica, C/6 box, C/1 negozio), classe, che misura la qualità all’interno della zona censuaria, e consistenza, espressa in vani per le abitazioni e in metri quadrati per negozi e magazzini. Dalla combinazione di questi elementi con la tariffa della zona nasce un importo annuo, la rendita. È un valore fiscale costruito a tavolino, aggiornato raramente: due appartamenti identici nello stesso palazzo possono avere rendite diverse se uno è stato accatastato di recente e l’altro decenni fa.</p>
+  <p>Per questo la rendita non va confrontata con i prezzi di mercato. Un attico in centro accatastato negli anni Sessanta può avere una rendita bassa, mentre un bilocale nuovo in periferia può averne una più alta. L’IMU segue la rendita, non il valore commerciale: è il catasto, e non il comune, a decidere quanto pesa ogni immobile.</p>
+
+  <h2>Leggere la visura senza sbagliare riga</h2>
+  <p>La visura catastale riporta per ogni unità i dati identificativi (foglio, particella, subalterno), la classificazione e, nell’ultima colonna, la rendita in euro. Se la visura è storica, elenca anche le rendite passate con le date: quella da usare è l’ultima in atti al 1° gennaio 2026. Accanto alla rendita può comparire la superficie catastale, che nel calcolo dell’IMU non entra.</p>
+  <p>Due trappole frequenti. La prima è confondere l’unità principale con le pertinenze: box e cantina hanno subalterni e rendite proprie, da trattare a parte con il loro moltiplicatore. La seconda è leggere la rendita di un immobile intestato a più persone come se fosse la propria quota: la rendita è sempre dell’intera unità, la quota di possesso si applica dopo, all’imposta.</p>
+
+  <h2>Dalla visura all’F24, numero per numero</h2>
+  <p>Il percorso è sempre lo stesso. La rendita della visura si moltiplica per {k}; il risultato si moltiplica per il coefficiente della categoria; la base imponibile così ottenuta si moltiplica per l’aliquota del comune; l’imposta annua si riduce per quota e mesi e si divide in acconto e saldo. Ecco l’esempio dell’appartamento A/3 con l’aliquota più diffusa.</p>
+  <ContentTable headers={['Passaggio', 'Importo']} align={['l', 'r']} rows={passi} />
+  <p>L’ultimo rigo è quello che si scrive nell’F24 di giugno, arrotondato all’euro. Il <a href={route('home', lang)}>calcolatore IMU</a> esegue la stessa sequenza partendo dall’aliquota del tuo comune.</p>
+
+  <h2>Quanto pesa ogni 100 euro di rendita</h2>
+  <p>Poiché la formula è lineare, ogni euro di rendita in più si traduce in un aumento fisso dell’imposta. Per un’abitazione all’{al(MAX)}, 100 euro di rendita valgono {$(100 * (1 + RIV) * M.A * MAX / 100)} di IMU l’anno. Il conto aiuta a capire quanto può costare una revisione catastale dopo una ristrutturazione o un frazionamento.</p>
+  <ContentTable headers={['Rendita prima', 'Rendita dopo', 'IMU prima', 'IMU dopo', 'Differenza']} align={['r', 'r', 'r', 'r', 'r']} rows={variazioni} />
+
+  <h2>Quando la rendita cambia durante l’anno</h2>
+  <p>La regola generale vuole la rendita fotografata al 1° gennaio. La legge 160 del 2019 prevede però che le variazioni dovute a interventi edilizi abbiano effetto dalla data di ultimazione dei lavori o, se precedente, da quella di utilizzo. Un appartamento ampliato e riaccatastato a maggio paga quindi fino ad aprile con la vecchia rendita e da maggio con la nuova, secondo la regola dei mesi: conta il mese in cui la situazione è durata più della metà dei giorni.</p>
+  <p>Lo stesso principio vale per i fabbricati nuovi: sono soggetti all’imposta dalla fine dei lavori o dal primo utilizzo, anche prima che la rendita definitiva sia iscritta. Fino ad allora, il terreno su cui sorgono può essere tassato come <a href={route('aree', lang)}>area fabbricabile</a>, sul valore venale. Una volta attribuita la rendita, il calcolo torna alla formula ordinaria.</p>
+
+  <h2>Terreni: il reddito dominicale al posto della rendita</h2>
+  <p>Per i <a href={route('terreni', lang)}>terreni agricoli</a> il catasto non parla di rendita ma di reddito dominicale, che remunera la proprietà del fondo, e di reddito agrario, che remunera chi lo coltiva. L’IMU usa solo il primo: lo aumenta del {formatPercent(RIVD, 0, lang)} e lo moltiplica per {MT}. Con {$(DOM)} di dominicale, all’aliquota di base dello {al(P.aliquote_base.ter)}, l’imposta è {$(t.imposta)}. Molti terreni però non pagano affatto, perché sono condotti da coltivatori diretti o si trovano in comuni montani.</p>
+
+  <h2>Rendita e categoria vanno insieme</h2>
+  <p>La stessa rendita produce imposte diverse secondo la categoria, perché cambia il moltiplicatore: {$(R)} di rendita su un negozio C/1 danno una base di {$(baseFabbricato(R, 'C1'))}, su un ufficio A/10 di {$(baseFabbricato(R, 'A10'))}, su un’abitazione di {$(baseFabbricato(R, 'A3'))}. La tabella completa è nella guida sui <a href={route('coefficienti', lang)}>coefficienti catastali</a>. Per questo una visura con categoria sbagliata pesa quanto una rendita sbagliata.</p>
+
+  <h2>Rendita sbagliata o mancante: cosa fare</h2>
+  <p>Se la rendita in visura non corrisponde allo stato reale dell’immobile, la correzione passa dal catasto: un tecnico abilitato presenta un aggiornamento, oppure si chiede all’ufficio la rettifica di un errore materiale. Il comune, nel frattempo, calcola l’IMU sulla rendita in atti, e un versamento fatto su una rendita «stimata» più bassa si espone al recupero con sanzioni. Se una correzione riconosce che si è versato più del dovuto, la strada è l’istanza di <a href={route('rimborso', lang)}>rimborso</a> al comune. Per un immobile mai accatastato la strada è sempre la regolarizzazione catastale: senza rendita il calcolo non ha una base certa.</p>
+</Guide>

@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { COMUNI, META } from '../../lib/comuni';
+import { formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+const lang = 'it';
+const n = (v: number) => formatNumber(v, 0, lang);
+const C = META.counts;
+const fuori = C.ILIA + C.IMIS + C.IMI;
+const perProv = (st: string) => { const m = new Map<string, number>(); for (const c of COMUNI.filter((x) => x.st === st)) m.set(c.prov, (m.get(c.prov) ?? 0) + 1); return [...m.entries()].sort((a, b) => b[1] - a[1]); };
+const ilia = perProv('ILIA');
+const capFvg = COMUNI.filter((c) => c.st === 'ILIA' && c.cap).map((c) => c.name).sort().join(', ');
+const regimi = [
+  ['Friuli Venezia Giulia', 'ILIA, imposta locale immobiliare autonoma', 'legge regionale 14 novembre 2022, n. 17', 'dal 1° gennaio 2023', n(C.ILIA)],
+  ['Provincia autonoma di Trento', 'IMIS, imposta immobiliare semplice', 'legge provinciale 30 dicembre 2014, n. 14', 'confermata dal comma 739', n(C.IMIS)],
+  ['Provincia autonoma di Bolzano', 'IMI, imposta municipale immobiliare', 'legge provinciale 23 aprile 2014, n. 3', 'confermata dal comma 739', n(C.IMI)],
+];
+const provRows = ilia.map(([p, k]) => [p, n(k)]);
+const faqs = [
+  { q: 'Perché in Friuli Venezia Giulia non si paga l’IMU?', a: `Perché la regione ha autonomia impositiva statutaria e dal 1° gennaio 2023 ha istituito un tributo proprio, l’ILIA, con la legge regionale n. 17 del 2022. La legge statale ne prende atto al comma 739 della legge 160/2019. Riguarda tutti i ${n(C.ILIA)} comuni della regione, compresi i capoluoghi ${capFvg}.` },
+  { q: 'Chi ha una casa a Cortina e una a San Candido paga lo stesso tributo?', a: 'No. Cortina d’Ampezzo è in provincia di Belluno, in Veneto, e applica l’IMU con le aliquote del suo prospetto. San Candido è in provincia di Bolzano e applica l’IMI, con le regole della legge provinciale n. 3 del 2014. Sono due tributi diversi, con due calcoli e due pagamenti distinti.' },
+  { q: 'Le aliquote ILIA, IMIS e IMI sono nel sito del Dipartimento delle Finanze?', a: `Non nell’archivio dei prospetti IMU, che per il Friuli Venezia Giulia risulta vuoto: i comuni fuori dal regime IMU non compilano il prospetto previsto dal comma 757. Le aliquote si trovano sui siti dei singoli comuni, della regione o delle province autonome. Per questo il nostro calcolatore non le mostra per i ${n(fuori)} comuni interessati.` },
+];
+---
+<Guide lang={lang} id="regimi" title="ILIA, IMIS e IMI 2026: dove l’IMU non si applica"
+  description={`ILIA in Friuli Venezia Giulia, IMIS a Trento e IMI a Bolzano: i ${n(fuori)} comuni dove nel 2026 l’IMU non si paga, le leggi che lo prevedono e cosa cambia.`}
+  h1="ILIA, IMIS e IMI: i tre tributi che sostituiscono l’IMU"
+  intro="In una parte del Nord Est l’imposta sugli immobili non si chiama IMU e non segue la legge 160 del 2019. Chi possiede casa lì deve guardare altrove."
+  resume={`L’IMU si applica in tutti i comuni italiani tranne quelli del Friuli Venezia Giulia e delle province autonome di Trento e di Bolzano, che hanno potere impositivo proprio in base ai loro statuti. Lo dice il comma 739 della legge 160 del 2019: in provincia di Trento continua ad applicarsi l’IMIS, imposta immobiliare semplice della legge provinciale n. 14 del 2014; in provincia di Bolzano l’IMI, imposta municipale immobiliare della legge provinciale n. 3 del 2014; in Friuli Venezia Giulia, dal 1° gennaio 2023, l’ILIA, imposta locale immobiliare autonoma della legge regionale n. 17 del 2022. In tutto sono ${n(fuori)} comuni: ${n(C.ILIA)} friulani e giuliani, ${n(C.IMIS)} trentini e ${n(C.IMI)} altoatesini. Per loro aliquote, esenzioni, scadenze e modalità di versamento sono fissate dalle leggi locali e dai comuni, e non coincidono con quelle dell’IMU. Il calcolatore li riconosce e, invece di proporre un’IMU che non è dovuta, indica il tributo da verificare presso il comune.`}
+  faqs={faqs} related={['home', 'aliquote', 'esenzioni', 'secondaCasa', 'esteri', 'confronto', 'novita']} sources={src(lang, 'legge160', 'mef_prospetti', 'istat')}>
+  <MiniSim client:visible kind="regimi" lang={lang} href={route('home', lang)} />
+  <h2>Tre tributi, tre leggi</h2>
+  <p>La tabella riassume i regimi in vigore nel 2026 e il numero di comuni secondo l’elenco ufficiale dell’ISTAT. I nomi si somigliano, ma ogni tributo ha una propria legge istitutiva e un proprio regolamento: non basta prendere le regole dell’IMU e cambiare l’aliquota.</p>
+  <ContentTable headers={['Territorio', 'Tributo', 'Legge', 'In vigore', 'Comuni']} align={['l', 'l', 'l', 'l', 'r']} rows={regimi} />
+
+  <h2>Il fondamento: l’autonomia statutaria</h2>
+  <p>Friuli Venezia Giulia e Trentino-Alto Adige sono regioni a statuto speciale, e lo statuto del Trentino-Alto Adige attribuisce alle due province autonome competenze che altrove spettano allo Stato. In materia di tributi locali questo significa che la legge statale non può imporre l’IMU dove la regione o la provincia ha istituito un tributo proprio. Il comma 739 lo riconosce espressamente: l’IMU si applica in tutti i comuni del territorio nazionale, «ferma restando» l’autonomia impositiva prevista dagli statuti, e cita per nome le due leggi provinciali e, dal 2023, quella regionale.</p>
+  <p>Anche i rapporti finanziari con lo Stato restano distinti: il comma 783 conferma gli accantonamenti già definiti per queste autonomie, che regolano come si compensa il gettito che lo Stato non incassa.</p>
+
+  <h2>Il Friuli Venezia Giulia e l’ILIA</h2>
+  <p>Fino al 2022 i comuni friulani e giuliani applicavano l’IMU come il resto d’Italia. Con la legge regionale 14 novembre 2022, n. 17, la regione ha istituito l’ILIA, che dal 1° gennaio 2023 ha preso il posto dell’IMU in tutti i {n(C.ILIA)} comuni. Ne fanno parte Trieste, Udine, Gorizia e Pordenone, le località balneari dell’alto Adriatico e i comuni montani della Carnia e del Tarvisiano. La ripartizione per provincia, secondo le sigle ISTAT, è questa:</p>
+  <ContentTable headers={['Provincia', 'Comuni con ILIA']} align={['l', 'r']} rows={provRows} />
+  <p>Le aliquote e le agevolazioni dell’ILIA sono decise dalla regione e dai comuni con regole proprie. Chi possiede una casa a Lignano o a Grado non deve quindi cercare il prospetto IMU del comune, ma la delibera ILIA pubblicata dal comune stesso.</p>
+
+  <h2>Trento e l’IMIS</h2>
+  <p>La provincia autonoma di Trento ha introdotto l’IMIS, tributo proprio della provincia, con la legge provinciale 30 dicembre 2014, n. 14. La nuova IMU nazionale del 2020 non l’ha toccata: il comma 739 dispone che continui ad applicarsi. I {n(C.IMIS)} comuni trentini, compreso il capoluogo, deliberano le aliquote IMIS nel quadro della legge provinciale. Le località turistiche delle valli dolomitiche, dove le seconde case sono molte, rientrano in questo regime.</p>
+
+  <h2>Bolzano e l’IMI</h2>
+  <p>In Alto Adige il tributo si chiama IMI, imposta municipale immobiliare, ed è regolato dalla legge provinciale 23 aprile 2014, n. 3. Vale nei {n(C.IMI)} comuni della provincia, da Bolzano e Merano alla Val Gardena e alla Val Badia. Anche qui la legge statale si limita a riconoscerne l’applicazione. Gli atti dei comuni sono spesso pubblicati in italiano e in tedesco, e il tributo può comparire con il nome tedesco GIS.</p>
+
+  <h2>Cosa cambia per chi possiede casa lì</h2>
+  <p>Le differenze pratiche riguardano soprattutto dove cercare le informazioni. Il prospetto delle aliquote previsto dal comma 757 non esiste per questi comuni: l’archivio del Dipartimento delle Finanze non li contiene, e per il Friuli Venezia Giulia l’archivio regionale dei prospetti IMU è vuoto. Le regole su abitazione principale, pertinenze, riduzioni e versamento sono quelle della legge regionale o provinciale e dei regolamenti comunali, che possono discostarsi dall’IMU. Chi applica d’abitudine le regole IMU, per esempio il dimezzamento della base per il comodato, deve controllare che esistano anche nel tributo locale.</p>
+  <p>Chi possiede immobili sia in queste aree sia nel resto d’Italia paga due tributi diversi: IMU nei comuni ordinari, con il prospetto e il codice tributo nazionale, e ILIA, IMIS o IMI con le regole locali. Il <a href={route('confronto', lang)}>confronto tra comuni</a> funziona solo tra comuni con IMU.</p>
+
+  <h2>Confini da non confondere</h2>
+  <p>I confini dei tre regimi non coincidono con l’idea comune di «Dolomiti» o di «Nord Est». Cortina d’Ampezzo, Arabba e Asiago sono in Veneto e pagano l’IMU; Madonna di Campiglio e Canazei sono in Trentino e pagano l’IMIS; Ortisei e Corvara sono in Alto Adige e pagano l’IMI; Sappada, passata dal Veneto al Friuli Venezia Giulia nel 2017, è oggi in regime ILIA. Prima di calcolare, il dato decisivo è la provincia del comune, che il calcolatore ricava dall’elenco ISTAT.</p>
+
+  <h2>Prima di comprare nel Nord Est</h2>
+  <p>Chi valuta l’acquisto di un appartamento a Trieste, di una baita in Val di Fassa o di una casa a Merano fa bene a chiedere al venditore le ricevute del tributo locale degli ultimi due anni. Mostrano quale imposta è stata pagata, su quale categoria catastale e per quale importo, e fanno emergere eventuali arretrati da regolare al rogito. All’ufficio tributi del comune conviene chiedere quale delibera fissa le aliquote dell’anno e se le seconde case, quelle affittate ai turisti e quelle date in uso ai parenti hanno un trattamento diverso. Per i comuni nati da fusioni o passati da una regione all’altra, il codice catastale della visura dice a quale comune e a quale provincia appartiene oggi l’immobile.</p>
+  <h2>Quanto sarebbe l’IMU, per confronto</h2>
+  <p>Il simulatore qui sopra mostra l’IMU teorica dello stesso immobile se si trovasse in un comune con IMU. È un ordine di grandezza utile a chi confronta acquisti in regioni diverse, non una stima del tributo locale, che ha basi imponibili e aliquote proprie. Per un calcolo IMU vero in un comune ordinario, usa il <a href={route('home', lang)}>calcolatore principale</a> e le <a href={route('aliquote', lang)}>aliquote per comune</a>.</p>
+</Guide>

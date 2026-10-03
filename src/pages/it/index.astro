@@ -1,0 +1,134 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import ImuCalculator from '../../components/calc/ImuCalculator';
+import ContentTable from '../../components/ContentTable.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import { YEAR, LAST_UPDATED, AUTHOR_NAME, LANG_TAGS } from '../../data/site-config';
+import { route, CITTA } from '../../i18n/routes';
+import { label, cityName, GROUPS } from '../../i18n/nav';
+import { webApplicationSchema, faqSchema, breadcrumbSchema, organizationSchema, personSchema, websiteSchema } from '../../lib/seo';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { distribuzione, quanti, N_IMU, COUNTS, cambiati } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import { fitTitle, fitDescription } from '../../lib/snippet';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const title = fitTitle(`IMU ${YEAR}: calcolo con le aliquote del tuo comune e F24`, lang);
+const description = fitDescription(`Calcolo IMU ${YEAR} con le aliquote ufficiali di ${n(COUNTS.P26 + COUNTS.P25)} comuni: seconda casa, abitazione di lusso, terreni, comodato, acconto di giugno, saldo e righe F24.`, lang);
+const AB = P.aliquote_base, M = P.base.moltiplicatori;
+const dist = distribuzione('altri');
+const at106 = dist.find((d) => d.aliquota === P.limiti.altri_max)?.n ?? 0;
+const at086 = dist.find((d) => d.aliquota === AB.altri)?.n ?? 0;
+const sotto = quanti('altri', (v) => v < AB.altri);
+const conMagg = quanti('altri', (v) => v > P.limiti.altri_max);
+const nCamb = cambiati('altri').length;
+const roma = comune('H501')!, milano = comune('F205')!, aosta = comune('A326')!;
+const R = 800;
+const imuIn = (code: string) => calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(comune(code)!).altri }).imposta;
+const ex = calcolaImu({ categoria: 'A2', rendita: R, aliquota: P.limiti.altri_max });
+const esempi = [
+  ['Seconda casa A/2', 800, 'A2', 'altro', {}],
+  ['Seconda casa A/3 in comodato al figlio', 650, 'A3', 'altro', { riduzione: 'comodato' }],
+  ['Appartamento A/2 a canone concordato', 800, 'A2', 'altro', { canoneConcordato: true }],
+  ['Abitazione principale A/8', 2500, 'A8', 'ap', {}],
+  ['Negozio C/1', 1800, 'C1', 'altro', {}],
+  ['Ufficio A/10', 1500, 'A10', 'altro', {}],
+  ['Box C/6 non pertinenziale', 120, 'C6', 'altro', {}],
+  ['Capannone D/7', 9000, 'D', 'altro', {}],
+] as const;
+const rows = esempi.map(([lbl, r, cat, uso, extra]) => {
+  const aliq = uso === 'ap' ? AB.ap : cat === 'D' ? P.limiti.altri_max : P.limiti.altri_max;
+  const x = calcolaImu({ categoria: cat, rendita: r, aliquota: aliq, uso, ...(extra as object) });
+  return [lbl, $(r), al(aliq), $(x.imposta), $(x.acconto), $(x.saldo)];
+});
+const cittaRows = CITTA.map((c) => { const k = comune(c.code)!; const r = ratesOf(k); return [`<a href="${route(`citta-${c.id}`, lang)}">${cityName(c.id, lang)}</a>`, al(r.altri), al(r.ap), al(r.D), k.st === 'P26' ? '2026' : '2025', $(calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri }).imposta)]; });
+const faqs = [
+  { q: 'Come si calcola l’IMU sulla seconda casa?', a: `Si prende la rendita catastale della visura, la si aumenta del 5 %, la si moltiplica per ${M.A} (abitazioni) e si applica l’aliquota del comune. Con una rendita di ${$(R)} e l’aliquota massima ordinaria dell’${al(P.limiti.altri_max)} l’IMU annua è ${$(ex.imposta)}, da versare in due rate da ${$(ex.acconto)} il 16 giugno e il 16 dicembre, oppure in un’unica soluzione a giugno.` },
+  { q: 'La prima casa paga l’IMU nel 2026?', a: `No, se è la tua abitazione principale e non è accatastata come A/1, A/8 o A/9: niente IMU anche per le pertinenze C/2, C/6 e C/7, una per categoria. Le abitazioni principali di lusso pagano con un’aliquota di base dello ${al(AB.ap)}, che il comune può portare fino allo ${al(P.limiti.ap_max)}, e hanno una detrazione di ${$(P.detrazione_ap)}.` },
+  { q: 'Dove trovo l’aliquota IMU del mio comune?', a: `Nel prospetto delle aliquote che ogni comune pubblica sul sito del Dipartimento delle Finanze. Il calcolatore lo legge per te: abbiamo i prospetti di ${n(COUNTS.P26 + COUNTS.P25)} comuni, di cui ${n(COUNTS.P26)} già aggiornati al 2026. Il prospetto prevale sul regolamento comunale in caso di discordanza (comma 764).` },
+  { q: 'Quando si paga l’IMU nel 2026?', a: `L’acconto entro martedì 16 giugno 2026 e il saldo entro mercoledì 16 dicembre 2026. L’acconto si calcola con le aliquote dell’anno precedente; il saldo usa i prospetti pubblicati entro il 28 ottobre 2026 e recupera l’eventuale differenza. Puoi anche pagare tutto in un’unica soluzione entro il 16 giugno.` },
+  { q: 'Il mio comune non ha ancora pubblicato le aliquote 2026: cosa pago?', a: `Fino a quando non c’è un prospetto 2026, valgono le aliquote dell’anno precedente; se il comune non lo pubblica entro il 28 ottobre 2026, restano valide anche per il saldo di dicembre (comma 767). Per i ${n(COUNTS.B)} comuni che non hanno mai inviato un prospetto conforme si applicano le aliquote di base della legge.` },
+  { q: 'Quali codici tributo uso nell’F24 per l’IMU?', a: `${P.f24.ap} per l’abitazione principale di lusso, ${P.f24.rur} per i fabbricati rurali strumentali, ${P.f24.ter} per i terreni, ${P.f24.aree} per le aree fabbricabili, ${P.f24.altri} per gli altri fabbricati, ${P.f24.D_stato} e ${P.f24.D_comune} per la quota Stato e la quota comune del gruppo D. Nel campo «codice ente» va il codice catastale del comune, che il calcolatore ti mostra.` },
+  { q: 'L’IMU si paga in Friuli Venezia Giulia e in Trentino-Alto Adige?', a: `No. In Friuli Venezia Giulia dal 2023 si paga l’ILIA, in provincia di Trento l’IMIS e in provincia di Bolzano l’IMI, tributi propri con regole e aliquote diverse (comma 739). Riguarda ${n(COUNTS.ILIA + COUNTS.IMIS + COUNTS.IMI)} comuni: il calcolatore li riconosce e non ti mostra un’IMU che non devi.` },
+];
+const related = ['aliquote', 'confronto', 'ravvedimento', 'secondaCasa', 'primaCasa', 'comodato', 'acconto', 'saldo', 'f24'].map((id) => ({ href: route(id, lang), name: label(id, lang), description: '' }));
+const sources = src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti', 'mef_agevolazioni', 'legge178', 'codici_tributo', 'corte209');
+const jsonLd = [webApplicationSchema({ name: `Calcolo IMU ${YEAR}`, description, path: route('home', lang), lang }), faqSchema(faqs, lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }]), organizationSchema(lang), personSchema(lang), websiteSchema(lang)];
+---
+<PageLayout title={title} description={description} lang={lang} jsonLd={jsonLd} faqs={faqs} related={related} sources={sources}>
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Calcolo IMU {YEAR} con le aliquote del tuo comune</h1>
+    <p class="mt-3 text-lg text-navy-600">Scegli il comune, il tipo di immobile e la rendita catastale: l’aliquota arriva dal prospetto ufficiale, l’acconto di giugno usa quella dell’anno precedente e il saldo di dicembre quella {YEAR}, con le righe F24 già pronte.</p>
+    <p class="mt-3"><span class="inline-block rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-600">Prospetti MEF di {n(COUNTS.P26 + COUNTS.P25)} comuni · verificati il <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, LANG_TAGS[lang])}</time> da {AUTHOR_NAME}</span></p>
+  </header>
+  <ImuCalculator client:load lang={lang} methodHref={route('method', lang)} />
+  <p class="mt-8 text-navy-700">L’IMU, imposta municipale propria, è dovuta ogni anno da chi possiede un immobile in Italia diverso dall’abitazione principale: seconde case, case affittate o sfitte, negozi, uffici, capannoni, terreni e aree edificabili. Si calcola in quattro passaggi. La rendita catastale della visura si aumenta del 5 %; il risultato si moltiplica per un coefficiente che dipende dalla categoria ({M.A} per le abitazioni, {M.C1} per i negozi); alla base così ottenuta si applica l’aliquota decisa dal comune; l’importo si riduce in proporzione alla tua quota e ai mesi di possesso. Per un appartamento A/2 con {$(R)} di rendita, all’{al(P.limiti.altri_max)} l’IMU {YEAR} è di {$(ex.imposta)} l’anno. La stessa casa costa {$(imuIn('H501'))} a Roma, dove l’aliquota è {al(ratesOf(roma).altri)}, e {$(imuIn('A326'))} ad Aosta, ferma allo {al(ratesOf(aosta).altri)}. Per questo il calcolatore parte dal prospetto delle aliquote che il tuo comune ha inviato al Dipartimento delle Finanze, e lo dice quando quel prospetto è ancora quello dell’anno scorso.</p>
+  <AdSlot slot="home-1" />
+  <section class="prose prose-slate mt-10 max-w-none">
+    <h2>Come funziona il calcolo dell’IMU {YEAR}</h2>
+    <p>La legge di bilancio 2020 (legge 160 del 2019, articolo 1, commi da 738 a 783) ha fuso IMU e TASI in un’unica imposta e ne ha fissato la formula, che da allora non è cambiata. Il punto di partenza è la <a href={route('rendita', lang)}>rendita catastale</a>, il valore fiscale che il catasto assegna a ogni unità immobiliare. Si legge nella visura, si rivaluta del 5 % e si moltiplica per il <a href={route('coefficienti', lang)}>coefficiente della categoria</a>: {M.A} per le abitazioni del gruppo A e per magazzini, box e tettoie (C/2, C/6, C/7), {M.B} per il gruppo B e i laboratori C/3, C/4, C/5, {M.A10} per gli uffici A/10 e le banche D/5, {M.D} per gli altri immobili del gruppo D, {M.C1} per i negozi C/1.</p>
+    <p>Su quella base imponibile si applica l’aliquota. La legge fissa un’aliquota di base per ogni fattispecie e un intervallo entro cui il comune si muove: per gli «altri fabbricati», cioè seconde case, immobili affittati, negozi e uffici, la base è {al(AB.altri)} e il comune può salire fino a {al(P.limiti.altri_max)}, o fino a {al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} se applicava la vecchia maggiorazione TASI, oppure scendere fino a zero. Per i terreni agricoli la base è {al(AB.ter)}, per i fabbricati rurali strumentali {al(AB.rur)}, per il gruppo D {al(AB.D)}, di cui lo {al(P.limiti.D_quota_stato)} va sempre allo Stato.</p>
+    <p>L’imposta annua si divide poi per la tua quota di proprietà e per i mesi in cui hai posseduto l’immobile: un mese conta se l’hai avuto per più della metà dei giorni, e il giorno del rogito va all’acquirente. Alcune situazioni dimezzano la base imponibile, come il <a href={route('comodato', lang)}>comodato a un figlio o a un genitore</a>, l’<a href={route('inagibili', lang)}>immobile inagibile</a> o quello <a href={route('storici', lang)}>vincolato come storico</a>; l’affitto a <a href={route('concordato', lang)}>canone concordato</a> porta l’imposta al 75 %; i <a href={route('esteri', lang)}>pensionati residenti all’estero</a> pagano metà su una sola abitazione.</p>
+    <p>Il versamento è in due rate. L’<a href={route('acconto', lang)}>acconto</a> del 16 giugno è la metà dell’imposta calcolata con le aliquote dell’anno precedente; il <a href={route('saldo', lang)}>saldo</a> del 16 dicembre usa le aliquote dell’anno in corso e recupera la differenza. Il calcolatore applica questa regola comune per comune quando ha entrambi i prospetti, e produce le righe del modello F24 con i <a href={route('f24', lang)}>codici tributo</a> e il codice catastale del comune.</p>
+
+    <h2>Perché l’aliquota del tuo comune cambia tutto</h2>
+    <p>Due proprietari con la stessa casa, la stessa rendita e la stessa quota possono pagare importi molto diversi, e la differenza viene tutta dalla delibera del comune. Dal 2025 ogni comune deve tradurre le sue scelte in un prospetto standard, generato con l’applicazione del Portale del federalismo fiscale, che prevale sul regolamento in caso di contrasto. Abbiamo letto tutti i prospetti pubblicati: {n(COUNTS.P26)} comuni hanno già quello del {YEAR}, altri {n(COUNTS.P25)} sono ancora fermi al 2025, {n(COUNTS.B)} non ne hanno mai inviato uno conforme e applicano quindi le aliquote di base. Su {n(N_IMU)} comuni soggetti all’IMU ne copriamo {n(COUNTS.P26 + COUNTS.P25)}.</p>
+    <p>Il quadro che ne esce smentisce l’idea di un’aliquota «standard». Per gli altri fabbricati, {n(at106)} comuni applicano il massimo ordinario dell’{al(P.limiti.altri_max)}, mentre {n(at086)} sono rimasti all’aliquota di base e {n(sotto)} scendono sotto quella soglia. Altri {n(conMagg)} superano il massimo grazie alla maggiorazione ex TASI, tra cui Roma e Milano all’{al(ratesOf(milano).altri)}. Tra il 2025 e il 2026, {n(nCamb)} comuni hanno cambiato l’aliquota degli altri fabbricati: un acconto pagato con la vecchia aliquota e un saldo con la nuova non sono più la stessa cifra.</p>
+    <p>Il prospetto dice anche cose che una formula generica non vede: aliquote ridotte per le case affittate a canone concordato o date in comodato, aliquote più alte per gli immobili sfitti, trattamenti specifici per alberghi, negozi in centro storico o immobili degli enti del terzo settore. Quando il tuo comune ne prevede, il calcolatore te le elenca sotto il risultato con il testo del prospetto e un pulsante per applicarle. Per confrontare due comuni sulla stessa casa c’è il <a href={route('confronto', lang)}>confronto tra comuni</a>; per vedere tutte le aliquote di un comune, la <a href={route('aliquote', lang)}>ricerca per comune</a>.</p>
+
+    <h2>Chi paga l’IMU e chi è esente</h2>
+    <h3>L’abitazione principale</h3>
+    <p>La casa in cui vivi e hai la residenza non paga l’IMU, con le sue pertinenze (al massimo una cantina C/2, un box C/6 e una tettoia C/7), a meno che sia accatastata come A/1, A/8 o A/9. Dopo la sentenza della Corte costituzionale n. 209 del 2022 l’esenzione spetta a ciascun coniuge sulla casa in cui ha davvero residenza e dimora abituale, anche se l’altro vive altrove. Le regole complete sono nella guida sull’<a href={route('primaCasa', lang)}>IMU prima casa</a> e in quella sulle <a href={route('lusso', lang)}>abitazioni di lusso</a>.</p>
+    <h3>Seconde case, affitti, negozi e uffici</h3>
+    <p>Tutto ciò che non è abitazione principale paga: la <a href={route('secondaCasa', lang)}>seconda casa</a> al mare, l’appartamento ereditato e sfitto, la casa affittata a studenti, il negozio, lo studio professionale. Paga il proprietario o l’usufruttuario, non l’inquilino; in caso di comproprietà ognuno versa la propria quota con il proprio F24.</p>
+    <h3>Terreni e aree</h3>
+    <p>I <a href={route('terreni', lang)}>terreni agricoli</a> sono esenti se posseduti e condotti da coltivatori diretti o IAP, e in tutti i comuni montani o di collina individuati dalla circolare del 1993: sono {n(quanti('ter', (v) => v < 0))} i comuni il cui prospetto indica i terreni come esenti. Le <a href={route('aree', lang)}>aree fabbricabili</a> pagano sul valore di mercato al 1° gennaio.</p>
+
+    <h2>Valori e parametri {YEAR}</h2>
+    <ContentTable headers={['Parametro', 'Valore', 'Riferimento']} align={['l', 'r', 'l']} rows={[
+      ['Rivalutazione della rendita', formatPercent(P.base.rivalutazione_rendita, 0, lang), 'comma 745'],
+      ['Moltiplicatore abitazioni, C/2, C/6, C/7', String(M.A), 'comma 745 a'],
+      ['Moltiplicatore B, C/3, C/4, C/5', String(M.B), 'comma 745 b'],
+      ['Moltiplicatore A/10 e D/5', String(M.A10), 'comma 745 c-d'],
+      ['Moltiplicatore gruppo D (escluso D/5)', String(M.D), 'comma 745 e'],
+      ['Moltiplicatore C/1', String(M.C1), 'comma 745 f'],
+      ['Aliquota base abitazione principale di lusso', `${al(AB.ap)} (max ${al(P.limiti.ap_max)})`, 'comma 748'],
+      ['Detrazione abitazione principale di lusso', $(P.detrazione_ap), 'comma 749'],
+      ['Aliquota base fabbricati rurali strumentali', al(AB.rur), 'comma 750'],
+      ['Aliquota base terreni agricoli', al(AB.ter), 'comma 752'],
+      ['Aliquota base gruppo D (quota Stato)', `${al(AB.D)} (${al(P.limiti.D_quota_stato)})`, 'commi 744, 753'],
+      ['Aliquota base altri immobili', `${al(AB.altri)} (max ${al(P.limiti.altri_max)})`, 'comma 754'],
+      ['Riduzione comodato, storici, inagibili', formatPercent(1 - P.riduzioni.comodato_base, 0, lang) + ' della base', 'comma 747'],
+      ['Canone concordato', `imposta al ${formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)}`, 'comma 760'],
+      ['Acconto / saldo', '16 giugno / 16 dicembre 2026', 'comma 762'],
+    ]} />
+
+    <h2>Esempi calcolati</h2>
+    <p>Gli importi qui sotto sono prodotti dallo stesso motore del calcolatore, all’aliquota massima ordinaria (o all’aliquota di base per l’abitazione di lusso), per un unico proprietario che possiede l’immobile tutto l’anno.</p>
+    <ContentTable headers={['Immobile', 'Rendita', 'Aliquota', 'IMU annua', 'Acconto', 'Saldo']} align={['l', 'r', 'r', 'r', 'r', 'r']} rows={rows} />
+  </section>
+  <AdSlot slot="home-2" />
+  <section class="prose prose-slate mt-10 max-w-none">
+    <h2>IMU nelle grandi città</h2>
+    <p>Aliquote dei prospetti in vigore e IMU di un appartamento A/2 con {$(R)} di rendita posseduto come seconda casa. Ogni città ha la sua pagina con le aliquote differenziate e un calcolatore già impostato.</p>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th scope="col" class="text-left">Città</th><th scope="col" class="text-right">Altri fabbricati</th><th scope="col" class="text-right">Ab. di lusso</th><th scope="col" class="text-right">Gruppo D</th><th scope="col" class="text-right">Prospetto</th><th scope="col" class="text-right">IMU esempio</th></tr></thead>
+      <tbody>{cittaRows.map((r) => <tr><td set:html={r[0]} />{r.slice(1).map((c) => <td class="tabular-nums text-right">{c}</td>)}</tr>)}</tbody></table></div>
+
+    <h2>Consigli per pagare il giusto</h2>
+    <ol>
+      <li><strong>Prendi la rendita dalla visura</strong>, non dal rogito: è quella vigente al 1° gennaio che conta, senza la rivalutazione del 5 %, che aggiunge il calcolatore.</li>
+      <li><strong>Controlla se il tuo comune ha un’aliquota agevolata</strong> per la tua situazione: canone concordato, comodato, immobili locati a residenti. Le trovi sotto il risultato.</li>
+      <li><strong>Registra il comodato</strong> se presti la casa a un figlio: senza contratto registrato la base non si dimezza.</li>
+      <li><strong>Non dimenticare il conguaglio</strong>: se il comune ha alzato l’aliquota nel {YEAR}, il saldo di dicembre è più alto dell’acconto.</li>
+      <li><strong>Paga entro le scadenze</strong>: in caso di ritardo il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> riduce la sanzione a una frazione del 25 %, tanto più piccola quanto prima regolarizzi.</li>
+      <li><strong>Presenta la dichiarazione IMU</strong> entro il 30 giugno dell’anno dopo quando la legge la richiede, per esempio per un comodato o un immobile inagibile: la guida sulla <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> elenca i casi.</li>
+    </ol>
+    <h2>Le guide per ogni situazione</h2>
+    <p>{[...GROUPS.immobili, ...GROUPS.riduzioni, ...GROUPS.situazioni].map((id, i) => <>{i > 0 && ' · '}<a href={route(id, lang)}>{label(id, lang)}</a></>)}</p>
+  </section>
+</PageLayout>

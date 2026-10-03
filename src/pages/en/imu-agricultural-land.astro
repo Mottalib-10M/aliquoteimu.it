@@ -1,0 +1,62 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, baseTerreno } from '../../lib/engine/imu';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatDecimal, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const B = P.aliquote_base, L = P.limiti;
+const riv = formatDecimal(1 + P.base.rivalutazione_dominicale, 2, lang);
+const mol = P.base.moltiplicatore_terreni;
+const RD = 200;
+const x = calcolaImu({ tipo: 'terreno', rendita: RD, aliquota: B.ter });
+const xMax = calcolaImu({ tipo: 'terreno', rendita: RD, aliquota: L.altri_max });
+const esenti = quanti('ter', (v) => v < 0);
+const tot = conProspetto.length;
+const top = distribuzione('ter').filter((d) => d.aliquota >= 0)[0];
+const sizes = [40, 120, 200, 450, 900].map((r) => [$(r), $(baseTerreno(r)), $(calcolaImu({ tipo: 'terreno', rendita: r, aliquota: B.ter }).imposta), $(calcolaImu({ tipo: 'terreno', rendita: r, aliquota: L.altri_max }).acconto)]);
+const faqs = [
+  { q: 'I bought an Italian farmhouse with a few hectares of olive grove: does the land pay IMU?', a: `It depends on the comune. In mountain and hill comuni listed as exempt in the rate schedule, it pays nothing; elsewhere it pays on its land income (reddito dominicale). With ${$(RD)} of land income at the ${al(B.ter)} base rate, IMU is ${$(x.imposta)} a year. The olive trees do not need to be farmed for tax to be due.` },
+  { q: 'Does land I let to a local farmer count as exempt?', a: 'No. The farmer exemption in paragraph 758 (a) of Law 160/2019 covers land that is both owned and farmed by a registered coltivatore diretto or IAP enrolled with the agricultural pension scheme. If you let the land, you are the owner but not the person farming it, so you pay IMU on the land unless the comune is exempt as a mountain or hill area.' },
+  { q: 'Where do I find the reddito dominicale of my land?', a: `On the visura catastale for the terreni, next to the reddito agrario, which IMU ignores. Use the unrevalued figure: the calculator adds ${formatPercent(P.base.rivalutazione_dominicale, 0, lang)} and multiplies by ${mol}. Your notary’s deed usually quotes it too, parcel by parcel, so you can add up the plots you own in each comune.` },
+];
+---
+<Guide lang={lang} id="terreni" title={`IMU on Agricultural Land 2026: Exemptions and Tax Owed`}
+  description={`IMU on farmland in Italy for 2026: land income × ${riv} × ${mol}, ${al(B.ter)} base rate, farmer and mountain-area exemptions, and F24 code ${P.f24.ter}, for owners.`}
+  h1="IMU on agricultural land in Italy: what foreign and Italian owners pay in 2026"
+  intro="Many houses bought in rural Italy come with land: a vineyard row, an olive grove, a meadow. That land has its own IMU line, and often it is zero."
+  resume={`Agricultural land (terreni agricoli) is taxed on its reddito dominicale, a land income figure from the land registry, not on the cadastral income used for buildings. The figure is increased by ${formatPercent(P.base.rivalutazione_dominicale, 0, lang)} and multiplied by ${mol}, so land with ${$(RD)} of reddito dominicale has a taxable value of ${$(x.base)}. The national base rate is ${al(B.ter)}; comuni may raise it to ${al(L.altri_max)} or cut it to zero. At the base rate that plot pays ${$(x.imposta)} a year, and at most ${$(xMax.imposta)}. Two exemptions matter most. Land owned and farmed by registered farmers pays nothing anywhere. And land in mountain and hill areas defined by a 1993 Finance Ministry circular is exempt for every owner, foreign or Italian: ${n(esenti)} of the ${n(tot)} comuni whose schedules we read list their farmland as exempt. Small islands and collective land held under civic use rights are exempt too.`}
+  faqs={faqs} related={['home', 'aree', 'rurali', 'aliquote', 'esenzioni', 'esteri', 'f24', 'rendita']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="terreni" lang={lang} href={route('home', lang)} />
+  <h2>Land income, the figure that matters</h2>
+  <p>A land registry extract for a plot shows two incomes. The reddito dominicale is the notional return to the landowner; the reddito agrario is the notional return to whoever farms it. IMU uses only the first. Paragraph 746 of Law 160/2019 revalues it by {formatPercent(P.base.rivalutazione_dominicale, 0, lang)} and applies a single multiplier of {mol}, whatever the crop and wherever the land lies. These values come from old cadastral tariffs and are usually modest, which keeps the tax on land small compared with the tax on a house.</p>
+  <ContentTable headers={['Land income', 'Taxable value', `IMU at ${al(B.ter)}`, `June instalment at ${al(L.altri_max)}`]} align={['r', 'r', 'r', 'r']} rows={sizes} />
+
+  <h2>When the comune exempts all farmland</h2>
+  <p>The most common reason land pays nothing has nothing to do with the owner. Paragraph 758 (d) exempts land in mountain or hill areas delimited under article 15 of Law 984 of 1977, following the criteria of Finance Ministry circular no. 9 of 14 June 1993. Large parts of the Apennines, the Alps and inland Sardinia and Sicily fall in these areas. If your farmhouse is in a hill town in Tuscany, Umbria or Le Marche, check the comune’s schedule before assuming anything: the line for terreni agricoli either shows a rate or states that farmland is exempt under paragraph 758.</p>
+  <p>Where land is taxed, the most frequent choice is {al(top.aliquota)}, used by {n(top.n)} comuni. You can see the line for your comune on the <a href={route('aliquote', lang)}>rates by comune</a> page.</p>
+
+  <h2>The farmer exemption, and why it rarely helps foreign owners</h2>
+  <p>Land owned and farmed by a coltivatore diretto or an imprenditore agricolo professionale (IAP) enrolled in the agricultural social security scheme is exempt everywhere, as is land of agricultural companies meeting the same definition. Both conditions must hold: the status and the actual farming. An owner who lets the land to a neighbour who farms it is not exempt; nor is an owner who works the olive grove at weekends without being a registered farmer.</p>
+  <p>Co-ownership follows the person. The Department of Finance confirmed in Resolution 2/DF of 10 March 2020 that a co-owner with farmer status is exempt while a co-owner without it pays on his or her share. In a family where one sibling farms and the others live in Milan or abroad, each sibling has a different answer.</p>
+
+  <h2>Unfarmed land still counts</h2>
+  <p>Under paragraph 741 (e), agricultural land means any land registered in the land registry, for whatever use, including land that is not cultivated. An overgrown field pays like a productive vineyard. The garden around a house is different: if it is registered together with the house as part of the same unit, it is already inside the house’s cadastral income and pays nothing separately.</p>
+  <p>If the local plan makes a plot buildable, it stops being farmland for IMU and becomes <a href={route('aree', lang)}>building land</a>, taxed on market value, which is usually far higher.</p>
+
+  <h2>Farm buildings are separate</h2>
+  <p>Barns, stables and storage used for farming are rural buildings for business use, taxed at their own rate (base {al(B.rur)}) with tax code {P.f24.rur}. The farmhouse you live in, or keep as a holiday home, is a dwelling and pays like any second home unless it is your main residence. The guide on <a href={route('rurali', lang)}>rural farm buildings</a> covers the distinction.</p>
+
+  <h2>Paying from abroad</h2>
+  <p>Land IMU goes on the F24 form under tax code {P.f24.ter}, with the cadastral code of the comune where the land lies. Plots in two comuni mean two lines. The June instalment uses last year’s rate, the December balance the {P.year} rate. Without an Italian bank account, owners usually pay by bank transfer to the comune’s treasury, quoting their codice fiscale, the comune code, the tax code and the year: the <a href={route('esteri', lang)}>guide for non-residents</a> explains how.</p>
+
+  <h2>Common mistakes</h2>
+  <p>Applying the building multiplier to land income gives absurd figures, so always use {mol} for land. Leaving inherited strips of land unpaid because the amounts are tiny is the other classic error: the comune can assess up to five years back with penalties and interest, and small plots are often co-owned by several heirs who each owe their share. Finally, do not mix up the land and the house on the same deed: they are separate items with separate tax codes.</p>
+</Guide>

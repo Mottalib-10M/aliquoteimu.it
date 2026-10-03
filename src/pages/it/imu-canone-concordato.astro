@@ -1,0 +1,76 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, formatDecimal } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const QQ = formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang);
+const HALF = formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const Q = P.riduzioni.canone_concordato_imposta;
+const QP = formatPercent(Q, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+const conc: Array<{ nome: string; cap: boolean; r: number; altri: number }> = [];
+let transitori = 0, studenti = 0;
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) {
+  const c = byCode.get(code); if (!c) continue;
+  const h = v.d.find((d) => /art\. 2, comma 3, della Legge n\.431\/1998/.test(d[2]));
+  if (h) conc.push({ nome: c.name, cap: c.cap, r: h[1], altri: ratesOf(c).altri });
+  if (v.d.some((d) => /art\. 5, comma 1, della Legge n\. 431\/1998/.test(d[2]))) transitori++;
+  if (v.d.some((d) => /art\. 5, comma 2, della Legge n\. 431\/1998/.test(d[2]))) studenti++;
+}
+const ridotte = conc.filter((h) => h.r < h.altri);
+const R = 800;
+const lib = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const cc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, canoneConcordato: true });
+const capRows = conc.filter((h) => h.cap).sort((a, b) => a.r - b.r).slice(0, 12).map((h) => {
+  const libera = calcolaImu({ categoria: 'A2', rendita: R, aliquota: h.altri }).imposta;
+  const agev = calcolaImu({ categoria: 'A2', rendita: R, aliquota: h.r, canoneConcordato: true }).imposta;
+  return [h.nome, al(h.altri), al(h.r), al(h.r * Q), $(libera), $(agev)];
+});
+const effMin = Math.min(...conc.map((h) => h.r)) * Q;
+const faqs = [
+  { q: 'Lo sconto IMU del canone concordato vale anche se il comune non prevede un’aliquota agevolata?', a: `Sì. La riduzione al ${QP} è stabilita dal comma 760 della legge 160/2019 e vale in tutti i comuni, applicata all’aliquota che il comune fissa per la casa affittata. Con un’aliquota dell’${al(MAX)} e ${$(R)} di rendita si pagano ${$(cc.imposta)} invece di ${$(lib.imposta)}. Se il comune ha anche un’aliquota ridotta, i due vantaggi si sommano.` },
+  { q: 'Qual è l’aliquota IMU effettiva per una casa a canone concordato?', a: `È l’aliquota del comune moltiplicata per 0,75. Al massimo ordinario dell’${al(MAX)} diventa ${al(MAX * Q)}; in un comune che applica lo ${al(0.76)} ai contratti concordati scende a ${al(0.76 * Q)}. Nei prospetti che abbiamo letto l’aliquota effettiva più bassa per questi contratti è ${al(effMin)}.` },
+  { q: 'Se scelgo la cedolare secca perdo la riduzione IMU del canone concordato?', a: 'No. Cedolare secca e IMU sono due imposte diverse: la prima riguarda il reddito dell’affitto, la seconda il possesso della casa. Il comma 760 chiede soltanto che l’abitazione sia locata a canone concordato secondo la legge 431 del 1998, senza condizioni sul regime con cui il proprietario tassa il canone.' },
+  { q: 'Se l’inquilino se ne va a metà anno, come si calcola l’IMU?', a: 'La riduzione vale per i mesi in cui la casa è stata effettivamente affittata con il contratto concordato, contati con la regola del comma 761: un mese conta se il contratto è durato più della metà dei giorni. Per gli altri mesi la casa paga come abitazione a disposizione, con l’aliquota piena del comune.' },
+];
+---
+<Guide lang={lang} id="concordato" title={`IMU canone concordato 2026: imposta al ${QP} e aliquote`}
+  description={`IMU 2026 sulla casa affittata a canone concordato: imposta ridotta al ${QP} (comma 760), aliquote agevolate di ${formatNumber(conc.length, 0, 'it')} comuni, cedolare secca ed esempi calcolati.`}
+  h1="IMU sulla casa affittata a canone concordato"
+  intro={`Il contratto a canone concordato abbassa l’IMU due volte: per legge, con la riduzione al ${QQ}, e spesso per scelta del comune, con un’aliquota più bassa.`}
+  resume={`Chi affitta un’abitazione con un contratto a canone concordato, previsto dalla legge 431 del 1998, paga l’IMU ridotta al ${QP}. Lo stabilisce il comma 760 della legge 160/2019: l’imposta si calcola come per qualsiasi casa affittata, applicando alla base imponibile l’aliquota del comune, e poi si paga per tre quarti. Per un appartamento A/2 con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, l’IMU annua passa da ${$(lib.imposta)} a ${$(cc.imposta)}, con un risparmio di ${$(lib.imposta - cc.imposta)}. Il vantaggio può crescere ancora: ${n(conc.length)} comuni hanno nel prospetto delle aliquote una voce dedicata ai contratti concordati dell’articolo 2, comma 3, e ${n(ridotte.length)} di loro la fissano sotto l’aliquota ordinaria delle seconde case. In quei comuni la riduzione di legge si applica all’aliquota agevolata, e l’aliquota effettiva può scendere molto sotto la base nazionale. Paga sempre il proprietario, mai l’inquilino.`}
+  faqs={faqs} related={['home', 'locati', 'secondaCasa', 'comodato', 'aliquote', 'confronto', 'esteri', 'saldo']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'mef_versamenti')}>
+  <MiniSim client:visible kind="concordato" lang={lang} href={route('home', lang)} />
+  <h2>Il contratto che dà diritto alla riduzione</h2>
+  <p>Il canone concordato è il contratto di locazione abitativa disciplinato dall’articolo 2, comma 3, della legge 431 del 1998, detto anche «3+2»: tre anni di durata con proroga di due, e un affitto che non si contratta liberamente ma si colloca dentro le fasce stabilite dagli accordi territoriali tra associazioni di proprietari e di inquilini. In cambio di un canone più basso del mercato, il proprietario ottiene vantaggi fiscali, tra cui quello sull’IMU.</p>
+  <p>La legge 431 prevede anche contratti transitori (articolo 5, comma 1) e contratti per studenti universitari (articolo 5, commi 2 e 3), che seguono gli stessi accordi territoriali. Molti comuni li citano espressamente nei loro prospetti: {n(transitori)} hanno una voce per i transitori e {n(studenti)} per i contratti con studenti. Prima di applicare la riduzione a un contratto diverso dal 3+2, verifica con l’ufficio tributi del comune come lo tratta.</p>
+
+  <h2>Due riduzioni che si moltiplicano</h2>
+  <p>Il meccanismo è più favorevole di quanto sembri. Le note che il Dipartimento delle Finanze allega a ogni prospetto chiariscono che, per le fattispecie del comma 760, l’imposta si determina applicando la riduzione di legge sull’aliquota stabilita dal comune per quella fattispecie. Se il comune ha un’aliquota agevolata per i contratti concordati, quindi, si parte da quella, e poi si paga il {QP}. Un’aliquota comunale dello {al(0.76)} diventa un’aliquota effettiva di {al(0.76 * Q)}; una dello {al(0.4)} scende a {al(0.4 * Q)}.</p>
+  <ContentTable caption={`Capoluoghi con un’aliquota per il canone concordato: appartamento A/2 con ${$(R)} di rendita`} headers={['Comune', 'Seconde case', 'Concordato', 'Effettiva', 'IMU a canone libero', 'IMU a concordato']} align={['l', 'r', 'r', 'r', 'r', 'r']} rows={capRows} />
+
+  <h2>Quanto vale nel bilancio dell’affitto</h2>
+  <p>Per valutare se il canone concordato conviene, l’IMU va messa accanto alla perdita di affitto. Un canone concordato è in genere più basso di quello libero, ma l’imposta scende di un quarto per legge e, nei comuni con aliquota agevolata, anche di più. Nei capoluoghi della tabella la differenza annua di IMU tra le due formule va da poche decine a diverse centinaia di euro per un appartamento medio, e si somma agli altri vantaggi fiscali del contratto, che riguardano il reddito e non l’imposta municipale.</p>
+  <p>Il calcolatore del sito tiene conto di entrambi gli elementi: scegli «abitazione affittata a canone concordato», e se il prospetto del tuo comune ha un’aliquota specifica la trovi nell’elenco sotto il risultato, pronta da applicare.</p>
+
+  <h2>Le condizioni pratiche</h2>
+  <p>La casa deve essere effettivamente locata con un contratto concordato registrato: le note del prospetto ricordano che per contratti di locazione si intendono solo quelli registrati. Il canone deve rispettare l’accordo territoriale del comune; per i contratti stipulati senza l’assistenza delle associazioni, gli accordi prevedono in genere un’attestazione di conformità rilasciata da un’organizzazione firmataria. Alcuni prospetti aggiungono requisiti propri, come l’uso della casa come abitazione principale dell’inquilino: leggi sempre la riga completa.</p>
+  <p>Alcuni regolamenti comunali chiedono di comunicare il contratto all’ufficio tributi o di indicarlo nella <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> entro il 30 giugno dell’anno successivo, per poter applicare l’aliquota agevolata: è il punto che i proprietari dimenticano più spesso.</p>
+
+  <h2>Pagamento e rate</h2>
+  <p>Il versamento segue le regole ordinarie: acconto entro il 16 giugno con l’aliquota dell’anno precedente, saldo entro il 16 dicembre a conguaglio, codice tributo {P.f24.altri} con il codice catastale del comune. La riduzione al {QP} si applica a entrambe le rate. Se il contratto inizia o finisce durante l’anno, i mesi con il contratto concordato pagano ridotti e gli altri pieni; il calcolo per mesi del comma 761 attribuisce ogni mese alla situazione che è durata più a lungo.</p>
+
+  <h2>Canone concordato, comodato o casa libera</h2>
+  <p>Per un proprietario con un figlio che cerca casa, il <a href={route('comodato', lang)}>comodato registrato</a> dimezza la base imponibile e costa meno IMU del canone concordato, ma richiede requisiti di parentela e di residenza che un affitto non chiede. Rispetto alla casa tenuta a disposizione, il canone concordato fa risparmiare almeno un quarto dell’imposta, e in molti comuni la casa sfitta è anzi tassata al massimo. La guida sugli <a href={route('locati', lang)}>immobili affittati</a> mette a confronto le diverse formule di locazione.</p>
+</Guide>

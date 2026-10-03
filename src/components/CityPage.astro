@@ -1,0 +1,44 @@
+---
+/**
+ * Page de ville (RECETTE §6.2) : le calculateur ouvert sur le comune (page outil, `data-outil`), le
+ * tableau des aliquote du prospetto et ses aliquote différenciées (données), puis le texte propre à
+ * la ville, écrit à la main dans la page. Rien de rédigé n'est commun à deux villes.
+ */
+import ToolPage from './ToolPage.astro';
+import ImuCalculator from './calc/ImuCalculator';
+import ContentTable from './ContentTable.astro';
+import { CITTA, route, type Locale } from '../i18n/routes';
+import { cityName } from '../i18n/nav';
+import { comune, ratesOf, ratesAcconto, regioneSlug, type Differenziata } from '../lib/comuni';
+import { formatAliquota } from '../lib/format';
+import { src } from '../lib/sources';
+import type { FAQItem } from '../lib/seo';
+interface Props { lang: Locale; city: string; title: string; h1: string; description: string; intro: string; resume: string; faqs: FAQItem[]; related: string[]; rendita?: number }
+const { lang, city, title, h1, description, intro, resume, faqs, related, rendita = 900 } = Astro.props;
+const C = CITTA.find((c) => c.id === city)!;
+const k = comune(C.code)!;
+const r = ratesOf(k), p = ratesAcconto(k);
+const al = (v: number) => (v < 0 ? (lang === 'en' ? 'exempt' : 'esenti') : formatAliquota(v, lang));
+const files = import.meta.glob<{ default: Record<string, { d: Differenziata[]; e: string }> }>('../data/differenziate/*.json', { eager: true });
+const D = files[`../data/differenziate/${regioneSlug(k.reg)}.json`]?.default[k.code] ?? { d: [], e: '' };
+const it = lang === 'it';
+const head = it ? ['Fattispecie', 'Aliquota in vigore', 'Acconto di giugno'] : ['Category', 'Rate in force', 'June instalment'];
+const lab = it
+  ? { altri: 'Altri fabbricati (seconde case, affitti, negozi, uffici)', ap: 'Abitazione principale A/1, A/8, A/9', D: 'Gruppo D (capannoni, alberghi)', aree: 'Aree fabbricabili', ter: 'Terreni agricoli', rur: 'Fabbricati rurali strumentali' }
+  : { altri: 'Other buildings (second homes, rentals, shops, offices)', ap: 'Luxury main home A/1, A/8, A/9', D: 'Group D (warehouses, hotels)', aree: 'Building land', ter: 'Agricultural land', rur: 'Rural farm buildings' };
+const rows = (['altri', 'ap', 'D', 'aree', 'ter', 'rur'] as const).map((f) => [lab[f], al(r[f]), al(p[f])]);
+const diffRows = D.d.map((d) => [d[2], formatAliquota(d[1], lang)]);
+const statusIt = k.st === 'P26' ? `Prospetto 2026 approvato con delibera n. ${k.delibera} del ${k.data}.` : `Prospetto 2025 (delibera n. ${k.delibera} del ${k.data}), in vigore finché il comune non pubblica quello 2026.`;
+const statusEn = k.st === 'P26' ? `2026 schedule approved by resolution no. ${k.delibera} of ${k.data}.` : `2025 schedule (resolution no. ${k.delibera} of ${k.data}), in force until the comune publishes its 2026 schedule.`;
+---
+<ToolPage lang={lang} id={`citta-${city}`} title={title} h1={h1} description={description} intro={intro} resume={resume} faqs={faqs} related={related} sources={src(lang, 'mef_prospetti', 'mef_ricerca', 'legge160', 'mef_versamenti')}>
+  <ImuCalculator slot="tool" client:load lang={lang} initialCode={C.code} initialRendita={rendita} methodHref={route('method', lang)} />
+  <h2>{it ? `Le aliquote IMU di ${cityName(city, lang)}` : `IMU rates in ${cityName(city, lang)}`}</h2>
+  <p data-chrome>{it ? statusIt : statusEn}</p>
+  <ContentTable headers={head} align={['l', 'r', 'r']} rows={rows} />
+  {diffRows.length > 0 && <>
+    <h3>{it ? 'Aliquote differenziate del prospetto' : 'Targeted rates in the schedule'}</h3>
+    <ContentTable headers={it ? ['Condizioni (testo del prospetto)', 'Aliquota'] : ['Conditions (Italian wording of the schedule)', 'Rate']} align={['l', 'r']} rows={diffRows} />
+  </>}
+  <slot />
+</ToolPage>

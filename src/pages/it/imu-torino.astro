@@ -1,0 +1,38 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('L219')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const CC = diffRate('L219', /art\. 2, comma 3/)!, STU = diffRate('L219', /studenti/)!, TR = diffRate('L219', /art\. 5, comma 3/)!, ACC = diffRate('L219', /accoglienza/)!, IND = diffRate('L219', /D\/1 Opifici - D\/7/, 'D')!, CIN = diffRate('L219', /59\.14/, 'D')!;
+const R = 800;
+const vuota = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const conc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: CC, canoneConcordato: true });
+const stud = calcolaImu({ categoria: 'A2', rendita: R, aliquota: STU });
+const cap = calcolaImu({ categoria: 'D', rendita: 12000, aliquota: r.D });
+const capInd = calcolaImu({ categoria: 'D', rendita: 12000, aliquota: IND });
+const faqs = [
+  { q: 'Quanto si risparmia di IMU a Torino affittando a canone concordato?', a: `Molto: il prospetto 2026 porta l’aliquota dall’${al(r.altri)} allo ${al(CC)} se l’inquilino ci ha la residenza, e la legge riduce poi l’imposta al 75 %. Con ${$(R)} di rendita la casa vuota paga ${$(vuota.imposta)}, quella a canone concordato ${$(conc.imposta)}, cioè ${$(vuota.imposta - conc.imposta)} in meno ogni anno.` },
+  { q: 'Affittare a studenti a Torino riduce l’IMU?', a: `Sì, se il contratto è quello per studenti universitari dell’art. 5, comma 2, della legge 431 del 1998: l’aliquota è dello ${al(STU)}. Lo stesso vale per i contratti transitori dell’art. 5, comma 3 (${al(TR)}). Con ${$(R)} di rendita un appartamento affittato a studenti paga ${$(stud.imposta)} invece di ${$(vuota.imposta)}.` },
+  { q: 'Un’impresa che usa il proprio capannone a Torino paga meno IMU?', a: `Sì: opifici D/1 e fabbricati industriali D/7 usati direttamente da una persona giuridica che esercita attività d’impresa pagano lo ${al(IND)} invece dell’${al(r.D)}. Su un capannone da 12 000 euro di rendita sono ${$(capInd.imposta)} invece di ${$(cap.imposta)}; la quota allo Stato, ${al(P.limiti.D_quota_stato)}, resta la stessa.` },
+];
+---
+<CityPage lang={lang} city="torino" rendita={R} title={`IMU Torino 2026: aliquote, canone concordato e studenti`}
+  description={`IMU Torino 2026: seconda casa all’${al(r.altri)}, canone concordato e studenti allo ${al(CC)}, aree allo ${al(r.aree)}, capannoni d’impresa allo ${al(IND)}. Prospetto 2026.`}
+  h1="IMU a Torino nel 2026: aliquote e calcolo"
+  intro="Torino ha uno dei prospetti più generosi con chi affitta: canone concordato, studenti e contratti transitori pagano poco più della metà dell’aliquota ordinaria."
+  resume={`A Torino l’IMU sugli altri fabbricati è dell’${al(r.altri)}, ma il prospetto 2026, approvato con delibera n. ${c.delibera} del ${c.data}, fa scendere l’aliquota allo ${al(CC)} per le case affittate a canone concordato a chi le usa come abitazione principale, per quelle affittate a studenti universitari e per i contratti transitori. Su un appartamento A/2 con ${$(R)} di rendita la differenza è netta: ${$(vuota.imposta)} l’anno se la casa è vuota, ${$(conc.imposta)} se è affittata a canone concordato, perché all’aliquota ridotta si somma la riduzione di legge al 75 %. Le aree fabbricabili pagano lo ${al(r.aree)}, meno del massimo, e le abitazioni principali di lusso lo ${al(r.ap)}. Le imprese che usano direttamente opifici e capannoni industriali hanno lo ${al(IND)}. Le aliquote del 2026 coincidono con quelle del 2025, per cui acconto e saldo sono uguali.`}
+  faqs={faqs} related={['home', 'concordato', 'locati', 'capannoni', 'aree', 'aliquote', 'confronto']}>
+  <h2>Affitti: tre contratti agevolati</h2>
+  <p>Torino premia tre forme di locazione regolate dalla legge 431 del 1998: il contratto a canone concordato dell’art. 2, comma 3, purché l’inquilino ci abbia l’abitazione principale; il contratto per studenti universitari dell’art. 5, comma 2; il contratto transitorio dell’art. 5, comma 3. Tutti e tre allo {al(CC)}. Solo il canone concordato ha in più la riduzione al 75 % del comma 760, che vale per legge e non dipende dal comune.</p>
+  <h2>Accoglienza e terzo settore</h2>
+  <p>Le abitazioni date in locazione o comodato a soggetti che gestiscono servizi di accoglienza pagano lo {al(ACC)}. Gli immobili delle ONLUS e degli enti del terzo settore, e quelli dati in comodato gratuito a organizzazioni di volontariato per i loro scopi istituzionali, rientrano tra le esenzioni previste dal regolamento comunale, alle condizioni lì stabilite.</p>
+  <h2>Capannoni, cinema e uffici d’impresa</h2>
+  <p>Per il gruppo D l’aliquota ordinaria è l’{al(r.D)}. Opifici e fabbricati industriali usati direttamente da un’impresa costituita come persona giuridica scendono allo {al(IND)}, le sale cinematografiche allo {al(CIN)}. Il prospetto prevede anche un’aliquota ridotta per uffici, magazzini e laboratori usati da imprese di recente costituzione.</p>
+  <h2>Aree fabbricabili sotto il massimo</h2>
+  <p>A differenza di molti capoluoghi, Torino non applica il massimo alle aree edificabili: lo {al(r.aree)} invece dell’{al(P.limiti.altri_max)}. Su un’area del valore di 200 000 euro fa {$(200000 * (P.limiti.altri_max - r.aree) / 100)} in meno all’anno rispetto a un comune al massimo.</p>
+</CityPage>

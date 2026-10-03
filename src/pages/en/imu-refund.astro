@@ -1,0 +1,67 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 800;
+const full = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const pens = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, pensionatoEstero: true });
+const conc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, canoneConcordato: true });
+const cap = comune('B677')!;
+const once = calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesAcconto(cap).altri }).imposta;
+const due = calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(cap).altri }).imposta;
+const pc = formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang);
+const cases = [
+  ['Pensioner abroad who paid the full rate', 'half-tax relief not applied', $(full.imposta - pens.imposta)],
+  ['Flat let at agreed rent taxed at 100 %', `${pc} rule not applied`, $(full.imposta - conc.imposta)],
+  ['Whole year paid in June, then a rate cut', `${cap.name}: ${al(ratesAcconto(cap).altri)} → ${al(ratesOf(cap).altri)}`, $(once - due)],
+  ['Same instalment sent twice', 'duplicate bank transfer', $(full.acconto)],
+];
+const faqs = [
+  { q: 'How long do I have to claim back IMU I overpaid in Italy?', a: 'Five years from the date of the payment, or from the date your right to the refund was established, for example by a court decision. After that the claim is lost. Once you have applied, the comune must refund you within 180 days of receiving the request (Law 296 of 2006, article 1, paragraph 164).' },
+  { q: 'Can the comune refund IMU to a foreign bank account?', a: 'The refund form asks for the bank account to be credited. Check with the comune’s tax office whether it can pay to an account outside Italy before you send the request. Give the account holder’s name exactly as on your codice fiscale, the IBAN and the BIC, and attach a bank document confirming the account to avoid delays.' },
+  { q: 'I paid IMU on my Italian home while I was resident there. Can I get it back?', a: `If the home was your registered residence and you actually lived there, and it is not classed A/1, A/8 or A/9, it was exempt as a main home. You can claim back what you paid in the last five years. Attach proof of residence and occupancy; on a flat with ${$(R)} of rendita at ${al(MAX)} that is ${$(full.imposta)} for each year.` },
+];
+---
+<Guide lang={lang} id="rimborso" title="IMU Refund 2026: Claiming Back Overpaid Property Tax"
+  description="IMU refund 2026: claim overpaid property tax from the comune within five years, refund due in 180 days, interest, offsetting and payments to the wrong comune."
+  h1="IMU refund: getting back property tax you overpaid"
+  intro="Overpaying IMU is easier than it sounds, especially from abroad. Getting it back takes a written request to the comune, and the clock is ticking."
+  resume={`If you paid more IMU than you owed, the comune that received the money must give it back, but only if you ask. A refund request (istanza di rimborso) must reach the comune within five years of the payment, or of the day your right to it was established, and the comune has 180 days from your request to pay (Law 296 of 2006, article 1, paragraph 164). Interest accrues day by day from the date you paid, at a rate each comune sets within three points of the legal rate. Owners abroad tend to overpay in four ways: a pensioner relief or agreed-rent reduction not applied, a rate cut after paying the whole year in June, a duplicate transfer, or a payment sent to the wrong comune. A qualifying pensioner living abroad who paid the full rate on a flat with ${$(R)} of cadastral income has overpaid ${$(full.imposta - pens.imposta)} a year. The calculator lets you redo the sums before you write.`}
+  faqs={faqs} related={['home', 'esteri', 'concordato', 'saldo', 'acconto', 'f24', 'primaCasa', 'dichiarazione']} sources={src(lang, 'legge296', 'legge160', 'legge178', 'mef_agevolazioni')}>
+  <MiniSim client:visible kind="rimborso" lang={lang} href={route('home', lang)} />
+  <h2>Common ways owners overpay</h2>
+  <ContentTable caption={`Examples on a flat with ${$(R)} of cadastral income`} headers={['Situation', 'What went wrong', 'Overpaid per year']} align={['l', 'l', 'r']} rows={cases} />
+  <p>The pensioner relief halves IMU on one dwelling for owners who live abroad and draw a pension earned under an international social security agreement with Italy, provided the home is neither let nor lent (Law 178 of 2020, paragraph 48). It is often missed because IMU is self-assessed: nobody applies it for you. The agreed-rent reduction (canone concordato) cuts the tax to {pc} and is equally easy to forget when a property manager handles the payments. The <a href={route('esteri', lang)}>non-residents guide</a> and the <a href={route('concordato', lang)}>agreed rent guide</a> explain who qualifies.</p>
+
+  <h2>The five-year window</h2>
+  <p>The five years run from each payment separately. A June 2026 instalment can be reclaimed until June 2031; the December one until December 2031. If the right to a refund arises later, for instance from a court ruling that lowers the cadastral income, the five years start from that ruling. The comune works on a similar horizon in the other direction: it can issue an assessment until 31 December of the fifth year after the payment was due (paragraph 161).</p>
+
+  <h2>Writing the request</h2>
+  <p>Address it to the comune’s tax office (ufficio tributi), using the form on its website if there is one, and send it by certified email (PEC), registered post or by hand through someone in Italy. Include your name and codice fiscale, the cadastral details of the property, the years and amounts paid, why they were not due, and the bank account for the refund. Attach the payment receipts and the evidence: residence certificate, pension documents showing the international agreement, the registered lease, or the duplicated bank statement. A short calculation showing what was due and what you paid saves the tax office time and you a follow-up.</p>
+  <p>The comune then has 180 days to pay. If you hear nothing, a written reminder quoting the date and reference of your request is the usual next step.</p>
+
+  <h2>Co-owners and heirs</h2>
+  <p>Each co-owner pays IMU on his or her own share, so each co-owner claims his or her own refund, even when one person sent all the payments. Heirs who discover that the deceased overpaid can claim within the same five years, attaching proof of their status as heirs and their shares. If a relative or an Italian accountant handles the request for you, add a signed authorisation and a copy of your passport: the tax office will not discuss your position with a third party without it.</p>
+
+  <h2>Interest on the refund</h2>
+  <p>You are owed interest from the day you paid, calculated day by day. There is no single national rate: paragraph 165 lets each comune fix its own, within three percentage points of the legal interest rate, and the same rate applies to interest the comune charges on late payments. It is stated in the comune’s regulations on local revenues or on IMU.</p>
+
+  <h2>Offsetting instead of a refund</h2>
+  <p>Some comuni let you use the credit against your next IMU instalment or other local taxes instead of waiting for a refund. This depends entirely on the comune’s regulations (paragraph 167), which often require you to notify the tax office before you pay the reduced amount. A credit with one comune can never be used against IMU owed to another.</p>
+
+  <h2>Money sent to the wrong comune</h2>
+  <p>Typing the code of the wrong comune on an F24, or quoting the wrong comune in a bank transfer, does not mean paying twice. Write to both comuni, the one that received the money and the one that should have, asking for the amount to be transferred, and attach the receipt. Doing it quickly stops the right comune from issuing a notice for a payment it never saw.</p>
+
+  <h2>When there is nothing to reclaim</h2>
+  <p>A high rate is not grounds for a refund if the comune published it in its schedule by 28 October: the tax was due. A reduction that depends on a formality you did not complete, such as registering a free-loan contract, cannot be claimed after the fact. And payments older than five years are out of reach. One special case runs the other way: some comuni refund IMU paid on building land that later became unbuildable, on the conditions in their own regulations (Law 160 of 2019, paragraph 777 c).</p>
+</Guide>

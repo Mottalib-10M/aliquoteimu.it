@@ -1,0 +1,63 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, moltiplicatore } from '../../lib/engine/imu';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti, B = P.aliquote_base;
+const R = 6000;
+const hotel = calcolaImu({ categoria: 'D', rendita: R, aliquota: L.altri_max });
+const tot = conProspetto.length;
+const top = distribuzione('D')[0];
+const atMin = quanti('D', (v) => v === L.D_min);
+const rows = [2000, 6000, 15000, 40000].map((r) => { const y = calcolaImu({ categoria: 'D', rendita: r, aliquota: L.altri_max }); return [$(r), $(y.base), $(y.stato), $(y.comune), $(y.imposta)]; });
+const diffFiles = import.meta.glob<{ default: Record<string, { d: Array<[string, number, string]>; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const hotels = Object.values(diffFiles).reduce((s, f) => s + Object.values(f.default).filter((v) => v.d.some((d) => d[0] === 'D' && /D\/2 /.test(d[2]))).length, 0);
+const change = calcolaImu({ categoria: 'D', rendita: R, aliquota: L.altri_max, aliquotaAcconto: B.D });
+const bank = calcolaImu({ categoria: 'D5', rendita: R, aliquota: L.altri_max });
+const faqs = [
+  { q: 'I run a small hotel in Italy: why does my IMU go to two different bodies?', a: `Hotels are in cadastral group D, and paragraph 744 of Law 160/2019 reserves to the State the IMU calculated at ${al(L.D_quota_stato)}. The comune keeps only what its rate adds on top. On ${$(R)} of rendita at ${al(L.altri_max)}, ${$(hotel.stato)} goes to the State under code ${P.f24.D_stato} and ${$(hotel.comune)} to the comune under code ${P.f24.D_comune}.` },
+  { q: 'What is the lowest IMU rate a comune can set on a warehouse?', a: `${al(L.D_min)}. Paragraph 753 sets the base rate for group D at ${al(B.D)} and allows comuni to go down only to the State share, never below. ${n(atMin)} of the ${n(tot)} comuni whose schedules we read apply that minimum, which means they collect nothing for themselves on these buildings.` },
+  { q: 'Who pays IMU on a building held under a property lease?', a: 'The lessee. For property under a finance lease (locazione finanziaria), including buildings yet to be built, the taxpayer is the lessee from the signing date for the whole contract (paragraph 743). Where a group D building has no rendita yet, its value comes from the lessor’s accounts, and the lessor must supply the figures.' },
+];
+---
+<Guide lang={lang} id="capannoni" title={`IMU on Group D Property 2026: Hotels, Warehouses, State`}
+  description={`IMU on group D property in Italy for 2026: hotels, warehouses, multiplier ${moltiplicatore('D')}, rates from ${al(L.D_min)}, State share under ${P.f24.D_stato} and comune share under ${P.f24.D_comune}.`}
+  h1="IMU on group D property: hotels, warehouses and other commercial buildings"
+  intro="Bought an agriturismo with a hotel licence, a boutique hotel or a warehouse in Italy? It is probably in cadastral group D, which has its own IMU mechanics."
+  resume={`Cadastral group D covers buildings designed for a business that cannot easily be put to another use: hotels and guesthouses (D/2), factories (D/1), theatres and cinemas (D/3), private clinics (D/4), banks and insurers (D/5), sports facilities run for profit (D/6), purpose-built industrial and commercial buildings (D/7, D/8). Their IMU base is the rendita plus 5 % times ${moltiplicatore('D')}, or ${moltiplicatore('D5')} for D/5. The base rate is ${al(B.D)}; comuni may raise it to ${al(L.altri_max)}, or more with the old TASI surcharge, and may lower it only to ${al(L.D_min)}, because that slice belongs to the State (paragraphs 744 and 753 of Law 160/2019). A small hotel with ${$(R)} of rendita at ${al(L.altri_max)} pays ${$(hotel.imposta)} a year: ${$(hotel.stato)} to the State under tax code ${P.f24.D_stato} and ${$(hotel.comune)} to the comune under ${P.f24.D_comune}. Farm buildings in D/10 are the exception, with a rural rate of their own.`}
+  faqs={faqs} related={['home', 'negozi', 'uffici', 'rurali', 'aliquote', 'f24', 'esteri']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo', 'mef_versamenti')}>
+  <MiniSim client:visible kind="capannoni" lang={lang} href={route('home', lang)} />
+  <h2>The State takes the first 0.76 %</h2>
+  <p>Group D is the only part of IMU shared with central government. The State keeps the revenue at {al(L.D_quota_stato)}; the comune receives the rest. The split does not apply to group D buildings that a comune owns within its own territory. Assessment and collection stay with the comune for both shares, so if a payment is missed it is the comune that writes to you. For you, the split means two tax codes on every instalment, and the calculator produces both lines.</p>
+  <ContentTable headers={['Rendita', 'Taxable value', 'State share', 'Comune share', `IMU at ${al(L.altri_max)}`]} align={['r', 'r', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>What comuni charge</h2>
+  <p>The most common group D rate is {al(top.aliquota)}, used by {n(top.n)} of the {n(tot)} comuni whose schedules we read. At the other end, {n(atMin)} comuni apply the {al(L.D_min)} minimum. Many fine-tune their schedules: {n(hotels)} comuni set a specific rate that covers hotels and guesthouses in D/2, with conditions such as who runs the business or whether the building is let. Check your comune on the <a href={route('aliquote', lang)}>rates by comune</a> page before budgeting: the targeted rates appear with the exact Italian conditions.</p>
+
+  <h2>Agriturismo, B&amp;B and holiday lets: which group?</h2>
+  <p>Not every hospitality business is in group D. A bed and breakfast run in rooms of a family home is often still registered as a dwelling in group A, and holiday apartments let short term keep their residential category unless they are re-registered. A purpose-built hotel, or a property re-registered as a hotel, is D/2. What matters for IMU is the category on the visura, not the business licence. If you converted a farmhouse into a hotel and re-registered it, your multiplier dropped from {moltiplicatore('A2')} to {moltiplicatore('D')} but your rate may have changed too.</p>
+
+  <h2>New buildings, leases and stock held for sale</h2>
+  <p>A new commercial building starts paying as a building when works are finished or when it is first used; before that, the plot pays as building land. Under a finance lease the lessee pays from the date of signing. Buildings built by a developer and held for sale have been exempt since 2022, as long as they are not let in any way (paragraph 751). Group D buildings owned by businesses that have no rendita yet are valued on their accounting value, updated with ministerial coefficients, until a rendita is requested (paragraph 746).</p>
+
+  <h2>Unfit or empty commercial buildings</h2>
+  <p>An empty warehouse pays like a busy one unless the comune sets a different rate for buildings not in use. A building declared unfit for use and actually unused has its taxable value halved for that period (paragraph 747 b), on the basis of a survey by the comune’s technical office or a sworn statement backed by a qualified technician. The halving applies to the State share as well.</p>
+
+  <h2>Paying two shares from abroad</h2>
+  <p>With an Italian bank account, both shares go on the same F24, on separate lines. Owners without one should ask the comune’s tax office (ufficio tributi) how to pay each share by transfer, keeping the two codes apart. The June instalment uses last year’s rate and the December balance this year’s. The <a href={route('f24', lang)}>F24 tax codes guide</a> lists every code, and the <a href={route('esteri', lang)}>non-residents guide</a> covers paying from abroad.</p>
+  <h2>Banks and insurers: the D/5 exception</h2>
+  <p>Within group D one category has its own multiplier: D/5, credit, exchange and insurance offices, at {moltiplicatore('D5')} instead of {moltiplicatore('D')} (paragraph 745 c). With {$(R)} of rendita at {al(L.altri_max)}, a D/5 branch pays {$(bank.imposta)}, compared with {$(hotel.imposta)} for a hotel with the same rendita. The State share still applies to D/5, because it is part of group D.</p>
+  <p>Rural farm buildings registered as D/10 are the other exception: they are outside the group D rules and pay at the rural rate, at most {al(B.rur)}, entirely to the comune.</p>
+
+  <h2>A rate rise split across two instalments</h2>
+  <p>When a comune raises its group D rate, the increase lands entirely on the December balance, because the June instalment must use last year’s rate (paragraph 762). A hotel with {$(R)} of rendita moving from {al(B.D)} to {al(L.altri_max)} pays {$(change.acconto)} in June and {$(change.saldo)} in December. The State share does not change, since it is always calculated at {al(L.D_quota_stato)}; only the comune share grows.</p>
+</Guide>

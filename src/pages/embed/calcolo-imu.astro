@@ -1,0 +1,18 @@
+---
+/** Page embarquable (iframe) : calculateur nu, lien de crédit visible (RECETTE §13). `?lang=en` pour l'anglais. */
+import '../../styles/global.css';
+import EmbedImu from '../../components/calc/EmbedImu';
+import { SITE_URL } from '../../data/site-config';
+---
+<!doctype html>
+<html lang="it-IT">
+  <head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calcolo IMU, widget di AliquoteIMU.it</title>
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href={`${SITE_URL}/it/`} />
+  </head>
+  <body class="bg-white p-2 text-navy-900">
+    <EmbedImu client:load site={SITE_URL} />
+  </body>
+</html>

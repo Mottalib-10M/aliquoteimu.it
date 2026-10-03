@@ -1,0 +1,32 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatAliquota, formatMoney, formatPercent } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('G273')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const R = 600;
+const home = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const pens = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri, pensionatoEstero: true });
+const faqs = [
+  { q: 'My mother moved into a care home in Palermo: does her flat now pay IMU?', a: `Yes. Palermo has not used the option of paragraph 741 to treat the home of an elderly person in permanent care as a main home, so the flat pays ${al(r.altri)} like a second home even if it stays empty: ${$(home.imposta)} a year on ${$(R)} of cadastral income. Other big cities on this site do grant that relief.` },
+  { q: 'I emigrated from Palermo and draw a pension abroad: do I pay full IMU on my old home?', a: `Not necessarily. If you live abroad, your pension was earned under a social security agreement with Italy and the home is neither let nor lent, IMU on one dwelling is halved (Law 178/2020, paragraph 48): ${$(pens.imposta)} instead of ${$(home.imposta)} on a ${$(R)} rendita.` },
+  { q: 'Which code identifies Palermo on an IMU payment?', a: `The cadastral code ${c.code}, for every district of the city including Mondello. Use it with tax code ${P.f24.altri} for a flat or shop and with the tax year, on the F24 or in the reference of a bank transfer to the comune’s treasury account if you pay from abroad.` },
+];
+---
+<CityPage lang={lang} city="palermo" rendita={R} title={`IMU Palermo 2026: Rates, Second Homes and Care Homes`}
+  description={`IMU in Palermo for 2026: ${al(r.altri)} on second homes, shops and land, ${al(r.ap)} on luxury homes, no relief for homes of owners in care. Calculator.`}
+  h1="IMU in Palermo in 2026: rates and calculator"
+  intro="Palermo charges the ordinary maximum on nearly everything and, unlike the other cities on this site, gives no relief for the home of an owner living in a care home."
+  resume={`Palermo’s IMU schedule, resolution no. ${c.delibera} of ${c.data} and still the one in force on ${P.retrieved_at}, sets ${al(r.altri)} for second homes, rented flats, shops and offices, and the same rate for group D buildings, building plots and farmland. Luxury main homes pay ${al(r.ap)} and rural farm buildings ${al(r.rur)}. There are no targeted rates. A flat in category A/3 with ${$(R)} of cadastral income held as a second home pays ${$(home.imposta)} a year. For families with roots in Palermo two rules matter most. First, the comune does not treat the home of an elderly or disabled owner in permanent care as a main home, so that home pays in full. Second, emigrants who draw a pension abroad under a social security agreement with Italy can halve the tax on one unlet home, a national relief that does not depend on the comune.`}
+  faqs={faqs} related={['home', 'esteri', 'anziani', 'eredita', 'aliquote', 'confronto', 'secondaCasa']}>
+  <h2>Holiday homes on the coast</h2>
+  <p>Mondello and the coastal districts are part of the comune of Palermo, so a seaside flat there pays the city rate of {al(r.altri)}, with the cadastral code {c.code}. Homes in neighbouring towns belong to other comuni with their own schedules: use the <a href={route('confronto', lang)}>comparison tool</a> to see the difference for the same rendita.</p>
+  <h2>Inherited homes</h2>
+  <p>When a home passes to several heirs, each pays on his or her share from the date of death, and only an heir who moves in as a registered resident is exempt on his or her part. An heir abroad who finds out late that the tax was due faces penalties; the <a href={route('ravvedimento', lang)}>ravvedimento</a> cuts them if you act before the comune does, within the five-year assessment window.</p>
+  <h2>Farmland around the city</h2>
+  <p>Palermo is not among the comuni whose farmland is exempt, so land not farmed by a registered farmer pays {al(r.ter)} on its land income revalued by {formatPercent(P.base.rivalutazione_dominicale, 0, lang)} and multiplied by {P.base.moltiplicatore_terreni}.</p>
+</CityPage>

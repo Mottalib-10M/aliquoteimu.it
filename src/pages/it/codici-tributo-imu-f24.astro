@@ -1,0 +1,78 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, arrotonda } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const F = P.f24;
+const codici = [
+  [F.ap, 'Abitazione principale di lusso (A/1, A/8, A/9) e pertinenze', 'Comune'],
+  [F.rur, 'Fabbricati rurali ad uso strumentale', 'Comune'],
+  [F.ter, 'Terreni agricoli', 'Comune'],
+  [F.aree, 'Aree fabbricabili', 'Comune'],
+  [F.altri, 'Altri fabbricati: seconde case, immobili affittati, negozi, uffici, box', 'Comune'],
+  [F.D_stato, 'Immobili del gruppo D, quota dello Stato', 'Stato'],
+  [F.D_comune, 'Immobili del gruppo D, incremento deliberato dal comune', 'Comune'],
+  [F.interessi_accertamento, 'Interessi da accertamento del comune', 'Comune'],
+  [F.sanzioni_accertamento, 'Sanzioni da accertamento del comune', 'Comune'],
+];
+const torino = comune('L219')!;
+const aT = ratesOf(torino);
+const casa = calcolaImu({ categoria: 'A2', rendita: 850, aliquota: aT.altri });
+const box = calcolaImu({ categoria: 'C6', rendita: 110, aliquota: aT.altri });
+const cap = calcolaImu({ categoria: 'D', rendita: 9000, aliquota: aT.D });
+const righe = [
+  [F.altri, torino.code, 'Acconto', '2', $(arrotonda(casa.acconto + box.acconto))],
+  ...cap.f24.filter((r) => r.rata === 'acconto').map((r) => [r.codice, torino.code, 'Acconto', '1', $(r.importo)]),
+];
+const arr = [12.3, 12.49, 12.5, 12.51, 403.99].map((v) => [$2(v), $(arrotonda(v))]);
+const faqs = [
+  { q: 'Che codice tributo uso per l’IMU della seconda casa?', a: `Il ${F.altri}, «IMU per gli altri fabbricati», che vale anche per immobili affittati, negozi, uffici e box non pertinenziali. Il codice va nella sezione «IMU e altri tributi locali» dell’F24, insieme al codice catastale del comune in cui si trova l’immobile, all’anno 2026 e alla casella acconto o saldo.` },
+  { q: 'Perché per un capannone servono due righe nell’F24?', a: `Perché il gettito degli immobili del gruppo D allo ${al(P.limiti.D_quota_stato)} è riservato allo Stato (comma 744) e si versa con il codice ${F.D_stato}; la parte di aliquota che il comune ha deliberato in più va con il codice ${F.D_comune}. Se il comune applica esattamente lo ${al(P.limiti.D_quota_stato)}, la seconda riga non c’è.` },
+  { q: 'Dove trovo il codice ente del comune da scrivere nell’F24?', a: `È il codice catastale del comune, una lettera e tre cifre: ${torino.code} per ${torino.name}, H501 per Roma, F205 per Milano. Lo trovi nella visura catastale e il nostro calcolatore lo mostra accanto a ogni riga F24. Un codice sbagliato manda il pagamento a un altro comune, che poi deve riversarlo.` },
+  { q: 'Gli importi dell’F24 IMU vanno con i centesimi?', a: `No: ogni riga si arrotonda all’euro, per difetto se la frazione non supera 49 centesimi e per eccesso oltre (legge 296 del 2006, comma 166). Un acconto di ${$2(casa.acconto)} si scrive ${$(arrotonda(casa.acconto))}. L’arrotondamento si fa sul totale della riga, non sui singoli immobili sommati.` },
+];
+---
+<Guide lang={lang} id="f24" title={`Codici tributo IMU 2026: ${F.altri}, ${F.ap}, ${F.D_stato} e ${F.D_comune} nell’F24`}
+  description={`Codici tributo IMU 2026 per l’F24: ${F.ap} lusso, ${F.rur} rurali, ${F.ter} terreni, ${F.aree} aree, ${F.altri} altri fabbricati, ${F.D_stato} e ${F.D_comune} gruppo D, codice ente e arrotondamento.`}
+  h1="Codici tributo IMU e compilazione del modello F24"
+  intro="L’IMU si paga solo con il modello F24 o con il bollettino postale equivalente: sette codici bastano per tutti gli immobili."
+  resume={`Per versare l’IMU 2026 si usa la sezione «IMU e altri tributi locali» del modello F24 (art. 1, comma 765, legge 160 del 2019). Ogni riga contiene il codice catastale del comune che riceve il pagamento, il codice tributo, le caselle acconto o saldo, il numero di immobili, l’anno di riferimento e l’importo arrotondato all’euro. I codici principali sono sette: ${F.ap} per l’abitazione principale di lusso, ${F.rur} per i fabbricati rurali strumentali, ${F.ter} per i terreni agricoli, ${F.aree} per le aree fabbricabili, ${F.altri} per tutti gli altri fabbricati, ${F.D_stato} e ${F.D_comune} per la quota Stato e la quota comune degli immobili del gruppo D. Una seconda casa a ${torino.name} con 850 euro di rendita e un box pagano insieme, sulla riga ${F.altri}, un acconto di ${$(arrotonda(casa.acconto + box.acconto))}. Il calcolatore produce le righe pronte da copiare per ogni immobile.`}
+  faqs={faqs} related={['home', 'acconto', 'saldo', 'capannoni', 'ravvedimento', 'esteri', 'scadenze', 'rurali']} sources={src(lang, 'codici_tributo', 'legge160', 'legge296', 'mef_versamenti')}>
+  <MiniSim client:visible kind="f24" lang={lang} href={route('home', lang)} />
+  <h2>I codici tributo dell’IMU</h2>
+  <ContentTable headers={['Codice', 'Immobile o somma', 'Destinatario']} align={['l', 'l', 'l']} rows={codici} />
+  <p>Gli ultimi due codici non servono al contribuente che paga spontaneamente: si usano solo per versare interessi e sanzioni richiesti con un avviso di accertamento del comune. Nel ravvedimento operoso, invece, sanzione e interessi si sommano all’imposta sullo stesso codice dell’immobile, barrando la casella «Ravv.».</p>
+
+  <h2>La riga, campo per campo</h2>
+  <p><strong>Codice ente/codice comune</strong>: il codice catastale del comune in cui si trova l’immobile, non quello di residenza. <strong>Ravv.</strong>: si barra solo se si paga con il ravvedimento operoso. <strong>Immob. variati</strong>: si barra se nell’anno è cambiato qualcosa su uno degli immobili. <strong>Acc.</strong> e <strong>Saldo</strong>: una delle due, o entrambe per la rata unica di giugno. <strong>Numero immobili</strong>: quanti immobili sono compresi nella riga. <strong>Anno di riferimento</strong>: 2026. Poi l’importo a debito, nella colonna di sinistra. La colonna degli importi a credito serve solo a chi compensa un credito d’imposta.</p>
+
+  <h2>Esempio a {torino.name}</h2>
+  <p>Una proprietaria ha a {torino.name} un appartamento A/2 con 850 euro di rendita, affittato a canone libero, un box C/6 con 110 euro di rendita e un piccolo capannone D/7 con 9 000 euro di rendita. Il comune applica l’{al(aT.altri)} agli altri fabbricati e l’{al(aT.D)} al gruppo D. L’appartamento e il box hanno lo stesso codice e si sommano in una riga con due immobili; il capannone ne richiede due, per lo Stato e per il comune.</p>
+  <ContentTable caption="Righe F24 dell’acconto di giugno" headers={['Codice tributo', 'Codice ente', 'Rata', 'N. immobili', 'Importo']} align={['l', 'l', 'l', 'r', 'r']} rows={righe} />
+  <p>La riga del gruppo D è la sola in cui la stessa base imponibile si divide tra due destinatari: lo {al(P.limiti.D_quota_stato)} allo Stato, il resto al comune. Chi scrive tutto sul {F.D_comune} versa allo Stato meno del dovuto e riceverà una richiesta di integrazione, anche se il totale pagato è corretto.</p>
+
+  <h2>Quando servono più righe</h2>
+  <p>Una riga corrisponde a una combinazione di comune, codice tributo e rata. Due seconde case nello stesso comune stanno in una sola riga con «2» nel numero di immobili; una seconda casa a Roma e una a Rimini richiedono due righe, perché cambia il codice ente. Un appartamento e un’area fabbricabile nello stesso comune ne richiedono due, perché cambia il codice tributo. Chi paga acconto e saldo insieme a giugno può scrivere una riga sola per immobile, barrando entrambe le caselle. Se le righe della sezione non bastano, si compila un secondo modello.</p>
+
+  <h2>L’arrotondamento all’euro</h2>
+  <p>Per i tributi locali la regola è nella legge 296 del 2006, al comma 166: si arrotonda per difetto se la frazione è inferiore a 49 centesimi, per eccesso se è superiore. Il calcolatore tratta anche i 49 centesimi esatti per difetto. L’arrotondamento si applica alla riga, dopo aver sommato gli immobili con lo stesso codice.</p>
+  <ContentTable headers={['Importo calcolato', 'Importo da scrivere']} align={['r', 'r']} rows={arr} />
+
+  <h2>F24 online, in banca o con il bollettino</h2>
+  <p>L’F24 si presenta con l’home banking, con i servizi telematici dell’Agenzia delle Entrate o allo sportello di banca e posta. In alternativa la legge ammette il bollettino di conto corrente postale dedicato all’IMU (comma 765). Le stesse regole valgono per acconto, saldo e versamenti tardivi.</p>
+
+  <h2>Da un conto estero</h2>
+  <p>Chi vive all’estero e non ha un conto in Italia non può presentare l’F24 dal proprio paese. In questo caso i comuni indicano nel proprio sito le coordinate bancarie della tesoreria per il bonifico internazionale. Nella causale vanno il codice fiscale, la sigla IMU, il codice tributo, l’anno e l’indicazione acconto o saldo. La guida per i <a href={route('esteri', lang)}>residenti all’estero</a> riassume i passaggi.</p>
+
+  <h2>Errori frequenti nella compilazione</h2>
+  <p>Il primo è indicare il comune di residenza invece di quello dell’immobile: il versamento arriva al comune sbagliato e va chiesto il riversamento. Il secondo è usare il {F.ap} per una seconda casa, perché la si percepisce come «la casa»: quel codice è solo per le abitazioni principali di lusso. Il terzo è dimenticare il numero di immobili o l’anno, che il comune usa per abbinare il pagamento alla posizione. Il quarto, per i comproprietari, è pagare con un solo F24 intestato a uno di loro: a meno che il regolamento comunale non lo ammetta, ognuno versa la propria quota con il proprio codice fiscale.</p>
+</Guide>

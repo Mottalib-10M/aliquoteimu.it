@@ -1,0 +1,32 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, webPageSchema } from '../../lib/seo';
+import { COUNTS, N_IMU } from '../../lib/stats';
+import { META } from '../../lib/comuni';
+import { formatNumber, formatAliquota, formatPercent } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const n = (v: number) => formatNumber(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const M = P.base.moltiplicatori;
+---
+<PageLayout title="IMU Calculator Methodology: Formulas, Data and Limits" description="How the 2026 IMU calculator works: the formula of Law 160/2019, the official rate schedules of every comune, instalments, F24 rounding, tests and limits." lang={lang} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Methodology', path: route('method', lang) }]), webPageSchema({ name: 'Methodology', description: 'How the IMU calculator works', path: route('method', lang), lang })]} breadcrumbs={[{ label: 'Methodology' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Methodology: how we calculate IMU</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <h2>The formula</h2>
+    <p>For a building: taxable value = cadastral income × {formatPercent(1 + P.base.rivalutazione_rendita, 0, lang)} × multiplier (Law 160/2019, paragraph 745). For farmland: land income (reddito dominicale) × {formatPercent(1 + P.base.rivalutazione_dominicale, 0, lang)} × {P.base.moltiplicatore_terreni}. For building land: the market value on 1 January, entered by you. The tax is the taxable value, reduced where a relief applies, times the rate, your ownership share and the months owned divided by twelve, minus the €{P.detrazione_ap} deduction for a luxury main home, pro rata.</p>
+    <ContentTable headers={['Category', 'Multiplier']} align={['l', 'r']} rows={[['Group A (not A/10), C/2, C/6, C/7', String(M.A)], ['Group B, C/3, C/4, C/5', String(M.B)], ['A/10 and D/5', String(M.A10)], ['Group D except D/5', String(M.D)], ['C/1', String(M.C1)]]} />
+    <h2>Reliefs</h2>
+    <p>Taxable value halved for a free loan to a first-degree relative (not A/1, A/8, A/9), listed buildings and unfit buildings (paragraph 747); the calculator applies one at a time. Tax at {formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)} for agreed-rent leases (paragraph 760) and halved for qualifying pensioners abroad (Law 178/2020, paragraph 48). Main homes outside the luxury categories and farmland of registered farmers or listed as exempt in the schedule are exempt. Group D: State share of {al(P.limiti.D_quota_stato)} and comune share kept apart.</p>
+    <h2>Instalments and F24</h2>
+    <p>The June instalment is the tax for the first half-year at the previous year’s rate; the December balance is the full-year tax at the current rate minus the June amount (paragraph 762). Months owned are split between the half-years depending on whether you owned the property from January or until December. Each F24 line is rounded to the euro, down up to 49 cents (Law 296/2006, paragraph 166).</p>
+    <h2>Comune rates</h2>
+    <p>We downloaded the regional archives of the 2025 and 2026 schedules from the Department of Finance website and parsed {n(META.prospetti_letti)} schedules with a script that extracts the base categories and the targeted rates. For each comune on the ISTAT list we keep the most recent schedule: {n(COUNTS.P26)} have a 2026 one, {n(COUNTS.P25)} a 2025 one, valid until a new one is published (paragraph 767). For {n(COUNTS.B)} comuni without a valid schedule we use the statutory base rates. The {n(COUNTS.ILIA + COUNTS.IMIS + COUNTS.IMI)} comuni of Friuli Venezia Giulia and the provinces of Trento and Bolzano do not levy IMU, and the calculator says so. Coverage: {formatPercent((COUNTS.P26 + COUNTS.P25) / N_IMU, 1, lang)} of the {n(N_IMU)} IMU comuni, read on {META.retrieved_at}.</p>
+    <h2>Checks</h2>
+    <p>The engine has automated tests built from the law: multipliers, main home exemption, deduction, free loan, agreed rent, pensioners abroad, group D shares, farmland, building land, June instalment at a different rate, months around a deed, rounding and ravvedimento penalties. All extracted rates fall within the legal limits: none above {al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)}, no group D rate below {al(P.limiti.D_min)}, no rural rate above {al(P.aliquote_base.rur)}.</p>
+    <h2>Limits</h2>
+    <p>The calculator cannot check the conditions attached to targeted rates: it lists them in the schedule’s Italian wording and lets you choose. It does not calculate ILIA, IMIS, IMI or the waste tax (TARI). For building land it uses the value you enter, not the comune’s reference values. Unfitness for part of the year must be handled with the months field. The late-payment calculator needs you to enter the legal interest rate, which we do not publish until we have checked it. Comuni without a 2026 schedule on 28 October keep the 2025 rate for the balance; we will refresh the data after that date.</p>
+    <p>See also the <a href={route('editorial', lang)}>editorial policy</a> and the <a href={route('aliquote', lang)}>rates by comune</a>.</p>
+  </div>
+</PageLayout>

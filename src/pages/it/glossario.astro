@@ -1,0 +1,30 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, organizationSchema } from '../../lib/seo';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const T: Array<[string, string, string?]> = [
+  ['Abitazione principale', 'L’immobile in cui il possessore ha residenza anagrafica e dimora abituale. Non paga l’IMU, salvo le categorie A/1, A/8 e A/9.', 'primaCasa'],
+  ['Aliquota', 'La percentuale che il comune applica alla base imponibile, diversa per ogni fattispecie e scritta nel prospetto.', 'aliquoteBase'],
+  ['Area fabbricabile', 'Terreno utilizzabile a scopo edificatorio secondo gli strumenti urbanistici; paga sul valore venale al 1° gennaio.', 'aree'],
+  ['Base imponibile', `Il valore su cui si calcola l’imposta: per i fabbricati la rendita rivalutata del ${P.base.rivalutazione_rendita * 100} % per il moltiplicatore della categoria.`, 'rendita'],
+  ['Canone concordato', `Affitto a canone calmierato secondo gli accordi territoriali della legge 431 del 1998; l’IMU si paga al ${P.riduzioni.canone_concordato_imposta * 100} %.`, 'concordato'],
+  ['Codice catastale', 'Il codice di quattro caratteri che identifica il comune (per esempio H501 per Roma); va nel campo «codice ente» dell’F24.', 'f24'],
+  ['Comodato d’uso gratuito', 'Prestito gratuito di un immobile; a parenti di primo grado, con contratto registrato e altre condizioni, dimezza la base imponibile.', 'comodato'],
+  ['Fattispecie', 'Ciascuna tipologia di immobile o situazione per cui il prospetto fissa un’aliquota.', 'aliquote'],
+  ['Moltiplicatore', 'Il coefficiente che trasforma la rendita rivalutata in base imponibile: ' + Object.entries(P.base.moltiplicatori).filter(([k]) => ['A', 'B', 'A10', 'D', 'C1'].includes(k)).map(([k, v]) => `${v} (${k})`).join(', ') + '.', 'coefficienti'],
+  ['Pertinenza', 'Cantina C/2, box C/6 o tettoia C/7 al servizio dell’abitazione; per l’abitazione principale una sola per categoria.', 'pertinenze'],
+  ['Prospetto delle aliquote', 'La tabella standard con cui ogni comune pubblica le aliquote IMU sul sito del Dipartimento delle Finanze; prevale sul regolamento.', 'aliquote'],
+  ['Ravvedimento operoso', 'La regolarizzazione spontanea di un versamento omesso o tardivo, con sanzione ridotta e interessi.', 'ravvedimento'],
+  ['Reddito dominicale', `Il reddito catastale di un terreno; per l’IMU si rivaluta del ${P.base.rivalutazione_dominicale * 100} % e si moltiplica per ${P.base.moltiplicatore_terreni}.`, 'terreni'],
+  ['Rendita catastale', 'Il valore fiscale che il catasto assegna a ogni unità immobiliare; si legge nella visura.', 'rendita'],
+  ['Visura catastale', 'Il documento del catasto con categoria, classe e rendita dell’immobile; si ottiene dall’Agenzia delle entrate.', 'rendita'],
+];
+---
+<PageLayout title="Glossario IMU: rendita, aliquota, prospetto, pertinenze" description="Glossario dell’IMU 2026: abitazione principale, aliquota, base imponibile, rendita catastale, moltiplicatore, prospetto, comodato e canone concordato." lang={lang} jsonLd={[organizationSchema(lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Glossario', path: route('glossary', lang) }])]} breadcrumbs={[{ label: 'Glossario' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Glossario dell’IMU</h1></header>
+  <dl class="divide-y divide-navy-100">
+    {T.map(([t, d, id]) => <div class="py-3"><dt class="font-semibold text-navy-900">{t}</dt><dd class="mt-1 text-navy-700">{d}{id && <> <a href={route(id, lang)} class="text-accent-700 hover:underline">Approfondisci</a></>}</dd></div>)}
+  </dl>
+</PageLayout>

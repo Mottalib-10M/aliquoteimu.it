@@ -1,0 +1,70 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const RID = formatPercent(1 - P.riduzioni.inagibile_base, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+let conVoce = 0; const exAp: string[] = []; let calamita = 0;
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) {
+  const hits = v.d.filter((d) => /inagibil/i.test(d[2]));
+  if (!hits.length) continue;
+  conVoce++;
+  if (hits.some((d) => /calamit/i.test(d[2]))) calamita++;
+  const c = byCode.get(code);
+  if (c && hits.some((d) => d[1] === 0 && /destinati ad abitazione principale/.test(d[2]))) exAp.push(c.name);
+}
+const R = 600;
+const pieno = calcolaImu({ categoria: 'A4', rendita: R, aliquota: MAX });
+const parz = (m: number) => calcolaImu({ categoria: 'A4', rendita: R, aliquota: MAX, riduzione: 'inagibile', mesi: m, periodo: 'fine' }).imposta + calcolaImu({ categoria: 'A4', rendita: R, aliquota: MAX, mesi: 12 - m, periodo: 'inizio' }).imposta;
+const righe = [12, 9, 6, 3, 1].map((m) => [String(m), $(parz(m)), $(pieno.imposta - parz(m))]);
+const faqs = [
+  { q: 'Per l’IMU ridotta su una casa inagibile basta che sia disabitata?', a: `No. Il comma 747, lettera b, chiede due cose insieme: che il fabbricato sia dichiarato inagibile o inabitabile e che di fatto non sia utilizzato. Una casa vuota ma in condizioni normali paga per intero; con ${$(R)} di rendita e aliquota ${al(MAX)} sono ${$(pieno.imposta)} l’anno invece dei ${$(pieno.imposta / 2)} della riduzione.` },
+  { q: 'Chi accerta che il fabbricato è inagibile?', a: 'L’ufficio tecnico del comune, con una perizia a carico del proprietario, che allega la documentazione alla dichiarazione IMU. In alternativa il proprietario può presentare una dichiarazione sostitutiva ai sensi del DPR 445/2000 che attesti l’inagibilità accertata da un tecnico abilitato. Il comune può definire nel regolamento le caratteristiche della fatiscenza che dà diritto alla riduzione.' },
+  { q: 'Se la casa torna abitabile a settembre, la riduzione vale per tutto l’anno?', a: `No, solo per il periodo in cui le condizioni sussistono. Con i lavori finiti a fine agosto, la base è dimezzata per otto mesi e piena per quattro: su ${$(R)} di rendita, all’${al(MAX)}, l’imposta annua è ${$(parz(8))}. La fine dell’inagibilità va comunicata al comune.` },
+  { q: 'Una casa crollata o un rudere paga l’IMU?', a: 'Un’unità che resta iscritta in catasto con una rendita paga, eventualmente con la riduzione per inagibilità. Il rudere che il catasto ha già classificato tra le unità collabenti, senza rendita, non ha base imponibile come fabbricato; il terreno su cui sorge può però contare come area fabbricabile se lo strumento urbanistico lo consente.' },
+];
+---
+<Guide lang={lang} id="inagibili" title={`IMU immobili inagibili 2026: base ridotta e perizia`}
+  description={`IMU 2026 su fabbricati inagibili o inabitabili: base ridotta del ${RID} nei soli mesi di inagibilità, perizia del comune o autocertificazione, aliquote speciali.`}
+  h1="IMU sugli immobili inagibili o inabitabili"
+  intro="Una casa lesionata, pericolante o rimasta senza impianti non è esente dall’IMU, ma può pagare su metà della base imponibile, e solo per il tempo in cui resta inutilizzabile."
+  resume={`I fabbricati dichiarati inagibili o inabitabili e di fatto non utilizzati pagano l’IMU su una base imponibile ridotta del ${RID}, limitatamente al periodo dell’anno in cui sussistono queste condizioni. Lo prevede il comma 747, lettera b, della legge 160/2019. L’inagibilità si accerta con una perizia dell’ufficio tecnico comunale a carico del proprietario oppure con una dichiarazione sostitutiva, ai sensi del DPR 445/2000, che attesti l’accertamento di un tecnico abilitato; il comune può precisare nel regolamento quale degrado, non superabile con la manutenzione, dà diritto alla riduzione. Su una casa A/4 con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, l’IMU passa da ${$(pieno.imposta)} a ${$(pieno.imposta / 2)} se l’inagibilità dura tutto l’anno. Alcuni comuni vanno oltre: ${n(conVoce)} prospetti contengono una voce dedicata agli immobili inagibili, e ${n(exAp.length)} azzerano l’aliquota per le abitazioni principali diventate inagibili.`}
+  faqs={faqs} related={['home', 'storici', 'occupati', 'esenzioni', 'dichiarazione', 'secondaCasa', 'rendita', 'aliquote']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti')}>
+  <MiniSim client:visible kind="inagibili" lang={lang} href={route('home', lang)} />
+  <h2>Inagibile non vuol dire sfitto</h2>
+  <p>La riduzione non premia la casa vuota, ma quella che non si può usare. Il fabbricato deve trovarsi in uno stato di degrado fisico che lo rende pericoloso o non abitabile, e che non si risolve con interventi di manutenzione ordinaria o straordinaria: tetti crollati, muri lesionati, solai pericolanti, strutture compromesse da un sisma o da un’alluvione. Un appartamento senza mobili, chiuso da anni o con gli impianti da rifare resta, ai fini dell’IMU, un immobile utilizzabile.</p>
+  <p>Contano anche i fatti. La norma chiede che il fabbricato sia «di fatto non utilizzato»: se qualcuno ci vive, ci tiene un magazzino o ci svolge un’attività, la riduzione non spetta anche se esiste una perizia.</p>
+
+  <h2>Perizia o dichiarazione sostitutiva</h2>
+  <p>La legge offre due strade. La prima è la perizia dell’ufficio tecnico comunale, chiesta e pagata dal proprietario, che allega la documentazione alla dichiarazione IMU. La seconda è più rapida: una dichiarazione sostitutiva di atto di notorietà, ai sensi del DPR 445 del 2000, con cui il proprietario attesta che un tecnico abilitato ha dichiarato l’inagibilità o l’inabitabilità del fabbricato. In entrambi i casi il comune può controllare, e una dichiarazione non veritiera ha conseguenze ben più gravi dell’imposta risparmiata.</p>
+  <p>Il comma 747 lascia ai comuni la facoltà di disciplinare le caratteristiche della «fatiscenza sopravvenuta»: molti regolamenti elencano i casi che danno diritto alla riduzione e quelli che non la danno. Leggere il regolamento del proprio comune prima di incaricare un tecnico evita perizie inutili.</p>
+
+  <h2>Solo per i mesi di inagibilità</h2>
+  <p>La riduzione segue il calendario. Vale dal momento in cui le condizioni sussistono e sono documentate fino a quando cessano, per esempio alla fine dei lavori. I mesi si contano con la regola generale: un mese vale se la situazione è durata per più della metà dei giorni. Il calcolatore qui sopra divide l’anno in due parti, con base dimezzata e con base piena.</p>
+  <ContentTable caption={`Casa A/4 con ${$(R)} di rendita, aliquota ${al(MAX)}, inagibile negli ultimi mesi dell’anno`} headers={['Mesi di inagibilità', 'IMU annua', 'Risparmio']} align={['r', 'r', 'r']} rows={righe} />
+
+  <h2>Le aliquote speciali dei comuni</h2>
+  <p>Oltre alla riduzione di legge, alcuni prospetti delle aliquote contengono righe dedicate ai fabbricati inagibili. Le abbiamo trovate in {n(conVoce)} comuni, in {n(calamita)} casi legate a calamità naturali. La più frequente riguarda le abitazioni principali diventate inagibili: chi ha dovuto lasciare la propria casa dopo un evento non la vede trasformata di colpo in una seconda casa tassata, perché il comune applica un’aliquota pari a zero. È il caso di {exAp.slice(0, 6).join(', ')}{exAp.length > 6 ? ` e di altri ${n(exAp.length - 6)} comuni` : ''}.</p>
+  <p>Ci sono anche voci per ipotesi diverse da quella del comma 747, cioè per immobili che non hanno i requisiti della legge ma che il comune vuole comunque agevolare. In quei casi la base resta piena e si applica l’aliquota ridotta. Il calcolatore principale mostra la riga del prospetto e permette di applicarla.</p>
+
+  <h2>Da comunicare al comune</h2>
+  <p>La riduzione presuppone che il comune conosca la situazione: per questo la legge collega la perizia, o la dichiarazione sostitutiva, alla dichiarazione IMU, da presentare entro il 30 giugno dell’anno successivo all’inizio dell’inagibilità secondo il comma 768-bis. Lo stesso vale quando l’immobile torna utilizzabile. Chi applica la riduzione senza comunicarla si espone a un accertamento per la differenza, con sanzioni e interessi, fino a cinque anni indietro.</p>
+
+  <h2>Riduzione o demolizione?</h2>
+  <p>Per un fabbricato che non verrà mai recuperato, la riduzione al {RID} è una soluzione parziale. Il proprietario può valutare con un tecnico la variazione catastale in unità collabente, che porta l’immobile fuori dalla rendita, o la demolizione. Va però ricordato che, se il terreno è edificabile secondo lo strumento urbanistico, l’area paga l’IMU come <a href={route('aree', lang)}>area fabbricabile</a> sul suo valore venale, e il conto può non migliorare. Durante una ristrutturazione importante, inoltre, la base imponibile diventa il valore dell’area fino alla fine dei lavori, secondo il comma 746.</p>
+
+  <h2>Cumulabile con altre agevolazioni?</h2>
+  <p>Il calcolatore applica una sola riduzione della base alla volta. Per un fabbricato che è insieme inagibile e vincolato come bene storico, o per un’abitazione inagibile data in comodato, conviene chiedere conferma all’ufficio tributi del comune prima di sommare le riduzioni. La guida sugli <a href={route('storici', lang)}>immobili storici</a> descrive l’altra riduzione del comma 747.</p>
+</Guide>

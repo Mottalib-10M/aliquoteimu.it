@@ -1,0 +1,76 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, mesiTrasferimento } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 850;
+const year = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const death = '2026-08-09';
+const t = mesiTrasferimento(death);
+const half = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, quota: 50, mesi: t.acquirente, periodo: 'fine' });
+const halfPens = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, quota: 50, mesi: t.acquirente, periodo: 'fine', pensionatoEstero: true });
+const deceased = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: t.venditore, periodo: 'inizio' });
+const split = [
+  ['The deceased (a debt of the estate)', '100 %', String(t.venditore), $(deceased.imposta)],
+  ['Heir living in the UK', '50 %', String(t.acquirente), $(half.imposta)],
+  ['Heir living in Italy, not resident in the house', '50 %', String(t.acquirente), $(half.imposta)],
+];
+const cases = [
+  ['Family home, surviving spouse still lives there as a resident', 'The spouse (right of habitation)', $(0)],
+  ['Family home, surviving spouse has moved abroad', 'The spouse (right of habitation)', $(year.imposta)],
+  ['Holiday home left to two children equally', 'Each child on 50 %', $(year.imposta / 2)],
+  ['Flat let to a tenant when the owner died', 'The heirs, on their shares', $(year.imposta)],
+];
+const faqs = [
+  { q: 'I inherited part of a house in Italy but have not accepted the estate yet: do I owe IMU?', a: `Once you accept, acceptance takes effect from the date of death, so your IMU runs from then, month by month. With a death on 9 August, the heirs hold the house for 23 of 31 days and pay from August: ${$(half.imposta)} for 2026 on a half share of a ${$(R)} rendita at ${al(MAX)}. If you renounce the estate, you owe nothing.` },
+  { q: 'Does the surviving spouse pay IMU on the family home in Italy?', a: 'Yes, alone. Article 540 of the Italian Civil Code gives the surviving spouse a right of habitation on the home used as the family residence, and the holder of that right is the IMU taxpayer (para. 743). If the spouse lives there as a resident and it is not classed A/1, A/8 or A/9, it is their main home and exempt.' },
+  { q: 'Can an heir living abroad claim the half-rate pensioner relief on an inherited house?', a: `Only if they meet every condition of Law 178/2020: not resident in Italy, a pension earned under a social security treaty with Italy, one dwelling only, neither let nor lent. Inheriting does not change those conditions. In the example the heir’s share would fall from ${$(half.imposta)} to ${$(halfPens.imposta)}.` },
+];
+---
+<Guide lang={lang} id="eredita" title="IMU on Inherited Property in Italy 2026: Heirs and Spouses"
+  description="IMU on inherited Italian property in 2026: heirs pay from the month of death on their shares, the spouse’s right to the home, the deceased’s unpaid tax."
+  h1="IMU on inherited property in Italy: who pays, from when, and how much"
+  intro="Inheriting a share of a house in Italy is common for the children and grandchildren of Italian emigrants. With the house comes a yearly IMU bill, often to be paid from abroad."
+  resume={`Heirs become IMU taxpayers from the date of death, because accepting an estate in Italy takes effect from the moment the succession opens. Each heir pays on their own share for the months after the death, counted with the rule of paragraph 761: the month of death belongs to the heirs if they hold the house for at least half its days. A house with ${$(R)} of cadastral income at the ${al(MAX)} rate costs ${$(year.imposta)} a year; after a death on 9 August, two children inheriting half each pay ${$(half.imposta)} each for 2026. The most important exception is the family home. Article 540 of the Civil Code gives the surviving spouse a right of habitation on it, and under paragraph 743 the holder of that right is the only taxpayer. If the spouse keeps living there as a resident, it remains a main home and nobody pays. Any IMU the deceased had not yet paid is a debt of the estate, which the heirs settle in proportion to their shares.`}
+  faqs={faqs} related={['home', 'esteri', 'usufrutto', 'compravendita', 'secondaCasa', 'f24', 'ravvedimento', 'aliquote']} sources={src(lang, 'legge160', 'mef_versamenti', 'legge178', 'legge296')}>
+  <MiniSim client:visible kind="eredita" lang={lang} href={route('home', lang)} />
+  <h2>When the heirs’ IMU starts</h2>
+  <p>Under Italian law an estate opens at the moment of death, and acceptance, whether express or implied, takes effect retroactively from that moment. For IMU, heirs are therefore owners from the date of death, even if the succession return (dichiarazione di successione) is filed months later and the land registry is updated even later. There is no grace period while the paperwork is under way.</p>
+  <p>The month of death is assigned with the usual rule: it counts for whoever held the property for more than half its days, and the day of the change counts for the new owner. A death on 9 August gives the heirs 23 days out of 31, so August is theirs.</p>
+
+  <h2>A worked example with two heirs</h2>
+  <p>A widowed mother leaves a holiday flat in Liguria, rendita {$(R)}, to her two children, one living in the UK and one in Milan. The comune applies {al(MAX)}. The death occurs on 9 August 2026.</p>
+  <ContentTable headers={['Taxpayer', 'Share', 'Months in 2026', 'IMU 2026']} align={['l', 'r', 'r', 'r']} rows={split} />
+  <p>Each child pays separately with their own codice fiscale. The child abroad can use an international bank transfer to the comune, as explained in the <a href={route('esteri', lang)}>non-residents guide</a>. The months before the death are the mother’s and, if unpaid, are settled by the children out of the estate.</p>
+
+  <h2>The surviving spouse and the family home</h2>
+  <p>Article 540 of the Civil Code reserves to the surviving spouse, even when other heirs share the estate, the right to live in the home used as the family residence and to use its furniture, if they belonged to the deceased or to both. Paragraph 743 of Law 160 of 2019 makes the holder of a right of habitation the IMU taxpayer. So on the family home the spouse pays for the whole property, and the children, although co-heirs, pay nothing while the right lasts.</p>
+  <p>If the spouse continues to live there as a resident, the home stays their main home and, outside the luxury categories, IMU is zero. If the spouse moves away, for instance to live near children abroad, they keep the right but lose the exemption and pay as on a second home. The right covers only the family home; other properties follow the ordinary shares.</p>
+  <ContentTable caption={`House with ${$(R)} of rendita at ${al(MAX)}, full year`} headers={['Situation', 'Who pays', 'IMU per year']} align={['l', 'l', 'r']} rows={cases} />
+
+  <h2>The deceased’s unpaid IMU</h2>
+  <p>Tax debts pass to the heirs who accept the estate, in proportion to their shares. IMU for the months the property still belonged to the deceased must be paid by the heirs. On the F24 the deceased appears as taxpayer, with the paying heir’s codice fiscale in the co-obligor section. For earlier years the comune can assess until 31 December of the fifth year after the due date (Law 296/2006, para. 161); paying first through the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> keeps the penalty low.</p>
+
+  <h2>Empty, let or lent to a relative</h2>
+  <p>An inherited house left empty pays at the comune’s rate for other buildings, often the highest. If it was let, the lease continues with the heirs, who pay IMU on their shares. Lending it free to one of the heirs halves the taxable value only for a loan to a parent or child, with a registered contract and the other conditions of paragraph 747; between siblings it does not apply. An heir who moves into the house and takes residence there is exempt on their own share from that month.</p>
+  <p>When the heirs later divide the estate and the house goes to one of them, the division is treated as having effect from the date of death: from then on, that heir is taxed on the whole.</p>
+
+  <h2>Selling the inherited house</h2>
+  <p>Many heirs abroad sell. IMU then splits between the heirs and the buyer by the month of the deed, using the same half-month rule; the <a href={route('compravendita', lang)}>buying and selling guide</a> works it out for any date. The notary does not settle IMU, so the heirs pay their share of the year directly to the comune.</p>
+
+  <h2>Practical checklist</h2>
+  <ul>
+    <li>Get an Italian codice fiscale if you do not already have one: you need it to accept the estate and to pay.</li>
+    <li>Obtain the visura catastale for each property to read the category and the rendita.</li>
+    <li>Check the comune’s rates on the <a href={route('aliquote', lang)}>rates by comune</a> page: the house may sit in a comune with a reduced rate for homes lent to relatives.</li>
+    <li>Agree among heirs who pays the deceased’s months, and keep the receipts with the succession papers.</li>
+  </ul>
+</Guide>

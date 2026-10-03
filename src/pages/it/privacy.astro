@@ -1,0 +1,23 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import LegalIdentity from '../../components/LegalIdentity.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema } from '../../lib/seo';
+import { CONTACT_EMAIL, LEGAL } from '../../data/site-config';
+const lang = 'it';
+---
+<PageLayout title="Privacy di AliquoteIMU.it: quali dati trattiamo e perché" description="Informativa privacy di AliquoteIMU.it: il calcolo IMU avviene nel tuo browser, nessun dato personale viene inviato, nessun account, nessuna misura d’audience attiva, solo i log tecnici dell’hosting." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Privacy', path: route('privacy', lang) }])]} breadcrumbs={[{ label: 'Privacy' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Informativa sulla privacy</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <h2>Titolare</h2>
+    <LegalIdentity lang="it" />
+    <h2>Cosa non raccogliamo</h2>
+    <p>I calcolatori funzionano interamente nel tuo browser. Comune, rendita, aliquota e gli altri valori che inserisci non vengono inviati a noi né a terzi, non sono conservati su un server e non sono collegati alla tua persona. Non ci sono account, newsletter o moduli che raccolgono dati personali. Se usi il link di condivisione, i valori sono scritti nell’indirizzo della pagina e li vede solo chi riceve quel link.</p>
+    <h2>Log dell’hosting</h2>
+    <p>Il sito è ospitato da {LEGAL.hosting.name}. Come ogni server web, l’hosting registra dati tecnici di ogni richiesta, come indirizzo IP, pagina richiesta, data e tipo di browser, per servire il sito e proteggerlo dagli abusi. Non usiamo questi log per identificare i visitatori.</p>
+    <h2>Misura d’audience e pubblicità</h2>
+    <p>Al momento nessuno strumento di misura dell’audience e nessuno script pubblicitario è attivo sul sito. Se ne introdurremo uno, questa pagina e la pagina <a href={route('cookies', lang)}>cookie</a> lo nomineranno prima della sua attivazione, con i dati trattati e il modo per opporsi.</p>
+    <h2>I tuoi diritti</h2>
+    <p>Il Regolamento generale sulla protezione dei dati (RGPD) ti riconosce i diritti di accesso, rettifica, cancellazione e opposizione. Come spiegato sopra, dai calcolatori non tratteniamo alcun dato. Per qualsiasi richiesta scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Puoi presentare reclamo al Garante per la protezione dei dati personali o all’autorità del paese dell’editore, la {LEGAL.supervisoryAuthority}.</p>
+  </div>
+</PageLayout>

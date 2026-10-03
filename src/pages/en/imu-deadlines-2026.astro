@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, ravvedimento } from '../../lib/engine/imu';
+import { COUNTS } from '../../lib/stats';
+import { formatMoney, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'en-GB');
+const S = P.scadenze, RV = P.ravvedimento;
+const x = calcolaImu({ categoria: 'A3', rendita: 700, aliquota: P.limiti.altri_max });
+const cal = [
+  [d(S.acconto), 'First instalment (acconto), or the whole year in one payment', 'Owners'],
+  [d(S.inserimento_prospetti), 'Last day for comuni to upload their 2026 rate schedule and regulations', 'Comuni'],
+  [d(S.pubblicazione_prospetti), 'Schedules published by the Department of Finance; only these count for December', 'Department of Finance'],
+  [d(S.saldo), 'Balance (saldo) at the 2026 rate, minus the June payment', 'Owners'],
+  [d(S.dichiarazione), 'IMU return for changes that happened in 2026, filed online', 'Owners, when required'],
+];
+const late = [3, 12, 28, 75, 200, 420].map((g) => { const pag = new Date(Date.UTC(2026, 11, 16 + g)).toISOString().slice(0, 10); const r = ravvedimento({ imposta: x.saldo, scadenza: S.saldo, pagamento: pag }); return [String(g), d(pag), formatPercent(r.sanzionePct, 3, lang), $2(r.sanzione)]; });
+const faqs = [
+  { q: 'When do non-residents pay IMU in 2026?', a: `On the same dates as everyone else: by ${d(S.acconto)} for the first instalment and by ${d(S.saldo)} for the balance, or the whole year by ${d(S.acconto)}. Living abroad gives no extra time. If you pay by international transfer, send it a few working days early so it reaches the comune’s account by the deadline.` },
+  { q: 'Do I have to file an IMU return every year?', a: `No. The IMU return (dichiarazione) is only needed when something changes that the comune cannot know from public records, such as a registered free loan to a child or a building declared unfit. It is filed online by 30 June of the following year, so by ${d(S.dichiarazione)} for changes in 2026 (paragraph 768-bis).` },
+  { q: 'What does it cost to pay the December IMU balance a few weeks late?', a: `Very little if you act fast. Paying ${$(x.saldo)} twelve days late through the ravvedimento costs ${$2(ravvedimento({ imposta: x.saldo, scadenza: S.saldo, pagamento: '2026-12-28' }).sanzione)} in penalty plus daily interest at the legal rate. After ninety days the reduced penalty rises to one eighth of ${formatPercent(RV.sanzione_base, 0, lang)}, and to one seventh after the IMU return deadline.` },
+];
+---
+<Guide lang={lang} id="scadenze" title="IMU Deadlines 2026: 16 June, 16 December and the Return"
+  description={`IMU deadlines 2026: first instalment by 16 June, balance by 16 December, comune rates published by 28 October, IMU return by 30 June 2027, late payment cost.`}
+  h1="IMU deadlines in 2026: the full calendar"
+  intro="Five dates shape a year of IMU. Two are yours, two belong to the comuni, and one only matters if something about your property changed."
+  resume={`In 2026, IMU on Italian property that is not your main home is paid in two instalments: the first by ${d(S.acconto)} and the balance by ${d(S.saldo)}, or the whole year in one payment by ${d(S.acconto)} (Law 160 of 2019, article 1, paragraph 762). The two payments are worked out differently. June uses the comune’s 2025 rate; December uses the 2026 rate that the comune uploaded by ${d(S.inserimento_prospetti)} and the Department of Finance published by ${d(S.pubblicazione_prospetti)}. For a flat classed A/3 with 700 euros of cadastral income at the most common rate, that is ${$(x.acconto)} in June and ${$(x.saldo)} in December. An IMU return is due by ${d(S.dichiarazione)} only if something changed in 2026 that the comune cannot see in public records. Living abroad does not move any of these dates, and a missed instalment can be settled with a reduced penalty through the ravvedimento operoso.`}
+  faqs={faqs} related={['home', 'acconto', 'saldo', 'ravvedimento', 'dichiarazione', 'esteri', 'f24', 'novita']} sources={src(lang, 'legge160', 'mef_versamenti', 'dlgs471', 'dlgs472')}>
+  <MiniSim client:visible kind="scadenze" lang={lang} href={route('home', lang)} />
+  <h2>The 2026 calendar at a glance</h2>
+  <ContentTable headers={['Date', 'What happens', 'Who']} align={['l', 'l', 'l']} rows={cal} />
+  <p>The owners’ dates are set by national law, not by the comune. Someone with property in three different towns pays all of it on the same two days, with one F24 form carrying a line per comune. A comune may only postpone payment dates through its own regulations for particular situations, such as a natural disaster (paragraph 777 b).</p>
+
+  <h2>Mid-June: the first half of the year</h2>
+  <p>The June instalment covers January to June at last year’s rate. That is deliberate: in June many comuni have not set the year’s rates yet. If you owned the property from 1 January, you pay half of the annual tax at the 2025 rate. If you bought in March, you pay for the months from March to June; if you buy in July, there is nothing to pay in June. The <a href={route('acconto', lang)}>June payment guide</a> has the details.</p>
+
+  <h2>Buying or selling during the year</h2>
+  <p>A sale moves the obligation, not the dates. The seller pays for the months up to the deed, the buyer for the months after it, each on the usual June and December deadlines, with the month of the deed going to whoever owned the property for more of its days.</p>
+
+  <h2>October: the comuni’s deadlines</h2>
+  <p>Two dates in October decide which rate you pay in December. By {d(S.inserimento_prospetti)}, each comune must upload its rate schedule and regulations to the national tax-federalism portal; by {d(S.pubblicazione_prospetti)}, the Department of Finance publishes them. A comune that misses the window keeps last year’s rates for 2026. When we checked, {n(COUNTS.P26)} comuni had already published a 2026 schedule and {n(COUNTS.P25)} were still on 2025. Our <a href={route('aliquote', lang)}>rates by comune</a> page shows which applies to yours.</p>
+
+  <h2>Mid-December: settling the year</h2>
+  <p>The balance recalculates the whole year at the 2026 rate and deducts the June payment. A rate increase makes December the larger payment; a cut makes it smaller, possibly zero, with a credit to reclaim. The <a href={route('saldo', lang)}>December payment guide</a> shows real comuni where this happened.</p>
+
+  <h2>The following June: the IMU return</h2>
+  <p>Unlike an income tax return, the IMU return (dichiarazione IMU) is not annual. It is filed online, by 30 June of the year after the change, only when the change is something the comune cannot find in its own or the land registry’s records: a free loan to a child that halves the taxable value, a building that became unfit for use, land that passed to a registered farmer (paragraph 768-bis). Failing to file when required carries its own penalty, so the <a href={route('dichiarazione', lang)}>IMU return guide</a> is worth a look if your situation changed.</p>
+
+  <h2>Planning payments from abroad</h2>
+  <p>Without an Italian bank account, you cannot submit an F24 form online. Comuni publish bank details for international transfers to their treasury; allow a few working days for the money to arrive. Two habits help: schedule the June transfer in early June and the December one at the start of the month, once the year’s schedules are published; and keep the transfer receipts, because comuni have until 31 December of the fifth year after a payment to issue an assessment.</p>
+
+  <h2>The price of a missed date</h2>
+  <p>Late payment carries a penalty of {formatPercent(RV.sanzione_base, 0, lang)} of the unpaid tax, halved for delays of up to ninety days and reduced to one fifteenth per day within fifteen days (Legislative Decree 471 of 1997, article 13). If you correct the mistake yourself before the comune contacts you, the ravvedimento reduces the penalty further: one tenth within thirty days, one ninth within ninety, one eighth until the return deadline, one seventh after. The table applies these rules to the December balance of our example flat, {$(x.saldo)}; interest at the legal rate is added on top, day by day.</p>
+  <ContentTable headers={['Days late', 'Payment date', 'Reduced penalty', 'Amount']} align={['r', 'l', 'r', 'r']} rows={late} />
+  <MiniSim client:visible kind="ravv" lang={lang} href={route('ravvedimento', lang)} />
+</Guide>

@@ -1,0 +1,30 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import LegalIdentity from '../../components/LegalIdentity.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, profilePageSchema, organizationSchema } from '../../lib/seo';
+import { COUNTS } from '../../lib/stats';
+import { formatNumber } from '../../lib/format';
+import { CONTACT_EMAIL } from '../../data/site-config';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const n = (v: number) => formatNumber(v, 0, lang);
+---
+<PageLayout title="AliquoteIMU.it: chi siamo e come lavora Radif Partners" description="Chi siamo: AliquoteIMU.it è pubblicato da Radif Partners. Come leggiamo i prospetti IMU dei comuni, come è finanziato il sito e come segnalare un errore." lang={lang} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Chi siamo', path: route('about', lang) }]), profilePageSchema({ path: route('about', lang), lang }), organizationSchema(lang)]} breadcrumbs={[{ label: 'Chi siamo' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Chi siamo</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <p>AliquoteIMU.it è pubblicato da Radif Partners, una società che sviluppa calcolatori gratuiti e guide pratiche di fiscalità per diversi paesi europei. Ogni sito del gruppo segue la stessa regola: il calcolo avviene nel browser di chi lo usa, ogni aliquota viene da una fonte ufficiale citata in pagina, e i limiti del calcolo sono scritti, non nascosti.</p>
+    <h2>Perché un sito sull’IMU</h2>
+    <p>L’IMU si calcola con una formula semplice, ma l’aliquota cambia da un comune all’altro e spesso da un anno all’altro, ed è sepolta in un prospetto PDF sul sito del Dipartimento delle Finanze. Molti calcolatori chiedono di inserirla a mano. Noi abbiamo letto i prospetti di {n(COUNTS.P26 + COUNTS.P25)} comuni e li abbiamo collegati al calcolo, con l’acconto calcolato sull’aliquota dell’anno precedente come prevede la legge. Il sito ha anche una versione inglese per i proprietari che vivono all’estero.</p>
+    <h2>Come lavoriamo</h2>
+    <p>I parametri di legge stanno in un unico file, verificato sulla legge 160 del 2019 e sulle pagine del Dipartimento delle Finanze; l’ultima verifica è del {P.retrieved_at}. Il motore di calcolo è coperto da test automatici costruiti sui casi descritti dalla legge. La pagina <a href={route('method', lang)}>metodologia</a> descrive formule, dati e limiti; la <a href={route('editorial', lang)}>politica editoriale</a> spiega come aggiorniamo e correggiamo.</p>
+    <h2>Come è finanziato</h2>
+    <p>Il sito è gratuito e non richiede registrazione. In futuro potrà ospitare pubblicità, mai sopra il calcolatore e mai in cambio di un giudizio su un prodotto. Non vendiamo dati: non ne raccogliamo.</p>
+    <h2>Segnalare un errore</h2>
+    <p>Se trovi un’aliquota diversa da quella del prospetto del tuo comune, o un calcolo che non torna, scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> indicando il comune e la pagina. Verifichiamo sulla fonte e correggiamo, indicando la data della correzione.</p>
+    <h2>Cosa non facciamo</h2>
+    <p>Non siamo un CAF né uno studio professionale, non compiliamo F24 per conto terzi e non rispondiamo a quesiti individuali. Per una situazione complessa, come una successione con più immobili o un’area edificabile contestata, rivolgiti al comune, a un CAF o a un commercialista.</p>
+    <h2>Editore</h2>
+    <LegalIdentity lang="it" />
+  </div>
+</PageLayout>

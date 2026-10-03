@@ -1,0 +1,20 @@
+{
+ "accent": "#00703C",
+ "symbol": "€",
+ "variants": [
+  {
+   "file": "og-it.png",
+   "title": "Calcolo IMU 2026\ncon le aliquote del tuo comune",
+   "subtitle": "Prospetti MEF di 7 800 comuni · acconto e saldo · F24",
+   "badge": "Legge 160/2019 · Dipartimento delle Finanze",
+   "brand": "AliquoteIMU.it"
+  },
+  {
+   "file": "og-en.png",
+   "title": "IMU calculator 2026\nItalian property tax by comune",
+   "subtitle": "Official MEF rates · June and December instalments · F24",
+   "badge": "Law 160/2019 · Italian Department of Finance",
+   "brand": "AliquoteIMU.it"
+  }
+ ]
+}

@@ -1,0 +1,62 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { COUNTS, cambiati } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'en-GB');
+const R = 1100;
+const camb = cambiati('altri');
+const up = camb.filter((c) => c.rates!.altri > c.prev!.altri).length;
+const moiola = comune('F279')!, brun = comune('B219')!, samo = comune('H013')!, cappa = comune('B677')!;
+const bal = (c: typeof moiola) => calcolaImu({ categoria: 'A7', rendita: R, aliquota: ratesOf(c).altri, aliquotaAcconto: ratesAcconto(c).altri });
+const rows = [moiola, brun, samo, cappa].map((c) => { const y = bal(c); return [`${c.name} (${c.prov})`, al(ratesAcconto(c).altri), al(ratesOf(c).altri), $(y.acconto), $(y.saldo)]; });
+const xm = bal(moiola), xc = bal(cappa);
+const late = calcolaImu({ categoria: 'A7', rendita: R, aliquota: P.limiti.altri_max, mesi: 3, periodo: 'fine' });
+const faqs = [
+  { q: 'Why is my December IMU bill higher than the June one?', a: `Because your comune raised its rate for 2026. June is calculated at last year’s rate; December recalculates the whole year at the new rate and takes off what you paid in June (paragraph 762). In ${moiola.name}, where the rate went from ${al(ratesAcconto(moiola).altri)} to ${al(ratesOf(moiola).altri)}, a house with ${$(R)} of rendita pays ${$(xm.acconto)} in June and ${$(xm.saldo)} in December.` },
+  { q: 'My comune cut its IMU rate after I paid in June. Do I get money back?', a: `If your June payment already exceeds the tax due for the whole year at the new rate, the December balance is zero and the excess is a credit. You claim it from the comune within five years of the payment, and the comune must refund within 180 days of your request (Law 296/2006, paragraph 164). In ${cappa.name} that happened to every owner who paid in June.` },
+  { q: 'What rate applies in December if the comune publishes nothing new?', a: `The previous year’s rates stay in force for the December balance if no 2026 schedule is published by ${d(P.scadenze.pubblicazione_prospetti)} (paragraph 767). On 3 October 2026, ${n(COUNTS.P25)} comuni were in that position. A comune that never filed a valid schedule applies the statutory base rates instead.` },
+];
+---
+<Guide lang={lang} id="saldo" title="IMU December Payment 2026: the Saldo and Rate Changes"
+  description={`IMU December payment (saldo) 2026, due 16 December: the year recalculated at your comune’s 2026 rate minus the June instalment, rate rises and credits.`}
+  h1="The December IMU balance (saldo) in 2026"
+  intro="December is when the year’s IMU is settled for good, so it is the payment that changes when a comune raises or cuts its rate."
+  resume={`The second IMU instalment of 2026, the saldo, is due by ${d(P.scadenze.saldo)}. It is not simply the other half: it is the tax for the whole of 2026, worked out with the rate schedule published by the Department of Finance by ${d(P.scadenze.pubblicazione_prospetti)}, minus whatever you paid in June at the previous year’s rate (Law 160 of 2019, article 1, paragraph 762). If your comune kept its rate, June and December match. If it raised the rate, December absorbs the whole year’s increase. Between 2025 and 2026, ${n(camb.length)} comuni changed their rate on second homes and other buildings, ${n(up)} of them upwards. For a detached house classed A/7 with ${$(R)} of cadastral income in ${moiola.name}, that means ${$(xm.acconto)} in June and ${$(xm.saldo)} in December. If you bought after June, December is your only payment for the year. If you paid the full year in June, check whether the rate changed and top up by the deadline if it went up.`}
+  faqs={faqs} related={['home', 'acconto', 'scadenze', 'novita', 'rimborso', 'f24', 'esteri', 'ravvedimento']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti', 'legge296')}>
+  <MiniSim client:visible kind="saldo" lang={lang} href={route('home', lang)} />
+  <h2>How the balancing payment works</h2>
+  <p>Think of December as a reconciliation. First the comune’s 2026 rate is applied to the whole year, with your share, your months of ownership, any deduction and any reduction. Then the June payment is subtracted. What is left is the saldo. The new rate only counts if the comune uploaded its schedule by {d(P.scadenze.inserimento_prospetti)} and it was published by {d(P.scadenze.pubblicazione_prospetti)} (paragraph 767); a resolution that arrives later, or a resolution without the standard schedule, has no effect for 2026 (paragraph 757).</p>
+
+  <h2>Four comuni, four outcomes</h2>
+  <ContentTable caption={`A/7 house with ${$(R)} of cadastral income, owned all year`} headers={['Comune', '2025 rate', '2026 rate', 'June', 'December']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+  <p>The first three comuni raised their rate, so December is the heavier payment. {cappa.name} did the opposite: its rate fell from {al(ratesAcconto(cappa).altri)} to {al(ratesOf(cappa).altri)}. The June payment of {$(xc.acconto)} already exceeds the full-year tax of {$(xc.imposta)}, so the December balance is zero and the owner holds a credit.</p>
+
+  <h2>Owners who bought in the second half</h2>
+  <p>If your deed was signed after June, you paid nothing in June and December covers all your months at the 2026 rate. A purchase completed on 1 October gives three months: on the same A/7 house at {al(P.limiti.altri_max)}, that is {$(late.saldo)} due in December. Remember that the day of the deed counts for the buyer, and a month counts when you own it for more than half of its days.</p>
+
+  <h2>When nothing new is published</h2>
+  <p>If the comune does not publish a 2026 schedule in time, the December balance uses the same rates as June, those of 2025. At the time of our check {n(COUNTS.P25)} comuni had not yet published, and the calculator labels each of them as such. A stricter rule applies to the few comuni that never adopted a valid schedule at all: there the national base rates apply ({al(P.aliquote_base.altri)} for second homes) until they do.</p>
+
+  <h2>A zero balance and a credit</h2>
+  <p>A cut in the rate, a reduction you forgot in June or a duplicate payment can leave you with more paid than owed. The December balance is then zero and the difference is yours to reclaim: within five years of payment, with the comune refunding within 180 days and adding interest at a rate it sets, at most three points above the legal rate (Law 296 of 2006, paragraphs 164 and 165). Some comuni let you offset the credit against the next instalment instead; it depends on their regulations. The <a href={route('rimborso', lang)}>IMU refund guide</a> explains the request.</p>
+
+  <h2>Several properties, several balances</h2>
+  <p>Each property is reconciled on its own and each comune on its own. An owner with a flat in a comune that raised its rate and a house in one that kept it will see a bigger December figure for the first and an unchanged one for the second. Properties in the same comune with the same tax code can share one F24 line, with the number of properties shown; properties in different comuni always need separate lines, because the comune code decides where the money goes. Co-owners each pay their own share of every balance under their own codice fiscale, unless the comune’s regulations accept one co-owner paying for the others.</p>
+
+  <h2>Paying from abroad in December</h2>
+  <p>On the F24 form, tick “Saldo” and use the same codes as in June: {P.f24.altri} for a second home, shop or office, {P.f24.ap} for a luxury main home, {P.f24.D_stato} and {P.f24.D_comune} for group D buildings. Without an Italian bank account, use the international transfer details your comune publishes for non-resident owners, quoting your codice fiscale, “IMU”, the tax code, the year and “saldo”. Allow a few working days so the money is credited by the deadline. Details are in the guide for <a href={route('esteri', lang)}>non-residents</a>.</p>
+
+  <h2>After the deadline</h2>
+  <p>A balance paid late or short can be put right with the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a>: a reduced penalty plus interest, both paid on the same tax code with the “Ravv.” box ticked. For the December 2026 balance, regularising more than ninety days late but by {d(P.scadenze.dichiarazione)}, the deadline of the IMU return for 2026, costs one eighth of the {formatPercent(P.ravvedimento.sanzione_base, 0, lang)} penalty; after that, one seventh. Comuni can issue an assessment until 31 December of the fifth year after the payment was due, so keep your receipts.</p>
+</Guide>

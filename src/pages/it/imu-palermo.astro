@@ -1,0 +1,34 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route, CITTA } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('G273')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const R = 600;
+const casa = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const pens = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri, pensionatoEstero: true });
+const comod = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri, riduzione: 'comodato' });
+const altreAssim = CITTA.filter((x) => x.id !== 'palermo' && comune(x.code)!.assim).length;
+const faqs = [
+  { q: 'A Palermo la casa del genitore ricoverato in RSA paga l’IMU?', a: `Sì. Il prospetto di Palermo non prevede l’assimilazione all’abitazione principale della casa di anziani o disabili ricoverati in modo permanente, che il comma 741 lascia alla scelta del comune. La casa paga quindi come seconda casa all’${al(r.altri)}: con ${$(R)} di rendita sono ${$(casa.imposta)} l’anno, anche se resta vuota e non è affittata.` },
+  { q: 'Un palermitano emigrato con pensione estera paga l’IMU piena sulla casa a Palermo?', a: `No, se vive all’estero, ha una pensione maturata in regime di convenzione internazionale con l’Italia e la casa non è affittata né data in comodato: per una sola abitazione l’IMU è dimezzata (legge 178 del 2020, comma 48). Con ${$(R)} di rendita paga ${$(pens.imposta)} invece di ${$(casa.imposta)}.` },
+  { q: 'Le aliquote IMU 2026 di Palermo sono già note?', a: `Al ${P.retrieved_at} il prospetto pubblicato è quello del 2025 (delibera n. ${c.delibera} del ${c.data}). Il comune ha tempo fino al 14 ottobre per inserire il prospetto 2026; se non viene pubblicato entro il 28 ottobre, le aliquote del 2025 valgono anche per il saldo di dicembre.` },
+];
+---
+<CityPage lang={lang} city="palermo" rendita={R} title={`IMU Palermo 2026: aliquote, seconda casa e anziani in RSA`}
+  description={`IMU Palermo 2026: ${al(r.altri)} su seconde case, negozi e terreni, lusso allo ${al(r.ap)}, nessuna esenzione per la casa dell’anziano ricoverato. Calcolo.`}
+  h1="IMU a Palermo nel 2026: aliquote e calcolo"
+  intro="Palermo applica l’aliquota massima ordinaria a quasi tutto e, unica tra le grandi città di questo sito, non esenta la casa dell’anziano ricoverato."
+  resume={`Il prospetto IMU di Palermo, approvato con delibera n. ${c.delibera} del ${c.data} e ancora in vigore al ${P.retrieved_at}, applica l’${al(r.altri)} agli altri fabbricati, al gruppo D, alle aree fabbricabili e ai terreni agricoli, lo ${al(r.ap)} all’abitazione principale di lusso e lo ${al(r.rur)} ai fabbricati rurali strumentali. Non contiene aliquote differenziate. Una seconda casa A/3 con ${$(R)} di rendita paga ${$(casa.imposta)} l’anno, in due rate da ${$(casa.acconto)} il 16 giugno e il 16 dicembre. La particolarità di Palermo riguarda le famiglie: il comune non ha scelto di assimilare all’abitazione principale la casa dell’anziano o del disabile ricoverato in modo permanente, come invece hanno fatto le altre ${altreAssim} grandi città di questo sito. Quella casa, anche se vuota, paga come una seconda casa. Per chi presta un appartamento a un figlio vale invece la riduzione nazionale del comodato.`}
+  faqs={faqs} related={['home', 'anziani', 'esteri', 'comodato', 'aliquote', 'confronto', 'secondaCasa']}>
+  <h2>La scelta sull’anziano ricoverato</h2>
+  <p>Il comma 741, lettera c), numero 6, della legge 160 del 2019 permette a ogni comune di considerare abitazione principale l’immobile di chi si trasferisce in una struttura di ricovero, purché non sia affittato. È una facoltà: il prospetto la riporta con un sì o un no. Palermo ha scritto no. Per una famiglia che tiene la casa del genitore in attesa di decidere, la spesa è di {$(casa.imposta)} l’anno su {$(R)} di rendita; se la casa viene data in comodato a un figlio che ci va a vivere, con contratto registrato e le altre condizioni di legge, scende a {$(comod.imposta)}.</p>
+  <h2>Emigrati e pensionati all’estero</h2>
+  <p>Per chi possiede una casa a Palermo ma vive fuori dall’Italia non c’è esenzione da abitazione principale, ma chi ha una pensione in convenzione internazionale ha la riduzione a metà su una sola abitazione non affittata: la guida sui <a href={route('esteri', lang)}>residenti all’estero</a> spiega come pagare con bonifico dall’estero, indicando il codice ente {c.code}.</p>
+  <h2>Terreni e fabbricati rurali</h2>
+  <p>Palermo non è tra i comuni con terreni esenti: i terreni agricoli pagano l’{al(r.ter)} se il proprietario non è coltivatore diretto o IAP. I fabbricati rurali strumentali pagano lo {al(r.rur)}, il massimo di legge per quella categoria.</p>
+</CityPage>

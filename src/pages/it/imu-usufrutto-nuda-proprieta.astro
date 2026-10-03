@@ -1,0 +1,70 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, mesiTrasferimento } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const R = 800;
+const x = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const chi = [
+  ['Piena proprietà', 'Proprietario', 'paga per intero sulla sua quota'],
+  ['Usufrutto e nuda proprietà', 'Usufruttuario', 'il nudo proprietario non paga'],
+  ['Diritto d’uso o di abitazione', 'Titolare del diritto', 'il proprietario non paga'],
+  ['Diritto di superficie', 'Superficiario', 'sul fabbricato costruito'],
+  ['Enfiteusi', 'Enfiteuta', 'il concedente non paga'],
+  ['Locazione finanziaria (leasing)', 'Locatario', 'dalla stipula e per tutta la durata'],
+  ['Casa familiare assegnata dal giudice', 'Genitore assegnatario', 'esente come abitazione principale'],
+  ['Comodato o affitto', 'Proprietario', 'comodatario e inquilino non pagano'],
+];
+const fine = ['2026-02-10', '2026-04-15', '2026-04-16', '2026-07-20', '2026-10-05'].map((d) => { const t = mesiTrasferimento(d); return [d.split('-').reverse().join('/'), String(t.venditore), String(t.acquirente), $(x.imposta * t.venditore / 12), $(x.imposta * t.acquirente / 12)]; });
+const quote = [100, 50, 33.33, 25].map((q) => { const y = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, quota: q }); return [`${n(q)} %`, $(y.imposta), $(y.acconto)]; });
+const faqs = [
+  { q: 'Il nudo proprietario deve pagare l’IMU?', a: `No. Finché esiste l’usufrutto, soggetto passivo è l’usufruttuario, che paga l’intera imposta come se fosse il proprietario (legge 160/2019, comma 743). Il nudo proprietario comincia a pagare solo quando l’usufrutto si estingue, per esempio alla morte dell’usufruttuario, dal mese in cui acquista la piena proprietà secondo la regola dei quindici giorni.` },
+  { q: 'Il genitore usufruttuario che vive nella casa paga l’IMU?', a: 'No, se vi ha la residenza anagrafica e la dimora abituale e la casa non è accatastata come A/1, A/8 o A/9: per lui è abitazione principale ed è esente. Il figlio nudo proprietario non paga comunque. Se invece il genitore vive altrove, l’usufruttuario paga l’IMU come su una seconda casa.' },
+  { q: 'Due usufruttuari al 50 % devono fare un solo F24?', a: `No. Ogni soggetto passivo ha un’obbligazione autonoma e versa la propria quota con il proprio F24 (comma 743). Con ${$(R)} di rendita all’${al(MAX)} ciascuno paga ${$(x.imposta / 2)}. Il comune può però stabilire nel regolamento che il versamento di un contitolare valga anche per gli altri (comma 777, lettera a).` },
+];
+---
+<Guide lang={lang} id="usufrutto" title="IMU usufrutto e nuda proprietà 2026: chi paga e quanto"
+  description="IMU con usufrutto o nuda proprietà nel 2026: paga l’usufruttuario, non il nudo proprietario; abitazione, superficie, leasing e fine dell’usufrutto."
+  h1="IMU con usufrutto e nuda proprietà: chi paga davvero"
+  intro="Quando la proprietà di una casa è divisa tra chi la usa e chi la riceverà, l’IMU non si divide: la paga uno solo, quello che ha il godimento del bene."
+  resume={`Con l’usufrutto l’IMU è interamente a carico dell’usufruttuario. Il comma 743 della legge 160 del 2019 individua come soggetti passivi il proprietario oppure il titolare di un diritto reale di usufrutto, uso, abitazione, enfiteusi o superficie: quando sulla casa esiste uno di questi diritti, paga chi ne è titolare e il nudo proprietario non versa nulla, anche se è lui a figurare come proprietario nel rogito. Per un appartamento con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, l’usufruttuario paga ${$(x.imposta)} l’anno, in due rate da ${$(x.acconto)}. Se l’usufruttuario vive nella casa con la residenza, quella è la sua abitazione principale e, salvo le categorie di lusso, l’imposta non è dovuta da nessuno. Quando l’usufrutto si estingue, il nudo proprietario diventa pieno proprietario e paga dal mese in cui ha posseduto l’immobile per più della metà dei giorni. Lo stesso schema vale per il diritto di abitazione e per il leasing.`}
+  faqs={faqs} related={['home', 'eredita', 'compravendita', 'primaCasa', 'secondaCasa', 'separazione', 'f24', 'dichiarazione']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti')}>
+  <MiniSim client:visible kind="usufrutto" lang={lang} href={route('home', lang)} />
+  <h2>Chi è soggetto passivo, diritto per diritto</h2>
+  <p>La legge non guarda a chi è proprietario sulla carta, ma a chi possiede il bene in senso tecnico, cioè a chi ne ha il godimento attraverso la proprietà o un diritto reale. La tabella mette in fila i casi.</p>
+  <ContentTable headers={['Situazione', 'Chi paga', 'Nota']} align={['l', 'l', 'l']} rows={chi} />
+  <p>Il comodato e l’affitto non sono diritti reali ma contratti: chi abita gratis la casa di un parente o la prende in locazione non diventa soggetto passivo, e l’IMU resta del proprietario o dell’usufruttuario. Per il comodato a figli o genitori c’è però la riduzione della base, spiegata nella guida sul <a href={route('comodato', lang)}>comodato d’uso gratuito</a>.</p>
+
+  <h2>Il caso tipico: genitori usufruttuari, figli nudi proprietari</h2>
+  <p>Molte famiglie trasferiscono la casa ai figli riservandosi l’usufrutto, con una donazione o una vendita della nuda proprietà. Ai fini IMU il risultato è semplice. Se i genitori vivono nella casa con la residenza, è la loro abitazione principale ed è esente, salvo che sia di categoria A/1, A/8 o A/9. Se i genitori vivono altrove, l’usufruttuario paga come su una seconda casa, all’aliquota degli altri fabbricati. In nessun caso pagano i figli finché l’usufrutto dura.</p>
+  <p>Se l’usufrutto è congiunto e uno dei due genitori muore, decide l’atto: se prevede l’accrescimento, il superstite diventa usufruttuario dell’intero e l’IMU, se dovuta, è tutta sua; altrimenti la quota del defunto si riunisce alla nuda proprietà e i figli cominciano a pagare su quella quota.</p>
+
+  <h2>Quote di usufrutto e obbligazioni autonome</h2>
+  <p>Quando i titolari sono più di uno, ciascuno ha una propria obbligazione tributaria e paga sulla propria quota, tenendo conto dei propri requisiti: se uno dei due usufruttuari vive nella casa e l’altro no, il primo è esente sulla sua quota e il secondo paga sulla sua. Le agevolazioni e le esenzioni si applicano quota per quota (comma 743).</p>
+  <ContentTable caption={`Appartamento A/2 con ${$(R)} di rendita all’${al(MAX)}`} headers={['Quota', 'IMU annua', 'Ogni rata']} align={['r', 'r', 'r']} rows={quote} />
+
+  <h2>Quando l’usufrutto finisce in corso d’anno</h2>
+  <p>Alla morte dell’usufruttuario, o alla scadenza fissata nell’atto, il nudo proprietario riunisce in sé la piena proprietà. Da quel momento è lui il soggetto passivo. I mesi si ripartiscono con la regola del comma 761: un mese conta per chi ha posseduto per più della metà dei giorni, e il giorno in cui cambia il possesso si conta a favore del nuovo possessore. Gli eredi dell’usufruttuario pagano per i mesi precedenti, se l’imposta era dovuta.</p>
+  <ContentTable caption={`Ripartizione di ${$(x.imposta)} annui secondo la data di estinzione`} headers={['Data', 'Mesi usufruttuario', 'Mesi nuovo pieno proprietario', 'IMU usufruttuario', 'IMU pieno proprietario']} align={['l', 'r', 'r', 'r', 'r']} rows={fine} />
+  <p>La tabella mostra l’effetto del confine di metà mese: il 15 aprile il mese resta all’usufruttuario, il 16 passa al pieno proprietario. Lo stesso calcolo, per una vendita, è nella guida sulla <a href={route('compravendita', lang)}>compravendita</a>.</p>
+
+  <h2>Diritto di abitazione, superficie ed enfiteusi</h2>
+  <p>Il diritto di abitazione permette di abitare una casa per i bisogni propri e della famiglia. Chi ne è titolare è soggetto passivo IMU come l’usufruttuario. È il caso del coniuge superstite sulla casa familiare, trattato nella guida sull’<a href={route('eredita', lang)}>immobile ereditato</a>. Il superficiario, che ha costruito su suolo altrui, paga sul fabbricato; l’enfiteuta, istituto ormai raro, paga al posto del concedente.</p>
+
+  <h2>Leasing immobiliare</h2>
+  <p>Per gli immobili concessi in locazione finanziaria, anche da costruire o in costruzione, soggetto passivo è il locatario dalla data della stipula e per tutta la durata del contratto. La società di leasing, che resta proprietaria, non paga. Per i fabbricati del gruppo D non accatastati, il valore si ricava dalle scritture contabili del locatore, che deve fornire i dati al locatario (comma 746).</p>
+
+  <h2>Donare la nuda proprietà: l’effetto sull’IMU</h2>
+  <p>Chi pensa di donare ai figli la nuda proprietà della casa tenendo l’usufrutto spesso si chiede se l’operazione cambi l’IMU. Non la cambia: prima della donazione il genitore pagava come proprietario, dopo paga come usufruttuario, con la stessa base imponibile e la stessa aliquota. Se la casa è la sua abitazione principale, resta esente. L’effetto si vede solo alla fine dell’usufrutto, quando il figlio diventa pieno proprietario e, se non vi abita, comincia a pagare come su una seconda casa. Diverso è il caso in cui il genitore cede anche l’usufrutto e si riserva solo un diritto di abitazione: anche il titolare del diritto di abitazione è soggetto passivo, quindi l’IMU resta comunque a lui finché vive nella casa o ne conserva il diritto.</p>
+  <h2>Dichiarazione e controlli</h2>
+  <p>Gli atti notarili che costituiscono o trasferiscono l’usufrutto confluiscono nelle banche dati catastali consultate dai comuni; la dichiarazione IMU serve soprattutto per le situazioni che il comune non può conoscere da solo. Per sapere se il tuo caso la richiede, la guida sulla <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> elenca i casi. Il codice tributo è quello della fattispecie: {P.f24.altri} per l’abitazione non principale, {P.f24.ap} per l’abitazione principale di lusso.</p>
+</Guide>

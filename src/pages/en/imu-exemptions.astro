@@ -1,0 +1,74 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const assim = conProspetto.filter((c) => c.assim).length;
+const terEsenti = quanti('ter', (v) => v < 0);
+const zeroRur = quanti('rur', (v) => v === 0);
+const R = 900;
+const saved = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX }).imposta;
+const list = [
+  ['Main home outside A/1, A/8, A/9, with one C/2, C/6 and C/7', 'para. 740', 'Italian residence and actual dwelling'],
+  ['Homes treated as main homes (housing co-ops, social housing, family home assigned by a court, armed forces and police)', 'para. 741 c', 'By law, some with an IMU return'],
+  ['Home of an elderly or disabled person moved to a care home, not let', 'para. 741 c, n. 6', 'Only if the comune grants it'],
+  ['Land farmed by registered farmers; land on minor islands, in mountain and hill areas', 'para. 758', 'By law'],
+  ['State and comune property, public bodies’ property for institutional use', 'para. 759 a', 'By law'],
+  ['Buildings in categories E/1 to E/9 (stations, lighthouses, cemeteries…)', 'para. 759 b', 'By law'],
+  ['Places of worship, Holy See property, foreign State property under treaties', 'para. 759 d-f', 'By law'],
+  ['Non-commercial bodies’ property used for non-commercial activities', 'para. 759 g', 'Yearly return'],
+  ['Property occupied by squatters, once reported to the police', 'para. 759 g-bis', 'Notice to the comune'],
+  ['Newly built homes held for sale by the builder (beni merce)', 'para. 751', 'While unsold and not let'],
+];
+const years = [500, 800, 1100, 1500].map((r) => { const x = calcolaImu({ categoria: 'A2', rendita: r, aliquota: MAX }); return [$(r), $(x.imposta), $(x.imposta * 10)]; });
+const faqs = [
+  { q: 'Is a holiday home in Italy ever exempt from IMU?', a: `Not as such. A second home pays even if it is empty most of the year; only a main home, where you are resident and actually live, is exempt. A comune may set a zero rate for some cases, but holiday homes are usually taxed at the top rate: ${$(saved)} a year on ${$(R)} of rendita at ${al(MAX)}.` },
+  { q: 'Does an empty or derelict house pay IMU?', a: 'An empty house pays in full. A building declared unfit for use (inagibile) and actually unused gets its taxable value halved for the months the condition lasts, which is a reduction, not an exemption. Some comuni set a zero rate for former main homes made unfit by a disaster: the comune’s schedule says so.' },
+  { q: 'Can my comune exempt my property even if the law does not?', a: `Only in two ways the law allows: treating the home of an elderly or disabled person in permanent care as a main home, which ${n(assim)} comuni do, and exempting property lent free to the comune or to non-commercial bodies for their institutional purposes. Everything else is done with rates, down to zero, set in the schedule.` },
+];
+---
+<Guide lang={lang} id="esenzioni" title="IMU Exemptions 2026: Who Pays Nothing on Italian Property"
+  description="IMU exemptions in 2026: the main home, homes treated as main homes, mountain farmland, public and religious buildings, new homes for sale, what comuni add."
+  h1="IMU exemptions in 2026: the full list and what each comune can add"
+  intro="Most owners of Italian property pay IMU every year. The exceptions are few, listed in Law 160 of 2019, and a handful more depend on the comune."
+  resume={`IMU exemptions come in two kinds. Statutory ones apply in every comune: the main home outside the luxury categories A/1, A/8 and A/9, together with one cellar, one garage and one shed; a short list of homes the law treats as main homes; farmland worked by registered farmers or lying in mountain areas and on minor islands; public buildings used for institutional purposes; category E buildings; places of worship; new homes a builder holds for sale; and property occupied by squatters once the owner has reported it. Optional ones depend on the comune’s rate schedule, such as the home of an elderly person in permanent care, granted by ${n(assim)} comuni. Foreign owners and Italians living abroad rarely benefit, because the main home exemption needs Italian residence. An exemption is worth the tax it avoids: ${$(saved)} a year on a flat with ${$(R)} of cadastral income at the common ${al(MAX)} rate, which over ten years adds up to ${$(saved * 10)}.`}
+  faqs={faqs} related={['home', 'primaCasa', 'esteri', 'terreni', 'occupati', 'anziani', 'inagibili', 'regimi', 'aliquote']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'corte209')}>
+  <MiniSim client:visible kind="esenzioni" lang={lang} href={route('home', lang)} />
+  <h2>The statutory list</h2>
+  <p>These cases are exempt everywhere IMU applies, without any decision by the comune. The list is closed: a situation that is not on it pays, however similar it may look. Paragraph numbers refer to article 1 of Law 160 of 2019.</p>
+  <ContentTable headers={['Property', 'Rule', 'How it applies']} align={['l', 'l', 'l']} rows={list} />
+
+  <h2>The main home, and why it rarely helps foreign owners</h2>
+  <p>The main home exemption covers the dwelling where the owner is registered as resident with the comune and habitually lives, plus at most one pertinenza in each of the categories C/2 (cellar or storeroom), C/6 (garage or parking space) and C/7 (open shed). Luxury categories A/1, A/8 and A/9 are taxed at a reduced rate with a deduction instead. Since Constitutional Court ruling 209 of 2022, each spouse can claim the exemption on the home where he or she genuinely lives, even in different comuni.</p>
+  <p>For someone who lives in London, New York or Munich the exemption is out of reach: residence is registered where you actually live, and a holiday home cannot be both. The only relief for owners abroad is the half rate for certain treaty pensioners, explained in the <a href={route('esteri', lang)}>non-residents guide</a>.</p>
+
+  <h2>Homes the law treats as main homes</h2>
+  <p>Five situations are put on the same footing as a main home: flats of undivided-ownership housing co-operatives assigned to members who live there, or to university students; social housing as defined by the 2008 ministerial decree; the family home that a court assigns to the parent who has custody of the children; and one unlet home owned by members of the armed forces, police, fire brigade and prefectural service, who need not live there. Where the comune cannot know the facts, the owner states them in the IMU return due by 30 June of the following year.</p>
+
+  <h2>Farmland and mountain areas</h2>
+  <p>Agricultural land is exempt when it is owned and farmed by a coltivatore diretto or a professional farmer (IAP) enrolled in the farmers’ social security scheme, wherever it lies. Land on minor islands, collectively owned inalienable land and land in mountain or hill areas listed under a 1993 Finance Ministry circular is exempt for everyone. In the schedules we read, {n(terEsenti)} comuni mark their farmland as exempt. A foreign buyer of a Tuscan or Umbrian farmhouse with a few hectares should check this line: in a non-exempt comune the land pays at the farmland rate, see the <a href={route('terreni', lang)}>agricultural land guide</a>.</p>
+
+  <h2>Public, religious and charitable property</h2>
+  <p>Buildings of the State and of comuni are exempt, as is property that regions, provinces, mountain communities and health authorities own within their own territory, as long as it serves institutional purposes. So are category E buildings, cultural buildings, places of worship with their pertinenze, Holy See buildings listed in the 1929 Lateran Treaty and buildings of foreign States and international organisations exempt under treaties. Non-commercial bodies such as charities and religious institutions are exempt on property used only for welfare, health, education, culture, sport or worship carried out in a non-commercial way, and they file a return every year.</p>
+
+  <h2>New builds for sale and squatted property</h2>
+  <p>Since 2022, homes built by a construction company and held for sale pay no IMU while they remain unsold and are not let. The buyer starts paying from the month of the deed. Property that cannot be used because squatters have occupied it is also exempt, once the owner has reported the trespass or occupation to the judicial authorities, and for as long as it lasts; the owner notifies the comune, as described in the <a href={route('occupati', lang)}>squatted property guide</a>.</p>
+
+  <h2>What the comune can add, and zero rates</h2>
+  <p>Comuni may treat as a main home the unlet home of an elderly or disabled owner who has moved permanently into a care facility: {n(assim)} comuni do. They may also exempt property lent free to the comune, another local authority or a non-commercial body for its institutional aims. Beyond that they act through rates. A zero rate is common for rural farm buildings ({n(zeroRur)} comuni) and appears in some schedules for unfit former main homes. A zero rate gives the same result as an exemption, but it is decided each year and can change.</p>
+  <p>Every exemption a comune grants is listed in its rate schedule, which prevails over its regulation if the two disagree. You can read it on the <a href={route('aliquote', lang)}>rates by comune</a> page.</p>
+
+  <h2>What an exemption is worth over time</h2>
+  <p>When an exemption ends, for instance because you move your residence or start letting the property, the house moves to the rate for other buildings. Over ten years the difference adds up, as the table shows at {al(MAX)}.</p>
+  <ContentTable headers={['Rendita', 'IMU per year', 'Over ten years']} align={['r', 'r', 'r']} rows={years} />
+</Guide>

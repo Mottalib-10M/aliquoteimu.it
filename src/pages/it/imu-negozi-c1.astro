@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, moltiplicatore } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatDecimal } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti;
+const R = 2200;
+const x = calcolaImu({ categoria: 'C1', rendita: R, aliquota: L.altri_max });
+const casa = calcolaImu({ categoria: 'A2', rendita: R, aliquota: L.altri_max });
+const tot = conProspetto.length;
+const diffFiles = import.meta.glob<{ default: Record<string, { d: Array<[string, number, string]>; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const conta = (re: RegExp) => Object.values(diffFiles).reduce((s, f) => s + Object.values(f.default).filter((v) => v.d.some((d) => d[0] === 'altri' && re.test(d[2]))).length, 0);
+const conC1 = conta(/C\/1 /), storiche = conta(/[Bb]ottega storica/), centro = conta(/centro storico/);
+const diffOf = (code: string) => { for (const f of Object.values(diffFiles)) { const v = f.default[code]; if (v) return v.d; } return []; };
+const casi = [['Roma', 'H501'], ['Milano', 'F205'], ['Firenze', 'D612'], ['Genova', 'D969']] as const;
+const casiRows = casi.map(([nome, code]) => { const ord = ratesOf(comune(code)!).altri; const rid = diffOf(code).filter((d) => d[0] === 'altri' && /C\/1 /.test(d[2])).map((d) => d[1]); const low = rid.length ? Math.min(...rid) : ord; return [nome, al(ord), rid.length ? al(low) : 'nessuna', $(calcolaImu({ categoria: 'C1', rendita: R, aliquota: ord }).imposta), $(calcolaImu({ categoria: 'C1', rendita: R, aliquota: low }).imposta)]; });
+const rendite = [800, 1500, 2200, 4000, 8000].map((r) => { const y = calcolaImu({ categoria: 'C1', rendita: r, aliquota: L.altri_max }); return [$(r), $(y.base), $(y.imposta), $(y.imposta / 12)]; });
+const cambio = calcolaImu({ categoria: 'C1', rendita: R, aliquota: L.altri_max, aliquotaAcconto: P.aliquote_base.altri });
+const faqs = [
+  { q: 'Il negozio che affitto a un commerciante: l’IMU la paga lui o io?', a: `La paghi tu come proprietario: l’inquilino non è mai soggetto passivo dell’IMU (comma 743), anche se il contratto prova a trasferirgli l’onere. Con ${$(R)} di rendita e l’aliquota dell’${al(L.altri_max)} sono ${$(x.imposta)} l’anno, codice tributo ${P.f24.altri}. Alcuni comuni applicano un’aliquota più bassa ai negozi locati con contratto registrato.` },
+  { q: 'Perché il negozio paga meno IMU di un appartamento con la stessa rendita?', a: `Perché il moltiplicatore della categoria C/1 è ${moltiplicatore('C1')}, contro ${moltiplicatore('A2')} delle abitazioni (comma 745, lettera f). Con ${$(R)} di rendita il negozio ha una base di ${$(x.base)} e paga ${$(x.imposta)}, l’appartamento ${$(casa.imposta)}. Le rendite dei negozi però sono in genere più alte a parità di metri quadri.` },
+  { q: 'La bottega storica ha diritto a un’IMU ridotta?', a: `Solo se il comune lo prevede nel prospetto. ${n(storiche)} comuni hanno un’aliquota specifica per botteghe storiche o artigiane, tra cui Roma e Firenze, di solito per immobili C/1 e C/3 utilizzati direttamente dal proprietario o da chi vi svolge l’attività. Il testo esatto delle condizioni è nel prospetto del comune.` },
+];
+---
+<Guide lang={lang} id="negozi" title={`IMU negozi C/1 2026: moltiplicatore ${moltiplicatore('C1')} e aliquote ridotte`}
+  description={`IMU negozi e botteghe C/1 2026: rendita × ${formatDecimal(1 + P.base.rivalutazione_rendita, 2, lang)} × ${moltiplicatore('C1')}, aliquota del comune fino all’${al(L.altri_max)}, aliquote ridotte per negozi locati o botteghe storiche e codice ${P.f24.altri}.`}
+  h1="IMU sui negozi C/1: come si calcola e dove si paga meno"
+  intro="Botteghe, negozi di vicinato, locali commerciali al piano terra: la categoria C/1 ha il moltiplicatore più basso dell’IMU, ma molti comuni ne fanno una fattispecie a sé."
+  resume={`Un negozio accatastato in categoria C/1 paga l’IMU come «altro fabbricato», ma con il moltiplicatore più basso di tutto il sistema: la rendita della visura si aumenta del 5 % e si moltiplica per ${moltiplicatore('C1')}, contro ${moltiplicatore('A2')} di un’abitazione (comma 745 della legge 160 del 2019). Un negozio con ${$(R)} di rendita ha quindi una base imponibile di ${$(x.base)} e, con l’aliquota massima ordinaria dell’${al(L.altri_max)}, paga ${$(x.imposta)} l’anno, in due rate da ${$(x.acconto)}, con il codice tributo ${P.f24.altri}. Paga sempre il proprietario, anche se il locale è affittato. Il dato più interessante è nei prospetti: ${n(conC1)} comuni su ${n(tot)} prevedono aliquote particolari che riguardano i negozi C/1, per esempio per quelli locati a canone registrato, utilizzati direttamente per un’attività, situati nel centro storico o gestiti come botteghe storiche. Prima di pagare conviene verificarle una per una.`}
+  faqs={faqs} related={['home', 'uffici', 'capannoni', 'locati', 'aliquote', 'coefficienti', 'f24']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="negozi" lang={lang} href={route('home', lang)} />
+  <h2>La categoria C/1 e il moltiplicatore {moltiplicatore('C1')}</h2>
+  <p>La categoria catastale C/1 comprende negozi e botteghe: locali al piano strada con vetrina, destinati alla vendita o a servizi al pubblico. Il comma 745 assegna loro un moltiplicatore di {moltiplicatore('C1')}, il più basso dell’IMU: a parità di rendita, un negozio ha una base imponibile di circa un terzo rispetto a una casa. Non vanno confusi con i laboratori artigiani C/3, che hanno un moltiplicatore di {moltiplicatore('C3')}, né con i grandi centri commerciali, che stanno nel gruppo D.</p>
+  <ContentTable headers={['Rendita', 'Base imponibile', `IMU a ${al(L.altri_max)}`, 'Al mese']} align={['r', 'r', 'r', 'r']} rows={rendite} />
+
+  <h2>Le aliquote mirate dei comuni</h2>
+  <p>Per la legge un negozio è un altro fabbricato e prende l’aliquota della categoria residuale. I comuni però possono differenziare, e i negozi sono la fattispecie su cui intervengono di più dopo le case in affitto. Nei prospetti letti le condizioni ricorrenti sono quattro: il negozio è locato o concesso in comodato con contratto registrato; è utilizzato direttamente dal proprietario per un’attività commerciale o professionale; si trova nel centro storico ({n(centro)} comuni usano questo criterio); ospita una bottega storica o artigiana ({n(storiche)} comuni). Alcune città arrivano a distinguere per codice ATECO: Roma riduce l’aliquota per le edicole, Firenze per le librerie.</p>
+  <ContentTable caption={`Negozio C/1 con ${$(R)} di rendita: aliquota ordinaria e aliquota più bassa prevista per i C/1`} headers={['Città', 'Ordinaria', 'Ridotta per C/1', 'IMU ordinaria', 'IMU ridotta']} align={['l', 'r', 'r', 'r', 'r']} rows={casiRows} />
+  <p>La riduzione non è automatica: vale solo se il negozio rispetta tutte le condizioni scritte nel prospetto. Il calcolatore elenca le aliquote differenziate del comune scelto e le applica con un clic, ma la verifica delle condizioni resta tua.</p>
+
+  <h2>Negozio sfitto, affittato o usato dal proprietario</h2>
+  <p>Un negozio vuoto in attesa di un inquilino paga l’aliquota ordinaria, spesso il massimo. Un negozio affittato paga sul proprietario, con l’aliquota per i locati se il comune la prevede. La riduzione al 75 % del canone concordato riguarda soltanto le abitazioni e non si applica ai locali commerciali. Il commerciante che possiede il proprio negozio e vi lavora paga anche lui come proprietario, e in molti comuni trova un’aliquota dedicata per gli immobili utilizzati direttamente dal soggetto passivo.</p>
+
+  <h2>Cambio di destinazione: da negozio a casa</h2>
+  <p>Nei centri storici molti negozi chiusi vengono trasformati in abitazioni. Il cambio di categoria da C/1 ad A/2 o A/3, con il nuovo classamento, cambia l’IMU in due direzioni: il moltiplicatore passa da {moltiplicatore('C1')} a {moltiplicatore('A2')}, mentre la rendita di solito scende. Le variazioni di rendita dovute a interventi edilizi hanno effetto dalla data di ultimazione dei lavori o del primo utilizzo (comma 745). Se l’ex negozio diventa la tua abitazione principale, dal mese del trasferimento della residenza smette di pagare.</p>
+
+  <h2>Negozio inagibile o in ristrutturazione</h2>
+  <p>Un locale commerciale dichiarato inagibile e di fatto non utilizzato ha la base dimezzata per il periodo in cui sussistono le condizioni (comma 747, lettera b). Se invece è in corso una ristrutturazione edilizia o un restauro ai sensi dell’articolo 3, comma 1, lettere c, d ed f, del DPR 380 del 2001, la base per la durata dei lavori diventa il valore dell’area, come spiegato nella guida sulle <a href={route('aree', lang)}>aree fabbricabili</a>.</p>
+
+  <h2>Versamento e codice tributo</h2>
+  <p>L’IMU del negozio si versa con il codice {P.f24.altri}, lo stesso delle seconde case e degli uffici, e con il codice catastale del comune. Non c’è quota statale: quella esiste solo per il gruppo D. Acconto il 16 giugno con l’aliquota dell’anno precedente, saldo il 16 dicembre con quella del 2026. Se possiedi anche il magazzino C/2 o il box del negozio, ciascuno paga sulla propria rendita con il proprio moltiplicatore.</p>
+  <h2>Se il comune cambia aliquota tra un anno e l’altro</h2>
+  <p>L’acconto di giugno si paga con l’aliquota dell’anno precedente e il saldo di dicembre con quella nuova, recuperando la differenza. Se un comune porta i negozi dallo {al(P.aliquote_base.altri)} all’{al(L.altri_max)}, il proprietario di un C/1 con {$(R)} di rendita versa {$(cambio.acconto)} a giugno e {$(cambio.saldo)} a dicembre. Il totale annuo è quello della nuova aliquota, ma la seconda rata pesa di più: tra il 2025 e il {P.year} centinaia di comuni hanno ritoccato l’aliquota degli altri fabbricati.</p>
+
+</Guide>

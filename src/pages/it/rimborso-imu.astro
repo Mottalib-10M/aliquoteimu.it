@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 900;
+const piena = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const comod = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, riduzione: 'comodato' });
+const ap = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, uso: 'ap' });
+const cap = comune('B677')!;
+const xc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(cap).altri, aliquotaAcconto: ratesAcconto(cap).altri });
+const unica = calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesAcconto(cap).altri });
+const credito = unica.imposta - xc.imposta;
+const casi = [
+  ['Rata unica a giugno, aliquota poi ridotta', `${cap.name}: ${al(ratesAcconto(cap).altri)} → ${al(ratesOf(cap).altri)}`, $(credito)],
+  ['Comodato registrato non applicato', 'base dimezzata dimenticata', $(piena.imposta - comod.imposta)],
+  ['Abitazione principale pagata come seconda casa', 'A/3, residenza e dimora', $(piena.imposta - ap.imposta)],
+  ['Versamento doppio della stessa rata', 'stesso F24 inviato due volte', $(piena.acconto)],
+];
+const faqs = [
+  { q: 'Entro quanto tempo si chiede il rimborso dell’IMU pagata in più?', a: 'Entro cinque anni dal giorno del versamento, oppure dal giorno in cui è stato accertato il diritto alla restituzione, per esempio da una sentenza. Il comune deve eseguire il rimborso entro centottanta giorni dalla presentazione della domanda (legge 296 del 2006, art. 1, comma 164). Oltre i cinque anni il diritto si perde.' },
+  { q: 'Sul rimborso IMU spettano gli interessi?', a: 'Sì, dalla data del versamento, maturati giorno per giorno. La misura annua la stabilisce ogni comune, entro tre punti percentuali di differenza rispetto al tasso di interesse legale, ed è la stessa che il comune applica alle somme che riscuote in ritardo (legge 296 del 2006, comma 165). Il regolamento IMU del comune indica il tasso scelto.' },
+  { q: 'Ho pagato l’IMU al comune sbagliato: devo pagare di nuovo?', a: 'In genere no: si chiede al comune che ha ricevuto i soldi di riversarli a quello competente, comunicandolo a entrambi con i dati del versamento. Conviene farlo subito e conservare la quietanza dell’F24, perché il comune giusto, non vedendo il pagamento, potrebbe notificare un avviso. Il codice ente da usare è sempre quello del comune in cui si trova l’immobile.' },
+  { q: 'Posso compensare l’IMU versata in più con la rata successiva?', a: 'Solo se il regolamento del comune lo prevede: la legge rimette agli enti locali la disciplina della compensazione tra crediti e debiti per i loro tributi (legge 296 del 2006, comma 167). Dove non è prevista, si presenta la domanda di rimborso. La compensazione vale solo con somme dovute allo stesso comune.' },
+];
+---
+<Guide lang={lang} id="rimborso" title="Rimborso IMU 2026: termini, interessi e domanda al comune"
+  description="Rimborso IMU versata in più: domanda al comune entro cinque anni, rimborso entro 180 giorni, interessi, compensazione e pagamento al comune sbagliato."
+  h1="Rimborso IMU: come recuperare l’imposta pagata in più"
+  intro="Una rata pagata due volte, una riduzione dimenticata, un’aliquota scesa dopo la rata unica di giugno: l’IMU versata in più si recupera, ma non da sola."
+  resume={`L’IMU versata e non dovuta si recupera con una domanda di rimborso al comune che l’ha incassata, da presentare entro cinque anni dal giorno del versamento o da quello in cui è stato riconosciuto il diritto alla restituzione; il comune deve pagare entro centottanta giorni dalla domanda (art. 1, comma 164, legge 296 del 2006). Sulle somme rimborsate spettano gli interessi giorno per giorno, nella misura fissata dal comune entro tre punti oltre il tasso legale. I casi più comuni sono quattro: la rata versata due volte, la riduzione non applicata (comodato registrato, immobile inagibile, canone concordato), l’abitazione principale pagata come seconda casa e l’aliquota ridotta dopo una rata unica. A ${cap.name}, che ha abbassato l’aliquota per il 2026, chi avesse pagato tutto a giugno con l’aliquota 2025 su una casa con ${$(R)} di rendita avrebbe versato ${$(credito)} in più. Il calcolatore permette di rifare il conto prima di scrivere al comune.`}
+  faqs={faqs} related={['home', 'saldo', 'acconto', 'comodato', 'primaCasa', 'f24', 'dichiarazione', 'scadenze']} sources={src(lang, 'legge296', 'legge160', 'mef_versamenti', 'mef_agevolazioni')}>
+  <MiniSim client:visible kind="rimborso" lang={lang} href={route('home', lang)} />
+  <h2>Quando l’IMU è stata pagata in più</h2>
+  <ContentTable caption={`Esempi su un immobile con ${$(R)} di rendita`} headers={['Situazione', 'Dettaglio', 'Somma da recuperare']} align={['l', 'l', 'r']} rows={casi} />
+  <p>Il primo caso nasce dal comma 762: chi paga tutta l’imposta annua entro il 16 giugno usa le aliquote disponibili in quel momento, e se il comune le riduce con il prospetto 2026 la differenza diventa un credito. Il secondo e il terzo sono errori di calcolo: la base non dimezzata per un <a href={route('comodato', lang)}>comodato</a> che ne aveva diritto, o un’imposta pagata su una casa che era <a href={route('primaCasa', lang)}>abitazione principale</a>. Il quarto è il più banale e il più frequente: lo stesso F24 inviato due volte dall’home banking.</p>
+
+  <h2>Il termine dei cinque anni</h2>
+  <p>Il comma 164 fa partire i cinque anni dal giorno del versamento. Una rata pagata il 16 giugno 2026 si può chiedere indietro fino al 16 giugno 2031. Se il diritto nasce dopo, per esempio da una sentenza che riconosce una rendita catastale più bassa o da un provvedimento che conferma l’inagibilità, il termine decorre da quel momento. È lo stesso arco di tempo che il comune ha per controllare: gli avvisi di accertamento si notificano entro il 31 dicembre del quinto anno successivo al versamento (comma 161).</p>
+
+  <h2>Come si presenta la domanda</h2>
+  <p>La domanda si indirizza all’ufficio tributi del comune, quasi sempre con un modulo disponibile sul sito comunale, inviato per posta elettronica certificata, a mano o per raccomandata. Deve contenere i dati del contribuente, gli estremi catastali dell’immobile, gli anni e gli importi versati, il motivo per cui non erano dovuti e le coordinate bancarie su cui ricevere il rimborso. Vanno allegate le quietanze degli F24 e i documenti che provano il diritto: il contratto di comodato registrato, la perizia di inagibilità, il certificato di residenza. Chi non è sicuro del calcolo può allegare il prospetto delle aliquote del comune e il conteggio rifatto.</p>
+  <p>Il comune ha centottanta giorni per pagare. Se il termine passa senza risposta, conviene sollecitare l’ufficio tributi per iscritto, citando la data e il protocollo della domanda.</p>
+
+  <h2>Interessi sul rimborso</h2>
+  <p>Gli interessi decorrono dalla data del versamento e maturano giorno per giorno. La misura non è nazionale: il comma 165 lascia a ogni comune la scelta del tasso, entro tre punti percentuali di scarto dal tasso di interesse legale, e lo stesso tasso vale sia per i rimborsi al contribuente sia per gli interessi che il comune pretende sui ritardi. Il valore si legge nel regolamento delle entrate o nel regolamento IMU del comune.</p>
+
+  <h2>Compensazione invece del rimborso</h2>
+  <p>Molti comuni permettono di usare il credito per pagare la rata successiva dell’IMU, o altri tributi comunali, senza aspettare il rimborso. È una facoltà dei comuni, che la disciplinano con il proprio regolamento (comma 167): dove esiste, di solito richiede una comunicazione all’ufficio tributi prima del versamento compensato. Il credito verso un comune non si può usare per pagare l’IMU dovuta a un altro comune.</p>
+
+  <h2>Pagamento al comune sbagliato</h2>
+  <p>Succede quando nell’F24 si scrive il codice catastale del comune di residenza invece di quello dell’immobile, o si inverte una lettera. Il pagamento non è perso: si segnala l’errore a entrambi i comuni chiedendo il riversamento della somma a quello competente. Chi lo fa per tempo evita che il comune giusto, non trovando il versamento, emetta un avviso con sanzioni. Il codice da usare è indicato dal calcolatore accanto a ogni riga F24 e spiegato nella guida ai <a href={route('f24', lang)}>codici tributo</a>.</p>
+
+  <h2>Quando non si ha diritto al rimborso</h2>
+  <p>Non si recupera l’IMU pagata su un immobile che era soggetto all’imposta, solo perché l’aliquota sembrava alta: se il comune l’ha pubblicata nel prospetto entro il 28 ottobre, è dovuta. Non si recupera neppure la riduzione che richiedeva un adempimento non fatto, come la registrazione del contratto di comodato. E non si recupera dopo cinque anni. Per le aree divenute inedificabili, invece, alcuni comuni prevedono un rimborso specifico dell’imposta pagata, alle condizioni fissate nel proprio regolamento (legge 160 del 2019, comma 777, lettera c).</p>
+</Guide>

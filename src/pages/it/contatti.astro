@@ -1,0 +1,18 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import LegalIdentity from '../../components/LegalIdentity.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, contactPageSchema } from '../../lib/seo';
+import { CONTACT_EMAIL } from '../../data/site-config';
+const lang = 'it';
+---
+<PageLayout title="Contatti di AliquoteIMU.it: segnalazioni e domande" description="Contatti di AliquoteIMU.it: come segnalare un’aliquota errata o un problema del calcolatore IMU, cosa indicare nel messaggio, tempi di risposta e come inserire il widget nel tuo sito." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Contatti', path: route('contact', lang) }]), contactPageSchema({ name: 'Contatti', description: 'Contatti di AliquoteIMU.it', path: route('contact', lang), lang })]} breadcrumbs={[{ label: 'Contatti' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Contatti</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <p>Scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Per segnalare un’aliquota diversa da quella del prospetto, indica il comune, la fattispecie e se possibile il link al prospetto sul sito del Dipartimento delle Finanze. Per un calcolo che non torna, copia il link di condivisione del calcolatore: contiene i valori che hai inserito.</p>
+    <p>Non rispondiamo a quesiti fiscali individuali: per quelli il riferimento è l’ufficio tributi del comune, un CAF o un commercialista.</p>
+    <p>Vuoi il calcolatore nel tuo sito? Il codice è nella pagina <a href={route('widget', lang)}>widget</a>.</p>
+    <h2>Editore</h2>
+    <LegalIdentity lang="it" />
+  </div>
+</PageLayout>

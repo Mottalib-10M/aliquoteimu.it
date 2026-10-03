@@ -1,0 +1,14 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema } from '../../lib/seo';
+const lang = 'it';
+---
+<PageLayout title="Cookie di AliquoteIMU.it: cosa viene salvato nel browser" description="Cookie e memoria locale su AliquoteIMU.it: nessun cookie per i calcolatori IMU, nessuno strumento di misura né di pubblicità attivo, e come verificarlo nelle impostazioni del browser." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Cookie', path: route('cookies', lang) }])]} breadcrumbs={[{ label: 'Cookie' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Cookie</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <p>I calcolatori non usano cookie. I valori che inserisci restano nella pagina e, se usi il link di condivisione, nell’indirizzo.</p>
+    <p>Al momento il sito non carica strumenti di misura dell’audience né pubblicità, quindi non imposta cookie di terze parti e non mostra alcun banner. Puoi verificarlo nelle impostazioni del browser, alla voce dei dati dei siti, o negli strumenti per sviluppatori.</p>
+    <p>Se in futuro introdurremo uno strumento di misura, lo indicheremo qui con i cookie impostati e la loro durata. Per le domande vedi l’<a href={route('privacy', lang)}>informativa privacy</a>.</p>
+  </div>
+</PageLayout>

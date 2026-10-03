@@ -1,0 +1,36 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('A662')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const CC = diffRate('A662', /art\. 2, comma 3/)!, COM = diffRate('A662', /Comodato d'uso gratuito/)!, IACP = diffRate('A662', /IACP/)!;
+const R = 750;
+const vuota = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const conc = calcolaImu({ categoria: 'A3', rendita: R, aliquota: CC, canoneConcordato: true });
+const comLegge = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri, riduzione: 'comodato' });
+const comBari = calcolaImu({ categoria: 'A3', rendita: R, aliquota: COM });
+const rur = calcolaImu({ categoria: 'D10', rendita: 3000, aliquota: r.rur });
+const faqs = [
+  { q: 'A Bari l’affitto a canone concordato abbatte davvero l’IMU?', a: `Sì, più che in quasi ogni altra grande città: il prospetto porta l’aliquota dall’${al(r.altri)} allo ${al(CC)} e la legge riduce l’imposta al 75 %. Con ${$(R)} di rendita la casa a disposizione paga ${$(vuota.imposta)}, quella a canone concordato ${$(conc.imposta)}. Il contratto deve essere registrato e l’inquilino deve usarla come abitazione principale.` },
+  { q: 'Presto la casa a mio fratello a Bari: c’è un’aliquota agevolata?', a: `Il fratello è parente di secondo grado, non di primo: niente riduzione nazionale del comodato e niente aliquota comunale per il comodato, che a Bari vale per i parenti fino al primo grado. La casa paga quindi l’${al(r.altri)}, cioè ${$(vuota.imposta)} l’anno con ${$(R)} di rendita.` },
+  { q: 'I fabbricati rurali strumentali pagano l’IMU a Bari?', a: `No: Bari ha azzerato l’aliquota dei fabbricati rurali strumentali, come consente il comma 750. Un capannone agricolo D/10 con 3 000 euro di rendita, che altrove allo ${al(P.aliquote_base.rur)} pagherebbe ${$(calcolaImu({ categoria: 'D10', rendita: 3000, aliquota: P.aliquote_base.rur }).imposta)}, a Bari paga ${$(rur.imposta)}. Restano invece soggetti all’imposta i terreni agricoli di chi non è coltivatore diretto.` },
+];
+---
+<CityPage lang={lang} city="bari" rendita={R} title={`IMU Bari 2026: aliquote, canone concordato e comodato`}
+  description={`IMU Bari 2026: seconda casa all’${al(r.altri)}, canone concordato allo ${al(CC)}, comodato ai parenti allo ${al(COM)}, case popolari allo ${al(IACP)}. Prospetto e calcolo.`}
+  h1="IMU a Bari nel 2026: aliquote e calcolo"
+  intro="Bari tassa al massimo ordinario le case vuote ma ha le aliquote più basse tra le dieci città di questo sito per gli affitti regolati e gli alloggi popolari."
+  resume={`A Bari l’IMU sugli altri fabbricati è dell’${al(r.altri)}, come sul gruppo D, sulle aree e sui terreni, mentre l’abitazione principale di lusso paga lo ${al(r.ap)} e i fabbricati rurali strumentali nulla. Il prospetto in vigore, approvato con delibera n. ${c.delibera} del ${c.data}, è ancora quello del 2025 al ${P.retrieved_at}. Le sue aliquote differenziate sono poche ma molto forti: lo ${al(CC)} per le case affittate a canone concordato a chi ci abita, per i contratti transitori e per quelli con gli studenti; lo ${al(COM)} per le case date in comodato a figli o genitori che non rientrano nella riduzione di legge; lo ${al(IACP)} per gli alloggi popolari. Su un appartamento A/3 con ${$(R)} di rendita la casa vuota paga ${$(vuota.imposta)} l’anno, quella a canone concordato ${$(conc.imposta)}. È la differenza più ampia tra le dieci città di questo sito.`}
+  faqs={faqs} related={['home', 'concordato', 'comodato', 'rurali', 'aliquote', 'confronto', 'locati']}>
+  <h2>Canone concordato: l’aliquota più bassa tra i capoluoghi qui esaminati</h2>
+  <p>Lo {al(CC)} di Bari per il canone concordato è meno della metà dell’aliquota ordinaria. Sommato alla riduzione al 75 % che la legge applica a tutti i contratti concordati, porta l’imposta a {$(conc.imposta)} contro {$(vuota.imposta)} per la stessa casa vuota: un risparmio di {$(vuota.imposta - conc.imposta)} l’anno su {$(R)} di rendita. Il prospetto lo riconosce anche ai contratti dell’art. 5, commi 1 e 2, della legge 431 del 1998, transitori e per studenti.</p>
+  <h2>Due regimi per il comodato</h2>
+  <p>Chi presta la casa a un figlio o a un genitore ha due strade. Se rispetta tutte le condizioni del comma 747 (contratto registrato, una sola altra abitazione nello stesso comune, residenza a Bari) ha la base imponibile dimezzata e paga {$(comLegge.imposta)}. Se non le rispetta, per esempio perché possiede altre case, il prospetto offre comunque lo {al(COM)} su un solo immobile, purché il parente ci abbia l’abitazione principale: {$(comBari.imposta)}. Le due agevolazioni non si sommano.</p>
+  <h2>Alloggi popolari e fabbricati rurali</h2>
+  <p>Gli alloggi regolarmente assegnati dagli enti di edilizia residenziale pubblica pagano lo {al(IACP)}, un valore quasi simbolico. I fabbricati rurali strumentali hanno aliquota zero: chi ha un magazzino agricolo o una stalla accatastati D/10 non paga IMU.</p>
+</CityPage>

@@ -1,0 +1,61 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max, AB = P.aliquote_base;
+const R = 850;
+const half = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, quota: 50 });
+const villa = calcolaImu({ categoria: 'A8', rendita: 2600, aliquota: AB.ap, uso: 'ap' });
+const abroad = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, quota: 50 });
+const rows = [
+  ['Court assigns the A/2 family home to the parent with custody', 'Parent living there', $(0)],
+  ['No court order; co-owner spouse has moved out (50 %)', 'Each co-owner for his or her share', $(half.imposta)],
+  ['Court assigns an A/8 villa to the parent with custody', 'Parent living there', $(villa.imposta)],
+  ['Spouse who left moves abroad, no court assignment (50 %)', 'That spouse, for his or her share', $(abroad.imposta)],
+];
+const faqs = [
+  { q: 'I own the flat in Milan but the court gave it to my ex-wife and our children: do I still pay IMU?', a: 'No. A court order assigning the family home to the parent with custody of the children creates, for IMU purposes only, a right of habitation for that parent (Law 160/2019, art. 1, para. 743). That parent becomes the taxpayer, and the home is treated as a main home (para. 741 c, no. 4). The owner who moved out pays nothing on it.' },
+  { q: 'We separated without children and I kept living in our jointly owned home: what does my ex pay?', a: `The assimilation in the law concerns a home assigned to the parent with custody of children, by court order. Without it, each co-owner is assessed separately: your share is exempt as your main home, while your former spouse’s 50 % is an ordinary building for him or her. On ${$(R)} of rendita at ${al(MAX)} that share costs ${$(half.imposta)} a year.` },
+  { q: 'Who pays IMU if the family home assigned by the court is a villa classed A/8?', a: `The parent who lives there with the children, at the luxury main home rate with the ${$(P.detrazione_ap)} deduction, because the assimilation does not exempt categories A/1, A/8 and A/9. With ${$(2600)} of rendita at the ${al(AB.ap)} base rate, that is ${$(villa.imposta)} a year, paid under F24 code ${P.f24.ap}.` },
+];
+---
+<Guide lang={lang} id="separazione" title="IMU Family Home After Separation 2026: Who Pays"
+  description="IMU on the family home after separation or divorce in Italy, 2026: assignment to the parent with custody, right of habitation, share of the spouse who leaves."
+  h1="Separation and the family home: who pays IMU on the house the court assigns"
+  intro="When parents separate, an Italian court often lets the parent who keeps the children stay in the family home. For IMU, that shifts the tax away from the owner."
+  resume={`In Italy, when a court assigns the family home (casa familiare) to the parent who has custody of the children, the home is treated as that parent’s main home for IMU, and the court order counts, for tax purposes only, as a right of habitation in his or her favour. Two provisions of Law 160/2019 say so: article 1, paragraph 741 c), no. 4, which treats the home as a main home, and paragraph 743, which makes the assigned parent the taxpayer. In practice, nobody pays IMU on that home unless it is classed A/1, A/8 or A/9: not the parent who lives there, because it is a main home, and not the owner who moved out, because he or she is no longer the taxpayer. Without a court assignment, the share of the spouse who left becomes an ordinary building for him or her: on an A/2 with ${$(R)} of rendita, a 50 % share at ${al(MAX)} costs ${$(half.imposta)} a year. Expats who separate while one partner returns abroad meet this case often.`}
+  faqs={faqs} related={['home', 'coniugi', 'primaCasa', 'usufrutto', 'lusso', 'esteri', 'dichiarazione', 'secondaCasa']} sources={src(lang, 'legge160', 'mef_versamenti', 'corte209')}>
+  <MiniSim client:visible kind="separazione" lang={lang} href={route('home', lang)} />
+  <h2>A right of habitation that exists only for tax</h2>
+  <p>A court assignment does not transfer ownership. The owner remains the owner; the court only decides who lives in the home, usually to protect the children’s stability. For IMU, however, the law treats the order as if it had created a right of habitation (diritto di abitazione) for the parent with custody. Since the holder of such a right is the person liable for IMU, the owner drops out of the picture. No notarial deed is needed: the court order, in separation, divorce or custody proceedings for children of unmarried parents, is enough.</p>
+
+  <h2>Typical situations</h2>
+  <ContentTable headers={['Situation', 'Taxpayer', 'IMU per year']} align={['l', 'l', 'r']} rows={rows} />
+  <p>Figures use {al(MAX)} for other buildings and the base rate for luxury homes; your comune’s rates may differ, and the calculator takes them from its schedule.</p>
+
+  <h2>No children, no assimilation</h2>
+  <p>The law refers to a family home assigned to the parent with custody of the children. A couple without children who separate and agree that one keeps the home are outside this rule: each co-owner pays on his or her share according to his or her own situation, exempt if it is still his or her main home, taxed as an ordinary building otherwise. When an assignment ends, for instance because the children have become self-supporting and the court revokes it, the owner becomes liable again from that month.</p>
+
+  <h2>When the spouse who leaves goes abroad</h2>
+  <p>International couples often separate with one partner returning to his or her home country. If there is no court assignment and that partner still co-owns the Italian home, his or her share pays IMU as an ordinary building, and has to be paid from abroad, usually by bank transfer to the comune. If there is a court assignment to the parent with custody who stays in Italy, the partner abroad pays nothing on that home. The <a href={route('esteri', lang)}>guide for non-residents</a> explains payment from outside Italy.</p>
+
+  <h2>The new home of the spouse who moves out</h2>
+  <p>If the spouse who leaves buys or already owns another home in Italy and lives there with registered residence, that home is his or her main home and exempt. If he or she rents, the only property owned is the assigned family home, on which he or she is not the taxpayer: no IMU anywhere. Any other homes remain second homes.</p>
+
+  <h2>Changes during the year</h2>
+  <p>IMU is computed by months. If the court order comes in the middle of the year, the assigned parent becomes the taxpayer from the month of the order, and until then each co-owner was liable for his or her share. A month counts for whoever held the situation for more than half its days (paragraph 761). The calculator, with the share and months fields in the advanced options, reconstructs the exact figure for each period.</p>
+
+  <h2>Telling the comune</h2>
+  <p>The comune does not automatically know what a court has decided. Where a change affects the tax, the law provides for an IMU return (dichiarazione) by 30 June of the following year (paragraph 768-bis). Filing it protects the owner who moved out, who might otherwise receive an assessment for a home on which he or she is no longer liable. The <a href={route('dichiarazione', lang)}>IMU return guide</a> lists when it is required.</p>
+
+  <h2>When the assigned home pays</h2>
+  <p>Only a family home classed A/1, A/8 or A/9 generates IMU, payable by the assigned parent under his or her own tax code (codice fiscale). On the F24 the code is {P.f24.ap}, the same as any luxury main home, with the comune’s cadastral code and the deduction scaled to the months. If the assigned parent does not pay, the comune pursues that parent, who is the taxpayer by law, not the owner.</p>
+</Guide>

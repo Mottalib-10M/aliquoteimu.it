@@ -1,0 +1,35 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('A944')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const STU = diffRate('A944', /Studenti/)!, CC = diffRate('A944', /art\. 2, comma 3/)!, CIN = diffRate('A944', /59\.14/, 'D')!;
+const R = 850;
+const vuota = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const stud = calcolaImu({ categoria: 'A3', rendita: R, aliquota: STU });
+const conc = calcolaImu({ categoria: 'A3', rendita: R, aliquota: CC, canoneConcordato: true });
+const faqs = [
+  { q: 'Affitto a studenti fuori sede a Bologna: quanta IMU pago?', a: `Il prospetto prevede lo ${al(STU)} per gli appartamenti affittati a studenti, sia con il contratto per universitari dell’art. 5, comma 2, della legge 431 del 1998 sia con il canone concordato e il transitorio, invece dell’${al(r.altri)}. Con ${$(R)} di rendita paghi ${$(stud.imposta)} l’anno invece di ${$(vuota.imposta)}.` },
+  { q: 'Un contratto 4+4 a canone libero a Bologna ha aliquote ridotte?', a: `No. Le aliquote ridotte del prospetto riguardano contratti concordati, transitori e per studenti; il canone libero paga l’aliquota ordinaria dell’${al(r.altri)}, come la casa vuota. Con ${$(R)} di rendita sono ${$(vuota.imposta)} l’anno. Per pagare meno occorre trasformare il contratto in uno di quelli regolati dalla legge 431 del 1998, registrandolo.` },
+  { q: 'Quando Bologna pubblicherà le aliquote IMU 2026?', a: `Al ${P.retrieved_at} il prospetto in vigore è quello del 2025 (delibera ${c.delibera} del ${c.data}). Il comune deve inserire quello del 2026 entro il 14 ottobre; il Dipartimento delle Finanze lo pubblica entro il 28 ottobre. Senza pubblicazione, il saldo si calcola con le aliquote del 2025.` },
+];
+---
+<CityPage lang={lang} city="bologna" rendita={R} title={`IMU Bologna 2026: aliquote e affitti a studenti`}
+  description={`IMU Bologna 2026: seconda casa all’${al(r.altri)}, affitti a studenti, transitori e a canone concordato allo ${al(STU)}, lusso allo ${al(r.ap)}. Prospetto e calcolo.`}
+  h1="IMU a Bologna nel 2026: aliquote e calcolo"
+  intro="A Bologna il prospetto IMU è costruito intorno agli affitti: studenti universitari, contratti transitori e canone concordato hanno tutti un’aliquota ridotta."
+  resume={`Bologna applica l’${al(r.altri)} agli altri fabbricati, al gruppo D, alle aree e ai terreni, e lo ${al(r.ap)} all’abitazione principale di lusso, con il prospetto approvato con delibera ${c.delibera} del ${c.data}, ancora quello del 2025 al ${P.retrieved_at}. Le aliquote differenziate riguardano quasi solo la locazione: lo ${al(STU)} per le case affittate a canone concordato a chi ci abita, per i contratti transitori e per quelli con gli studenti universitari, previsti dagli articoli 2 e 5 della legge 431 del 1998. Per un appartamento A/3 con ${$(R)} di rendita significa ${$(vuota.imposta)} l’anno se è vuoto o affittato a canone libero, ${$(stud.imposta)} se è affittato a studenti e ${$(conc.imposta)} se è a canone concordato, che somma l’aliquota ridotta e la riduzione di legge al 75 %. Cinema e teatri D/3 pagano lo ${al(CIN)}, il minimo per il gruppo D.`}
+  faqs={faqs} related={['home', 'concordato', 'locati', 'aliquote', 'confronto', 'secondaCasa', 'saldo']}>
+  <h2>Una città universitaria, un prospetto per gli affitti</h2>
+  <p>Sei delle otto aliquote differenziate di Bologna riguardano la locazione di abitazioni: il comune distingue tra contratto concordato, transitorio e per studenti, e tra inquilino che ci ha la residenza e inquilino studente. L’aliquota è la stessa per tutte, lo {al(STU)}, ma solo il canone concordato ha anche la riduzione al 75 % della legge. Il risultato è una forte convenienza ad affittare con un contratto regolato rispetto al canone libero, che paga come una casa vuota.</p>
+  <h2>Cosa serve per l’aliquota ridotta</h2>
+  <p>Il prospetto richiede contratti registrati e conformi agli accordi territoriali previsti dalla legge 431. Conviene conservare il contratto con l’attestazione di rispondenza, se l’accordo locale la prevede, e verificare nel regolamento comunale se per l’aliquota agevolata serve una comunicazione all’ufficio tributi: in caso di controllo è il proprietario che deve dimostrare di averne diritto. Per il calcolo con le due riduzioni usa il <a href={route('home', lang)}>calcolatore</a> scegliendo «abitazione affittata a canone concordato».</p>
+  <h2>Cinema e teatri</h2>
+  <p>Le sale cinematografiche e i teatri accatastati D/3, locati o usati direttamente, pagano lo {al(CIN)} invece dell’{al(r.D)}: la quota dello Stato resta lo {al(P.limiti.D_quota_stato)}, quindi il comune rinuncia di fatto alla sua parte.</p>
+</CityPage>

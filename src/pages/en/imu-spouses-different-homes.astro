@@ -1,0 +1,60 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const rRome = 800, rLake = 500;
+const aRome = ratesOf(comune('H501')!).altri, aLake = ratesOf(comune('C933')!).altri;
+const xRome = calcolaImu({ categoria: 'A2', rendita: rRome, aliquota: aRome }).imposta;
+const xLake = calcolaImu({ categoria: 'A3', rendita: rLake, aliquota: aLake }).imposta;
+const rows = [
+  ['Both live in Rome; Como flat used at weekends', $(0), $(xLake), $(xLake)],
+  ['Each spouse registered and actually living in one home', $(0), $(0), $(0)],
+  ['Both registered abroad (AIRE), Italian homes used on holiday', $(xRome), $(xLake), $(xRome + xLake)],
+  ['One spouse moves to Como in July, for good', $(0), $(calcolaImu({ categoria: 'A3', rendita: rLake, aliquota: aLake, mesi: 6, periodo: 'inizio' }).imposta), $(calcolaImu({ categoria: 'A3', rendita: rLake, aliquota: aLake, mesi: 6, periodo: 'inizio' }).imposta)],
+];
+const faqs = [
+  { q: 'My wife works in Rome and I live in our house on Lake Como: can both homes be exempt?', a: `Yes, if each of you has registered residence and actually lives in one of the two homes. Since Constitutional Court ruling 209 of 2022 the exemption is assessed per owner, not per family. If one home is only used at weekends, it pays as a second home: on ${$(rLake)} of rendita at Como’s ${al(aLake)}, ${$(xLake)} a year.` },
+  { q: 'Did the 2022 ruling also cover spouses with two homes in the same town?', a: 'Yes. The Court also struck down, as a consequence, the rule that limited a family with members living in different homes of the same comune to a single exempt property chosen by the family. Each spouse may claim the home where he or she is resident and habitually lives, whether in the same comune or in two different ones.' },
+  { q: 'What evidence will the comune ask for if it doubts we live apart?', a: 'Habitual dwelling is a matter of fact, and comuni usually look at utility consumption, employment contracts and where children go to school. Without it they may issue an assessment until 31 December of the fifth year after the payment was due (Law 296/2006, para. 161), with the tax, interest and penalties. Keep bills and contracts for each home.' },
+];
+---
+<Guide lang={lang} id="coniugi" title="IMU for Spouses With Two Homes 2026: Two Exemptions"
+  description="IMU for married couples with two homes in Italy, 2026: since ruling 209/2022 each spouse can exempt the home where he or she is a resident, even in one town."
+  h1="Married, two homes, two residences: how IMU treats each spouse"
+  intro="Jobs in different cities, children at school in one place, a family house elsewhere: many couples split their lives between two Italian homes. Since 2022 the IMU follows each person."
+  resume={`When a married couple owns two homes in Italy and each spouse genuinely lives in one, both homes can be exempt from IMU as main homes, even if they are in the same comune. The Constitutional Court established this with ruling no. 209 of 13 October 2022, which struck down the parts of article 1, paragraph 741 b), of Law 160/2019 that tied the main home to the whole family unit and limited a family to one exempt home. The test is now personal and double: registered residence (residenza anagrafica) and habitual dwelling (dimora abituale) in the home. A couple with a flat in Rome and another on Lake Como, each spouse living in one, pays nothing on either. If the lake flat is in fact a weekend place, it is a second home: an A/3 with ${$(rLake)} of rendita at Como’s rate of ${al(aLake)} pays ${$(xLake)} a year. For couples who live abroad and keep homes in Italy, the ruling changes nothing: without Italian residence, neither home is a main home.`}
+  faqs={faqs} related={['home', 'primaCasa', 'separazione', 'esteri', 'secondaCasa', 'rimborso', 'ravvedimento', 'pertinenze']} sources={src(lang, 'corte209', 'legge160', 'legge296')}>
+  <MiniSim client:visible kind="coniugi" lang={lang} href={route('home', lang)} />
+  <h2>The rule before 2022 and what the Court changed</h2>
+  <p>Until the ruling, the main home was defined as the unit where the owner and his or her family were resident and lived. When family members had their residences in different homes, the relief applied to only one property chosen by the family. The effect was that two unmarried partners could each exempt a home while a married couple could exempt only one. The Court found this incompatible with equality, family protection and the ability-to-pay principle, and removed the family references. From the 2022 ruling onwards, each owner’s situation is looked at alone.</p>
+
+  <h2>Four couples, four results</h2>
+  <p>A couple owns an A/2 flat in Rome ({$(rRome)} of rendita, rate {al(aRome)}) and an A/3 flat in Como ({$(rLake)} of rendita, rate {al(aLake)}). Their yearly IMU depends on where each of them really lives.</p>
+  <ContentTable headers={['Situation', 'Rome', 'Como', 'Couple total']} align={['l', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Living apart has to be real</h2>
+  <p>The ruling did not touch the requirement of habitual dwelling. A comune that sees two spouses registered in two homes may check that each actually lives there. The signs it looks at are the ordinary ones of daily life: electricity, gas and water consumption consistent with a permanent presence, the place of work, the children’s school, the family doctor. A lake flat with consumption only in summer will not pass. Registering a residence that does not match reality also has consequences beyond IMU, since the registry office (anagrafe) may verify it.</p>
+
+  <h2>Couples living abroad</h2>
+  <p>Many readers of this site are couples living in the UK, Germany or the US with one or two homes in Italy. For them the 2022 ruling has no effect: the exemption requires Italian residence, so every Italian home is a second home. The relevant reliefs are elsewhere: half the tax for pensioners abroad with a pension under a treaty with Italy, on one home not let or lent, and the comuni’s targeted rates. See the guide for <a href={route('esteri', lang)}>non-residents</a>.</p>
+
+  <h2>Refunds for past years</h2>
+  <p>Couples who paid IMU on the second spouse’s home in years when they met the residence and dwelling conditions may claim a refund from the comune. The claim must be filed within five years of the payment (Law 296/2006, para. 164), and the comune has 180 days to pay. How to work out the amount is in the <a href={route('rimborso', lang)}>IMU refund guide</a>.</p>
+
+  <h2>Garages and children</h2>
+  <p>Each spouse is entitled to his or her own exempt pertinenze in the home where he or she lives: one C/2, one C/6 and one C/7, so each home may keep its exempt garage. Children living with one parent do not change the calculation, because the ruling separated the exemption from the family’s composition. A third home owned by the parents and used by an adult child is a separate question, covered by the rules on the free loan (comodato).</p>
+
+  <h2>Separated spouses are a different case</h2>
+  <p>If you live apart because you have separated, what matters is the court order on the family home, which the law treats as a main home for the parent with custody of the children. The guide on <a href={route('separazione', lang)}>separation and the family home</a> explains who pays and who does not.</p>
+
+  <h2>In practice</h2>
+  <p>If each of you really lives in one of the homes, there is nothing to pay on either. Keep evidence of your living arrangements, and check that pertinenze stay within one per category. If one of you moved during the year, the exemption starts from the month in which the new situation covered more than half the days. If one home does not meet the conditions, choose the second home profile in the calculator to get the exact amount with that comune’s rate. If past years were missed, the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> lets you settle with a reduced penalty before any check.</p>
+</Guide>

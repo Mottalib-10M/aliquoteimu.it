@@ -1,0 +1,40 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import RavvedimentoCalc from '../../components/calc/RavvedimentoCalc';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { ravvedimento } from '../../lib/engine/imu';
+import { formatMoney, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const RV = P.ravvedimento;
+const $ = (v: number) => formatMoney(v, 2, lang);
+const pc = (v: number, d = 2) => formatPercent(v, d, lang);
+const I = 800;
+const casi = [['A week late', '2026-12-23'], ['Three weeks late', '2027-01-06'], ['Two months late', '2027-02-14'], ['In spring', '2027-04-30'], ['After the return deadline', '2027-09-15']] as const;
+const rows = casi.map(([lbl, d]) => { const r = ravvedimento({ imposta: I, scadenza: P.scadenze.saldo, pagamento: d }); return [lbl, String(r.giorni), pc(r.sanzionePct, 3), $(r.sanzione)]; });
+const piena = RV.sanzione_base, meta = RV.sanzione_base * RV.riduzione_entro_90_giorni;
+const faqs = [
+  { q: 'What is the penalty for paying IMU late in Italy?', a: `The full penalty is ${pc(piena, 0)} of the unpaid tax, halved to ${pc(meta, 1)} if you are no more than 90 days late. If you pay before the comune contacts you, the ravvedimento operoso cuts it to a tenth within 30 days, a ninth within 90 days, an eighth by 30 June of the following year and a seventh after that, plus interest at the legal rate.` },
+  { q: 'I live abroad and missed the December IMU payment: what should I do?', a: `Pay the missed amount as soon as you can, adding the reduced penalty and interest, using the same tax code and comune code as the original payment. From abroad that usually means a bank transfer to the comune’s treasury account with a reference stating your codice fiscale, the comune code, the tax code, the year and “ravvedimento”. On ${formatMoney(I, 0, lang)} paid three weeks late the penalty is ${$(ravvedimento({ imposta: I, scadenza: P.scadenze.saldo, pagamento: '2027-01-06' }).sanzione)}.` },
+  { q: 'Is there a minimum penalty if I pay IMU just one day late?', a: `There is no fixed minimum: within 15 days the reduced penalty is a fifteenth of ${pc(meta, 1)} per day, cut to a tenth through the ravvedimento. One day late on ${formatMoney(I, 0, lang)} costs ${$(ravvedimento({ imposta: I, scadenza: P.scadenze.saldo, pagamento: '2026-12-17' }).sanzione)} in penalty, plus a day of interest at the legal rate.` },
+];
+---
+<ToolPage lang={lang} id="ravvedimento" title="Late IMU Payment Penalty 2026: Ravvedimento Calculator"
+  description={`Late IMU payment penalty 2026: the ${pc(piena, 0)} penalty cut to 1/10, 1/9, 1/8 or 1/7 by delay, 1/15 per day in the first 15 days, interest and F24.`}
+  h1="Paying IMU late: the ravvedimento operoso calculator"
+  intro="Enter the unpaid tax, the instalment you missed and the day you pay: the calculator applies the right reduction to the penalty."
+  resume={`If you miss the 16 June or 16 December IMU deadline, the comune can charge a penalty of ${pc(piena, 0)} of the unpaid amount, halved to ${pc(meta, 1)} when the delay is 90 days or less (art. 13 of Legislative Decree 471/1997, as it stands for breaches since 1 September 2024). Italy lets you fix the mistake yourself before the comune notices, through the ravvedimento operoso of art. 13 of Legislative Decree 472/1997, and the penalty then shrinks again: to a tenth within 30 days, a ninth within 90 days, an eighth by the deadline of the IMU return for that year, which is 30 June of the following year, and a seventh after that. Within 15 days the ${pc(meta, 1)} is also cut by a fifteenth for each day. On a December balance of ${formatMoney(I, 0, lang)} paid three weeks late, the penalty is ${$(ravvedimento({ imposta: I, scadenza: P.scadenze.saldo, pagamento: '2027-01-06' }).sanzione)}. Interest at the legal rate is added day by day.`}
+  faqs={faqs} related={['home', 'esteri', 'saldo', 'acconto', 'scadenze', 'f24']} sources={src(lang, 'dlgs471', 'dlgs472', 'legge160', 'legge296')}>
+  <RavvedimentoCalc slot="tool" client:load lang={lang} />
+  <h2>How the penalty grows with the delay</h2>
+  <p>Reduced penalty on a December {P.year} balance of {formatMoney(I, 0, lang)}, depending on when you pay. Interest comes on top.</p>
+  <ContentTable headers={['When you pay', 'Days late', 'Penalty rate', 'Penalty']} align={['l', 'r', 'r', 'r']} rows={rows} />
+  <h2>The legal interest rate</h2>
+  <p>Interest runs day by day from the deadline to the payment, at the legal interest rate (tasso di interesse legale) set each year by a Ministry of Economy decree. The calculator works it out once you enter the rate; we leave the field empty on purpose rather than publish a figure we have not checked against the decree. If the delay spans two calendar years, each year’s rate applies to its own days.</p>
+  <h2>How to pay a ravvedimento</h2>
+  <p>On an F24 form, IMU penalties and interest have no separate codes when you correct a payment yourself: they are added to the tax on the same tax code as the missed instalment ({P.f24.altri} for a second home), with the comune’s cadastral code, the tax year and the ravvedimento box ticked. If you pay from abroad by bank transfer, put the same elements in the reference and keep the receipt. Codes {P.f24.interessi_accertamento} and {P.f24.sanzioni_accertamento} are only for interest and penalties demanded in an assessment notice.</p>
+  <h2>When it is too late to correct</h2>
+  <p>The ravvedimento is closed once the breach has been formally established or checks you have been notified of have started. The comune has until 31 December of the fifth year after the missed payment to send an assessment (Law 296/2006, paragraph 161). The partial ravvedimento rule of art. 13-bis of Decree 472/1997 is limited to taxes run by the Agenzia delle Entrate, so for IMU it is safest to pay tax, penalty and interest together in one go.</p>
+</ToolPage>

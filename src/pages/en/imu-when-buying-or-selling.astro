@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, mesiTrasferimento } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 1100;
+const year = calcolaImu({ categoria: 'A7', rendita: R, aliquota: MAX });
+const fmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const dates = ['2026-02-14', '2026-02-15', '2026-05-16', '2026-05-17', '2026-07-01', '2026-10-31', '2026-12-16'];
+const rows = dates.map((d) => { const t = mesiTrasferimento(d); return [fmt(d), String(t.venditore), String(t.acquirente), $(year.imposta * t.venditore / 12), $(year.imposta * t.acquirente / 12)]; });
+const deed = '2026-07-23';
+const t = mesiTrasferimento(deed);
+const seller = calcolaImu({ categoria: 'A7', rendita: R, aliquota: MAX, mesi: t.venditore, periodo: 'inizio' });
+const buyer = calcolaImu({ categoria: 'A7', rendita: R, aliquota: MAX, mesi: t.acquirente, periodo: 'fine' });
+const timeline = [
+  ['Seller', String(t.venditore), $(seller.acconto), $(seller.saldo), $(seller.imposta)],
+  ['Buyer (holiday home)', String(t.acquirente), $(buyer.acconto), $(buyer.saldo), $(buyer.imposta)],
+];
+const faqs = [
+  { q: 'I am buying an Italian villa in July: do I pay the June IMU instalment?', a: `No. The June instalment covers January to June, months that belong to the seller. You pay from the month of the deed if you hold the house for at least half of it, and your whole share falls due on 16 December. With a deed on 23 July the seller keeps July and you pay ${t.acquirente} months, ${$(buyer.imposta)} on a ${$(R)} rendita at ${al(MAX)}.` },
+  { q: 'Does the Italian notary pay the IMU when I buy a house?', a: 'No. The notary collects registration and transfer taxes on the deed, but IMU is not withheld: seller and buyer each pay their own months directly to the comune. Some contracts include a clause in which the buyer refunds the seller for part of the year; that is a private arrangement and does not change who owes the comune.' },
+  { q: 'Who pays IMU between the preliminary contract and the final deed?', a: 'The seller. The compromesso, the preliminary contract, only obliges the parties to transfer; ownership passes with the final deed (rogito). Even if you get the keys early and move in, IMU stays with the seller until the rogito, then follows the half-month rule of paragraph 761 of Law 160/2019.' },
+];
+---
+<Guide lang={lang} id="compravendita" title="IMU When Buying or Selling in Italy 2026: Months Split"
+  description="IMU when you buy or sell Italian property in 2026: the half-month rule, the deed day for the buyer, who pays in June and December, compromesso, new builds."
+  h1="IMU when buying or selling property in Italy: how the year is split"
+  intro="Buying a house in Italy mid-year means sharing that year’s IMU with the seller. The split is set by law, down to the day of the deed."
+  resume={`When an Italian property changes hands during the year, IMU is shared between seller and buyer by months of ownership, under paragraph 761 of Law 160 of 2019. A month counts in full for whoever owned the property for more than half its days. The day of the deed (rogito) is counted for the buyer, who also takes the month when both parties held it for the same number of days. In a 31-day month, a deed up to the 16th gives the month to the buyer and from the 17th leaves it to the seller. On a villa with ${$(R)} of cadastral income at the ${al(MAX)} rate, IMU is ${$(year.imposta)} a year; with a deed on 23 July the seller pays ${t.venditore} months, ${$(seller.imposta)}, and the buyer ${t.acquirente} months, ${$(buyer.imposta)}. Each pays separately, the June instalment for months in the first half of the year and the December balance for the rest. The notary withholds nothing, and the preliminary contract does not move the date: only the final deed transfers ownership.`}
+  faqs={faqs} related={['home', 'esteri', 'acconto', 'saldo', 'secondaCasa', 'eredita', 'usufrutto', 'f24', 'aliquote']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti')}>
+  <MiniSim client:visible kind="compravendita" lang={lang} href={route('home', lang)} />
+  <h2>The half-month rule</h2>
+  <p>Paragraph 761 sets two rules. First, a month in which ownership lasted more than half the days counts as a whole month. Second, the day ownership passes is counted for the buyer, and if both parties held the property for an equal number of days that month, the month is the buyer’s. So every month has exactly one taxpayer. The table splits {$(year.imposta)} of yearly IMU for several deed dates.</p>
+  <ContentTable headers={['Deed date', 'Seller’s months', 'Buyer’s months', 'Seller’s IMU', 'Buyer’s IMU']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+  <p>February 2026 has 28 days: a deed on the 15th gives 14 days to each side, and the tie goes to the buyer. May has 31: the 16th gives the month to the buyer, the 17th leaves it with the seller. A deed on 16 December still gives December to the buyer, with 16 days against the seller’s 15, so the buyer owes one month for the whole year.</p>
+
+  <h2>Who pays which instalment</h2>
+  <p>Each party splits their own IMU between the instalments according to where their months fall. The seller pays the months of the first half of the year with the June instalment and any months after June with the December balance. A buyer who completes after June pays nothing in June and everything in December.</p>
+  <ContentTable caption={`Deed on 23 July 2026, villa A/7 with ${$(R)} of rendita at ${al(MAX)}`} headers={['Party', 'Months', 'June instalment', 'December balance', 'Total 2026']} align={['l', 'r', 'r', 'r', 'r']} rows={timeline} />
+
+  <h2>From compromesso to rogito</h2>
+  <p>Italian purchases usually go through a preliminary contract (compromesso) with a deposit, then the final deed before a notary. Only the deed transfers ownership, so IMU stays with the seller until that day, even if the keys are handed over earlier. Buyers and sellers sometimes agree in the deed that the buyer will reimburse a share of the year’s IMU. Such a clause binds the two of them, but the comune still expects each to pay the months the law assigns. A purchase through a property lease is different: the lessee pays from the signing of the leasing contract.</p>
+
+  <h2>Buying as a resident, buying as a foreigner</h2>
+  <p>If you buy a home to live in and register your residence there, it becomes your main home and stops paying IMU from the month in which you both reside and live there for more than half the days, unless it is classed A/1, A/8 or A/9. The months between the deed and the move are taxed at the rate for other buildings. If you buy from abroad as a holiday home, there is no main home exemption at any point: the house pays from the month of the deed at the comune’s rate. The <a href={route('esteri', lang)}>non-residents guide</a> explains how to pay from outside Italy.</p>
+
+  <h2>New builds and renovated houses</h2>
+  <p>A newly built home is subject to IMU from the date the works are finished or, if earlier, from when it is actually used (paragraph 741 a). While the builder holds it for sale and does not let it, it is exempt as stock (beni merce, paragraph 751). Buying from a developer, you therefore pay from the month of the deed. If renovation works change the rendita during the year, the new rendita applies from the end of the works or first use (paragraph 745), which matters when you buy a house to restore.</p>
+
+  <h2>Gifts, exchanges and sales within the family</h2>
+  <p>The same month rule applies to every transfer of ownership or of a real right: a gift, an exchange, or the sale of bare ownership with the seller keeping a usufruct. In that last case the seller, as usufructuary, remains the only taxpayer, as the <a href={route('usufrutto', lang)}>usufruct guide</a> explains. Transfers on death follow the same counting, with the specific rules of the <a href={route('eredita', lang)}>inheritance guide</a>.</p>
+
+  <h2>Checking the seller’s payments</h2>
+  <p>IMU is a personal tax of each owner, not a charge on the property, so unpaid IMU of the seller does not pass to you with the house. It is still worth asking for the receipts of the last years before the deed: they confirm the cadastral category and rendita the seller used, they show whether the comune treated the house as a main home, and they prepare you for the first instalment you will pay. If the seller used a reduced rate that depended on their personal situation, such as a home lent to a child, you will not inherit it: from your first month the house pays at the rate that fits your own use.</p>
+  <h2>After the sale</h2>
+  <p>The comune learns of an ordinary sale from the deed registered by the notary and from the land registry, so no IMU return is normally needed for the transfer itself. Check the comune’s rate on the <a href={route('aliquote', lang)}>rates by comune</a> page before your first instalment, and keep the deed with your payment receipts: it is the evidence of the date that decides your months.</p>
+</Guide>

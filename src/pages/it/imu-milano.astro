@@ -1,0 +1,37 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('F205')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const CC = diffRate('F205', /art\. 2, comma 3/)!, LIB = diffRate('F205', /canone libero/)!, NEG = diffRate('F205', /C\/1 Negozi/)!, INAG = diffRate('F205', /inagibili/)!, D3 = diffRate('F205', /D\/3/, 'D')!;
+const R = 1100;
+const vuota = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const libero = calcolaImu({ categoria: 'A3', rendita: R, aliquota: LIB });
+const conc = calcolaImu({ categoria: 'A3', rendita: R, aliquota: CC, canoneConcordato: true });
+const lusso = calcolaImu({ categoria: 'A1', rendita: 4000, aliquota: r.ap, uso: 'ap' });
+const faqs = [
+  { q: 'A Milano conviene affittare piuttosto che tenere la casa vuota, per l’IMU?', a: `Sì. Il prospetto 2026 di Milano tassa la casa a disposizione all’${al(r.altri)}, quella affittata a canone libero all’${al(LIB)} e quella a canone concordato allo ${al(CC)}, che si paga per di più al 75 %. Con ${$(R)} di rendita: ${$(vuota.imposta)} vuota, ${$(libero.imposta)} a canone libero, ${$(conc.imposta)} a canone concordato.` },
+  { q: `Perché l’abitazione di lusso a Milano paga lo ${al(r.ap)}?`, a: `Perché al limite dello ${al(P.limiti.ap_max)} previsto dal comma 748 Milano somma la maggiorazione ex TASI dello ${al(P.limiti.maggiorazione_ex_tasi)}, che il comma 755 consente a chi la applicava già. Una casa A/1 da 4 000 euro di rendita, abitazione principale, paga ${$(lusso.imposta)} dopo la detrazione di ${$(P.detrazione_ap)}.` },
+  { q: 'Cosa succede all’IMU se la casa di Milano diventa inagibile?', a: `Se era la tua abitazione principale, non di lusso, ed è diventata inagibile per una calamità o per altre cause, il prospetto prevede un’aliquota dello ${al(INAG)}: non paghi nulla. Per gli altri immobili inagibili resta la riduzione di legge del 50 % della base imponibile, per il periodo in cui l’inagibilità dura.` },
+];
+---
+<CityPage lang={lang} city="milano" rendita={R} title={`IMU Milano 2026: aliquote, canone libero e concordato`}
+  description={`IMU Milano 2026: casa vuota all’${al(r.altri)}, canone libero all’${al(LIB)}, canone concordato allo ${al(CC)}, lusso allo ${al(r.ap)}. Prospetto 2026 del comune e calcolo.`}
+  h1="IMU a Milano nel 2026: aliquote e calcolo"
+  intro="Milano ha già pubblicato il prospetto 2026 e distingue con precisione tra case vuote, affittate a canone libero e affittate a canone concordato."
+  resume={`A Milano l’aliquota IMU degli altri fabbricati è dell’${al(r.altri)}, il massimo con la maggiorazione ex TASI, ma il prospetto 2026, approvato con delibera n. ${c.delibera} del ${c.data}, la abbassa per chi affitta. Un appartamento A/3 con ${$(R)} di rendita costa ${$(vuota.imposta)} l’anno se resta a disposizione del proprietario, ${$(libero.imposta)} se è affittato a canone libero all’${al(LIB)}, ${$(conc.imposta)} se è affittato a canone concordato allo ${al(CC)}, perché a quell’aliquota si aggiunge la riduzione di legge al 75 %. Negozi e laboratori usati per un’attività con contratto registrato pagano lo ${al(NEG)}, le abitazioni principali di lusso lo ${al(r.ap)}, i capannoni l’${al(r.D)}. Le aliquote 2026 sono le stesse del 2025, quindi acconto e saldo coincidono. Per una casa milanese il primo controllo da fare è il tipo di contratto: è quello che cambia la fattispecie del prospetto e l’importo.`}
+  faqs={faqs} related={['home', 'aliquote', 'concordato', 'locati', 'lusso', 'inagibili', 'confronto']}>
+  <h2>Tre aliquote per la stessa casa</h2>
+  <p>La scelta di Milano è dichiarata: chi lascia un appartamento vuoto paga il massimo, chi lo mette sul mercato paga meno, chi lo affitta a un canone calmierato paga molto meno. La differenza tra casa vuota e canone concordato, su {$(R)} di rendita, è di {$(vuota.imposta - conc.imposta)} l’anno. Il canone concordato richiede un contratto conforme all’accordo territoriale milanese ai sensi dell’art. 2, comma 3, della legge 431 del 1998; il prospetto precisa che i contratti di locazione devono essere registrati.</p>
+  <h2>Negozi e botteghe</h2>
+  <p>Negozi C/1 e laboratori C/3 usati per un’attività produttiva, commerciale o professionale, dal proprietario o da un inquilino con contratto registrato, pagano lo {al(NEG)} invece dell’{al(r.altri)}. Su un negozio da 2 000 euro di rendita fa {$(calcolaImu({ categoria: 'C1', rendita: 2000, aliquota: r.altri }).imposta - calcolaImu({ categoria: 'C1', rendita: 2000, aliquota: NEG }).imposta)} in meno all’anno. Un negozio chiuso e sfitto paga invece l’aliquota piena.</p>
+  <h2>Teatri, cinema e gruppo D</h2>
+  <p>I capannoni, gli alberghi e gli altri immobili del gruppo D pagano l’{al(r.D)}, di cui lo {al(P.limiti.D_quota_stato)} allo Stato con il codice {P.f24.D_stato} e il resto al comune con il {P.f24.D_comune}. Fanno eccezione teatri e cinema D/3, che il prospetto porta allo {al(D3)}.</p>
+  <h2>Case di lusso e casa dell’anziano ricoverato</h2>
+  <p>Molti appartamenti del centro sono accatastati A/1 e restano soggetti all’IMU anche come abitazione principale, allo {al(r.ap)}. Milano assimila invece all’abitazione principale la casa dell’anziano o del disabile che si trasferisce in modo permanente in una struttura di ricovero, a condizione che non sia affittata: in quel caso non si paga.</p>
+</CityPage>

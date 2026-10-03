@@ -1,0 +1,72 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, mesiTrasferimento } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 750;
+const anno = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const morte = '2026-05-20';
+const t = mesiTrasferimento(morte);
+const terzo = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, quota: 100 / 3, mesi: t.acquirente, periodo: 'fine' });
+const defunto = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, mesi: t.venditore, periodo: 'inizio' });
+const eredi = [
+  ['Defunto (debito dell’eredità)', '100 %', String(t.venditore), $(defunto.imposta)],
+  ['Primo figlio', '33,3 %', String(t.acquirente), $(terzo.imposta)],
+  ['Secondo figlio', '33,3 %', String(t.acquirente), $(terzo.imposta)],
+  ['Terzo figlio, residente nella casa', '33,3 %', String(t.acquirente), $(0)],
+];
+const scenari = [
+  ['Casa familiare, coniuge superstite vi risiede', 'coniuge (diritto di abitazione)', $(0)],
+  ['Casa familiare, coniuge superstite vive altrove', 'coniuge (diritto di abitazione)', $(anno.imposta)],
+  ['Seconda casa ereditata da due figli in parti uguali', 'ciascun figlio sul 50 %', $(anno.imposta / 2)],
+  ['Casa affittata, contratto in corso', 'gli eredi sulle loro quote', $(anno.imposta)],
+];
+const faqs = [
+  { q: 'Da quando gli eredi pagano l’IMU sulla casa ereditata?', a: `Dal giorno della morte, perché l’accettazione dell’eredità ha effetto da quel momento, con la regola dei mesi del comma 761. Se il decesso avviene il 20 maggio, gli eredi possiedono la casa per 12 giorni su 31 e maggio resta al defunto: ciascun erede paga sulla propria quota da giugno a dicembre, ${$(terzo.imposta)} per un terzo di una casa con ${$(R)} di rendita all’${al(MAX)}.` },
+  { q: 'Il coniuge superstite paga l’IMU sulla casa coniugale?', a: 'La paga lui solo, perché l’articolo 540 del codice civile gli riserva il diritto di abitazione sulla casa adibita a residenza familiare e il titolare del diritto di abitazione è soggetto passivo (comma 743). Se vi risiede ed è di categoria diversa da A/1, A/8, A/9, è sua abitazione principale ed è esente. I figli coeredi non pagano sulla casa coniugale.' },
+  { q: 'Chi paga l’IMU che il defunto non aveva ancora versato?', a: `Gli eredi, perché i debiti tributari passano a loro con l’eredità, in proporzione alle quote. Si tratta dell’imposta dei mesi in cui l’immobile era del defunto: con decesso il 20 maggio, da gennaio a maggio, cioè ${$(defunto.imposta)} nell’esempio. Si versa con un F24 intestato al defunto, con il codice fiscale dell’erede che paga nella sezione del coobbligato.` },
+  { q: 'Il figlio che va a vivere nella casa ereditata paga l’IMU?', a: 'Sulla sua quota no, dal mese in cui vi trasferisce residenza e dimora abituale, se la casa non è di lusso: per lui è abitazione principale. Gli altri eredi continuano a pagare sulle loro quote, con l’aliquota degli altri fabbricati, a meno che il comune preveda un’aliquota ridotta per gli immobili concessi in uso a parenti.' },
+];
+---
+<Guide lang={lang} id="eredita" title="IMU immobile ereditato 2026: eredi, quote e coniuge"
+  description={`IMU sull’immobile ereditato 2026: dal mese della morte, ogni erede sulla sua quota, il coniuge superstite con il diritto di abitazione, i debiti del defunto.`}
+  h1="IMU sulla casa ereditata: chi paga, da quando e quanto"
+  intro="Dopo un lutto la casa di famiglia passa agli eredi, e con lei l’IMU. Le regole sono precise e spesso diverse da quelle che si immaginano."
+  resume={`Gli eredi diventano soggetti passivi IMU dal giorno della morte, perché l’accettazione dell’eredità retroagisce all’apertura della successione. Ciascuno paga sulla propria quota e per i mesi successivi al decesso, contati con la regola del comma 761: il mese della morte va agli eredi se la possiedono per almeno metà dei giorni. Per una casa con ${$(R)} di rendita all’aliquota dell’${al(MAX)}, l’IMU annua è ${$(anno.imposta)}; con decesso il 20 maggio e tre figli eredi in parti uguali, ognuno paga ${$(terzo.imposta)} per il 2026. Il caso più importante è la casa coniugale: l’articolo 540 del codice civile riserva al coniuge superstite il diritto di abitazione, e per il comma 743 il titolare di quel diritto è l’unico soggetto passivo. Se il coniuge continua a viverci con la residenza, la casa resta abitazione principale e nessuno paga. L’IMU dei mesi precedenti alla morte, se non versata, è un debito dell’eredità che gli eredi pagano in proporzione alle quote.`}
+  faqs={faqs} related={['home', 'usufrutto', 'compravendita', 'primaCasa', 'secondaCasa', 'comodato', 'dichiarazione', 'ravvedimento']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti', 'legge296')}>
+  <MiniSim client:visible kind="eredita" lang={lang} href={route('home', lang)} />
+  <h2>Il giorno che conta: l’apertura della successione</h2>
+  <p>L’eredità si apre al momento della morte, e chi la accetta diventa proprietario da quella data, anche se la dichiarazione di successione e le volture catastali arrivano mesi dopo. Ai fini IMU gli eredi sono quindi possessori dal giorno del decesso, e da quel giorno si contano i loro mesi. Non serve attendere la voltura per cominciare a pagare, e il ritardo dell’ufficio non sposta la data.</p>
+  <p>Il mese del decesso si attribuisce con la regola generale: conta per chi ha posseduto l’immobile per più della metà dei giorni, e il giorno del passaggio va al nuovo possessore. Se la morte avviene il 20 maggio, gli eredi hanno la casa per 12 giorni su 31, il defunto per 19: maggio resta al defunto e gli eredi pagano da giugno.</p>
+
+  <h2>Tre eredi, una casa: chi paga cosa</h2>
+  <p>Ogni erede ha un’obbligazione autonoma e versa con il proprio F24 la propria parte. Se uno di loro vive nella casa con la residenza, sulla sua quota l’imposta non è dovuta; gli altri pagano sulle loro. L’esempio usa una casa A/3 con {$(R)} di rendita, aliquota dell’{al(MAX)} e tre figli eredi in parti uguali dopo un decesso il 20 maggio 2026.</p>
+  <ContentTable headers={['Soggetto', 'Quota', 'Mesi 2026', 'IMU 2026']} align={['l', 'r', 'r', 'r']} rows={eredi} />
+  <p>Il terzo figlio, che vi ha già la residenza, non paga: la casa è la sua abitazione principale. Se invece vi trasferisce la residenza dopo la morte, è esente dal mese del trasferimento.</p>
+
+  <h2>Il coniuge superstite e il diritto di abitazione</h2>
+  <p>L’articolo 540 del codice civile riserva al coniuge superstite, anche quando concorre con altri eredi, i diritti di abitazione sulla casa adibita a residenza familiare e di uso sui mobili che la arredano, se di proprietà del defunto o comuni. Il comma 743 della legge 160 del 2019 indica il titolare del diritto di abitazione come soggetto passivo IMU. Ne segue che sulla casa coniugale paga solo il coniuge, per l’intero, mentre i figli coeredi non pagano nulla finché il diritto dura.</p>
+  <p>Per il coniuge che continua a vivere nella casa con la residenza, quella è l’abitazione principale: se non è di categoria A/1, A/8 o A/9, l’imposta è zero per tutti. Se il coniuge si trasferisce altrove ma conserva il diritto, paga come su una seconda casa. Il diritto di abitazione riguarda solo la casa familiare: le altre case del defunto seguono le quote ereditarie ordinarie.</p>
+  <ContentTable caption={`Casa con ${$(R)} di rendita all’${al(MAX)}, intero anno`} headers={['Situazione', 'Chi paga', 'IMU annua']} align={['l', 'l', 'r']} rows={scenari} />
+
+  <h2>L’IMU non pagata dal defunto</h2>
+  <p>I debiti tributari del defunto si trasmettono agli eredi che accettano l’eredità, in proporzione alle quote. L’IMU relativa ai mesi in cui l’immobile era ancora suo, se non versata, va pagata dagli eredi. Nell’F24 si indica come contribuente il defunto e, nella sezione del coobbligato, il codice fiscale dell’erede che paga. Per gli anni passati non pagati, il comune può accertare fino al 31 dicembre del quinto anno successivo a quello della scadenza (legge 296 del 2006, comma 161), e il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> riduce la sanzione se si paga prima.</p>
+
+  <h2>Casa vuota, affittata o divisa</h2>
+  <p>Una casa ereditata e lasciata vuota paga l’aliquota degli altri fabbricati del comune, e in molti comuni è proprio la più alta. Se è affittata, il contratto prosegue con gli eredi e l’IMU è dovuta sulle loro quote; il prospetto può prevedere un’aliquota ridotta per le case locate a canone concordato. Se gli eredi la danno in uso gratuito a uno di loro, solo il comodato a un parente in linea retta di primo grado, con le condizioni del comma 747, dimezza la base: tra fratelli il legame non basta. La guida sul <a href={route('comodato', lang)}>comodato</a> spiega i requisiti.</p>
+  <p>Quando gli eredi dividono i beni e la casa va a uno solo, la divisione ha effetto dichiarativo: si considera che l’assegnatario l’abbia avuta dal giorno della morte. In pratica, da quel momento paga lui sull’intero.</p>
+
+  <h2>Terreni e immobili di lusso ereditati</h2>
+  <p>Un terreno agricolo ereditato da chi non è coltivatore diretto o IAP paga all’aliquota dei terreni, salvo che il comune sia montano o di collina esente. Un’abitazione di lusso A/1, A/8 o A/9 in cui l’erede va a vivere resta tassata con l’aliquota dell’abitazione principale e la detrazione, rapportata alla quota e ai mesi.</p>
+
+  <h2>Dichiarazione di successione e dichiarazione IMU</h2>
+  <p>Gli immobili ereditati compaiono nella dichiarazione di successione presentata all’Agenzia delle Entrate, che aggiorna il catasto con la voltura. Le agevolazioni che il comune non può conoscere da quei dati, come un comodato o un immobile inagibile, vanno invece segnalate con la <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> entro il 30 giugno dell’anno successivo. Ogni erede può controllare le aliquote del comune nella <a href={route('aliquote', lang)}>pagina delle aliquote</a> prima della prima rata.</p>
+</Guide>

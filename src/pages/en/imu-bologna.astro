@@ -1,0 +1,34 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('A944')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const STU = diffRate('A944', /Studenti/)!;
+const R = 850;
+const empty = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const students = calcolaImu({ categoria: 'A3', rendita: R, aliquota: STU });
+const faqs = [
+  { q: 'Is there a lower IMU rate in Bologna for flats let to students?', a: `Yes: ${al(STU)} instead of ${al(r.altri)} for flats let to students under the student, agreed-rent or transitional contracts of Law 431/1998. On ${$(R)} of cadastral income that is ${$(students.imposta)} a year instead of ${$(empty.imposta)}. A market-rent lease pays the ordinary rate.` },
+  { q: 'Do I need to tell Bologna that my flat is let at a reduced rate?', a: 'The schedule sets the rate; the comune’s regulation says whether a declaration or notice is required to claim it. Keep the registered lease and ask the tax office (ufficio tributi) about any form, since you must be able to prove the condition if the comune checks.' },
+  { q: 'Will Bologna’s IMU rates change in December 2026?', a: `Only if Bologna publishes a ${P.year} schedule by 28 October 2026 with different rates. As of ${P.retrieved_at} the schedule in force is the 2025 one, resolution ${c.delibera} of ${c.data}; if no new schedule appears in time, the December balance is worked out with the same rates as the June instalment.` },
+];
+---
+<CityPage lang={lang} city="bologna" rendita={R} title={`IMU Bologna 2026: Rates for Student and Regulated Lets`}
+  description={`IMU in Bologna for 2026: ${al(r.altri)} on second homes, ${al(STU)} on flats let to students or at agreed rent, ${al(r.ap)} on luxury homes. Calculator in English.`}
+  h1="IMU in Bologna in 2026: rates and calculator"
+  intro="Bologna’s IMU schedule is built around regulated lets, especially to university students."
+  resume={`Bologna charges ${al(r.altri)} on second homes, flats let at market rent, shops and offices, and the same rate on group D buildings, building land and farmland. Luxury main homes pay ${al(r.ap)}. The schedule in force is resolution ${c.delibera} of ${c.data}, still the 2025 one as of ${P.retrieved_at}; if no ${P.year} schedule is published by 28 October, it also governs the December balance. Almost all of Bologna’s targeted rates concern renting: flats let to students, under agreed-rent leases or under transitional leases pay ${al(STU)}. For a flat in category A/3 with ${$(R)} of cadastral income, that means ${$(empty.imposta)} a year if it is empty or let at market rent and ${$(students.imposta)} if it is let to students. An agreed-rent lease gets the national 25 % cut on top, which makes it the cheapest option for an owner. Cinemas and theatres also pay a reduced group D rate.`}
+  faqs={faqs} related={['home', 'locati', 'concordato', 'esteri', 'aliquote', 'confronto', 'acconto']}>
+  <h2>Buying to let near the university</h2>
+  <p>Many buyers in Bologna let to students of the University of Bologna. For IMU the decisive document is the lease: the reduced rate applies to the student contract of art. 5, paragraph 2, of Law 431/1998, to agreed-rent leases and to transitional leases, with the variants the schedule lists for tenants who are students or who live in the flat as a main home. A room-by-room arrangement without a registered lease of these types pays the ordinary rate.</p>
+  <h2>Comparing the three options</h2>
+  <p>On a {$(R)} rendita, the gap between an empty flat and a student let is {$(empty.imposta - students.imposta)} a year. Use the calculator above, choosing “home let at agreed rent” to apply both reductions, or enter the {al(STU)} rate by hand for a student or transitional lease.</p>
+  <h2>Deadlines</h2>
+  <p>The first instalment is due by 16 June and uses the previous year’s rate; the balance by 16 December uses the rate published by 28 October. See the <a href={route('acconto', lang)}>June instalment guide</a> and the <a href={route('saldo', lang)}>December balance guide</a>.</p>
+</CityPage>

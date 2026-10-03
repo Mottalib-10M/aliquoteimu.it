@@ -1,0 +1,36 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('D969')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const CC = diffRate('D969', /art\. 2, comma 3/)!, START = diffRate('D969', /Start up/, 'D')!, NEG = diffRate('D969', /C\/1 Negozi/)!;
+const R = 750;
+const flat = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const agreed = calcolaImu({ categoria: 'A3', rendita: R, aliquota: CC, canoneConcordato: true });
+const shop = calcolaImu({ categoria: 'C1', rendita: 1800, aliquota: NEG });
+const shopFull = calcolaImu({ categoria: 'C1', rendita: 1800, aliquota: r.altri });
+const faqs = [
+  { q: 'What IMU does a flat in Genoa let at agreed rent pay?', a: `Genoa’s 2026 schedule sets ${al(CC)} for homes let at agreed rent (canone concordato), and the national rule then charges 75 % of that tax. On ${$(R)} of cadastral income the flat pays ${$(agreed.imposta)} a year instead of ${$(flat.imposta)} as an empty second home.` },
+  { q: 'I own a shop in Genoa used by a business: is the rate lower?', a: `Yes, when the shop or workshop is used by its owner for a commercial, productive or professional activity: ${al(NEG)} instead of ${al(r.altri)}. On a shop with ${$(1800)} of rendita that is ${$(shop.imposta)} rather than ${$(shopFull.imposta)} a year. A shop let to someone else follows the conditions written in the schedule.` },
+  { q: 'What does a luxury main home pay in Genoa?', a: `Genoa applies ${al(r.ap)} to main homes in categories A/1, A/8 and A/9, slightly below the national maximum of ${al(P.limiti.ap_max)}, and the €${P.detrazione_ap} deduction applies. Owners who live abroad cannot have a main home in Genoa, so for them the same property is taxed at the ${al(r.altri)} rate for other buildings.` },
+];
+---
+<CityPage lang={lang} city="genova" rendita={R} title={`IMU Genoa 2026: Rates, Agreed Rent and Shops`}
+  description={`IMU in Genoa for 2026: ${al(r.altri)} on second homes, ${al(r.ap)} on luxury homes, ${al(CC)} at agreed rent, lower rates for start-ups and small firms. Calculator.`}
+  h1="IMU in Genoa in 2026: rates and calculator"
+  intro="Genoa’s 2026 schedule is one of the most detailed in Italy, with reduced rates for regulated lets, social housing, shops in use and innovative companies."
+  resume={`Genoa has published its ${P.year} IMU schedule, resolution no. ${c.delibera} of ${c.data}, and it keeps the 2025 rates. Second homes, rented flats and offices pay ${al(r.altri)}; luxury main homes pay ${al(r.ap)}, just below the national maximum; group D buildings pay ${al(r.D)}. A flat in category A/3 with ${$(R)} of cadastral income held as a second home pays ${$(flat.imposta)} a year, in two equal instalments because the rate has not changed. The schedule then lists more than a dozen targeted rates. For owners of homes, the one that matters is ${al(CC)} for agreed-rent leases, which with the national 25 % cut brings the tax to ${$(agreed.imposta)}. For business owners, shops in use pay ${al(NEG)}, innovative start-ups doing research pay ${al(START)} on their premises, and small firms using their own factory buildings get a reduced group D rate. Social housing and a regeneration district around the Fiera have their own rates too.`}
+  faqs={faqs} related={['home', 'esteri', 'concordato', 'negozi', 'capannoni', 'aliquote', 'confronto']}>
+  <h2>Homes on the Riviera di Levante and Ponente</h2>
+  <p>Genoa’s own coastline, from Nervi to Pegli, falls within the comune, so a flat there pays the city rates with cadastral code {c.code}. The Riviera towns beyond the city limits, such as Camogli or Santa Margherita Ligure, are separate comuni with their own schedules, and some of them charge less on second homes. Check the town before comparing prices.</p>
+  <h2>If your Genoa home became unfit</h2>
+  <p>Genoa sets a zero rate for homes that were the owner’s main home and became unfit for use, whether after a natural disaster or for other reasons, as long as they are not in the luxury categories. For other unfit buildings the national rule halves the taxable value for the period of unfitness, after a survey or a sworn statement by a technician.</p>
+  <h2>Paying</h2>
+  <p>Use tax code {P.f24.altri} for a flat, shop or office, {P.f24.ap} for a luxury main home, and {P.f24.D_stato} and {P.f24.D_comune} for the State and comune shares of a group D building. From abroad, a bank transfer to the comune’s treasury account with the same references works; the <a href={route('esteri', lang)}>non-resident guide</a> explains how.</p>
+</CityPage>

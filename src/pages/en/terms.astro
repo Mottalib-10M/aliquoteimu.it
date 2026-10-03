@@ -1,0 +1,24 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import LegalIdentity from '../../components/LegalIdentity.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema } from '../../lib/seo';
+const lang = 'en';
+---
+<PageLayout title="Terms of Use and Legal Notice of AliquoteIMU.it" description="Terms of use and legal notice of AliquoteIMU.it: publisher, host, estimates only, limitation of liability, reuse of content and the free embeddable IMU calculator for your website." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Terms', path: route('terms', lang) }])]} breadcrumbs={[{ label: 'Terms' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Terms of use and legal notice</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <h2>Publisher</h2>
+    <LegalIdentity lang="en" />
+    <h2>Host</h2>
+    <LegalIdentity lang="en" mode="hosting" />
+    <h2>Nature of the results</h2>
+    <p>The calculators give estimates only, based on Law 160 of 2019 and on the rate schedules published by the Italian Department of Finance, read on the date shown on each page. They do not replace your comune’s schedule or regulation, nor advice from an Italian accountant (commercialista) or tax assistance centre (CAF). The limits of the calculation are listed on the <a href={route('method', lang)}>methodology page</a>.</p>
+    <h2>Liability</h2>
+    <p>We take care to keep the rates accurate and correct reported errors promptly, but we cannot guarantee the site is free of error or always available. We are not liable for decisions taken on the basis of the estimates. Nothing here limits a liability that cannot be limited by law.</p>
+    <h2>Reuse</h2>
+    <p>Texts, tables and code are protected by copyright. You may quote short extracts with a link to the page. The calculator may be embedded free of charge using the code on the <a href={route('widget', lang)}>widget page</a>, provided the credit link stays visible.</p>
+    <h2>Applicable law</h2>
+    <p>These terms are governed by French law, the law of the publisher’s establishment, without prejudice to mandatory consumer protection rules of your country of residence.</p>
+  </div>
+</PageLayout>

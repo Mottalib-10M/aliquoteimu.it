@@ -1,0 +1,58 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { distribuzione, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti, B = P.aliquote_base;
+const V = 90000;
+const x = calcolaImu({ tipo: 'area', rendita: V, aliquota: L.altri_max });
+const top = distribuzione('aree')[0];
+const tot = conProspetto.length;
+const rows = [30000, 60000, 90000, 180000, 400000].map((v) => [$(v), $(calcolaImu({ tipo: 'area', rendita: v, aliquota: B.aree }).imposta), $(calcolaImu({ tipo: 'area', rendita: v, aliquota: L.altri_max }).imposta)]);
+const faqs = [
+  { q: 'I own a plot with planning permission in Italy but have not started building: what do I pay?', a: `IMU on the plot’s market value on 1 January, at the rate your comune sets for building land. A plot worth ${$(V)} pays ${$(x.imposta)} a year at ${al(L.altri_max)}, in two instalments, under tax code ${P.f24.aree}. Nothing changes until the building is finished or first used, when it starts paying on its cadastral income.` },
+  { q: 'We are gutting and rebuilding an old farmhouse: is IMU still based on the rendita?', a: 'No. During demolition, restoration or structural renovation under article 3(1)(c), (d) and (f) of the building code (DPR 380/2001), the taxable value is the land the building stands on, treated as building land, until works end or the building is used, whichever comes first (paragraph 746 of Law 160/2019).' },
+  { q: 'Does the comune tell me what value to use for my building plot?', a: 'Often, yes. Paragraph 777 (d) lets comuni set reference values for building land by zone. They are not compulsory, but if you pay on a value at least equal to the comune’s figure, the comune cannot assess you on a higher one. Look for the resolution on “valori delle aree fabbricabili” on the comune’s website.' },
+];
+---
+<Guide lang={lang} id="aree" title={`IMU on Building Land 2026: Market Value, Rates, Works`}
+  description={`IMU on building land in Italy for 2026: tax on market value at 1 January, comune reference values, rates up to ${al(L.altri_max)}, plots under renovation and F24 code ${P.f24.aree}.`}
+  h1="IMU on building land in Italy: plots, planning changes and renovation sites"
+  intro="Buy a plot to build a villa, or a ruin to rebuild, and the IMU stops being a cadastral sum: it becomes a percentage of what the land is worth."
+  resume={`Building land (area fabbricabile) is the one case where Italian IMU is not based on a cadastral figure. The taxable value is the market value of the plot on 1 January, estimated from its location, the building ratio the local plan allows, the permitted use, the cost of preparing the ground and the prices of similar plots (paragraph 746 of Law 160/2019). The comune’s rate for building land is then applied: the base is ${al(B.aree)} and the ceiling ${al(L.altri_max)}, and ${n(top.n)} of the ${n(tot)} comuni whose schedules we read use ${al(top.aliquota)}. A plot worth ${$(V)} therefore pays ${$(x.imposta)} a year, split between June and December, under tax code ${P.f24.aree}. Many comuni publish reference values per zone, and paying on at least that value protects you from an assessment. A house being demolished or substantially rebuilt is also taxed as building land while the works last.`}
+  faqs={faqs} related={['home', 'terreni', 'aliquote', 'compravendita', 'esteri', 'rimborso', 'f24']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="aree" lang={lang} href={route('home', lang)} />
+  <h2>What makes land “buildable” for IMU</h2>
+  <p>Paragraph 741 (d) defines building land as land that can be built on under the comune’s general or detailed planning instruments, or under the actual building potential assessed with compulsory purchase criteria. By reference to article 36(2) of Decree-Law 223/2006, a general plan adopted by the comune is enough, even before the region approves it. For a buyer, this means a field described as agricultural by the seller may already be taxed as a building plot if a new plan has been adopted. Ask the comune: on request it must certify whether a plot is buildable under these criteria.</p>
+
+  <h2>Putting a value on the plot</h2>
+  <p>There is no multiplier: the owner estimates the value, much as a surveyor (geometra) would. The criteria in paragraph 746 are the zone, the building index, the permitted use, the cost of any work needed to make the land usable, and average market prices for comparable plots. The price in your own deed, if recent, is a reasonable anchor, adjusted if the plan has changed since.</p>
+  <p>To limit disputes, paragraph 777 (d) allows comuni to set reference values for homogeneous zones. Paying on a value no lower than the comune’s figure means the comune cannot challenge it. Many comuni update these tables every few years; check the current one before each June payment.</p>
+  <ContentTable headers={['Plot value', `IMU at ${al(B.aree)}`, `IMU at ${al(L.altri_max)}`]} align={['r', 'r', 'r']} rows={rows} />
+
+  <h2>Ruins, renovations and new builds</h2>
+  <p>Foreign buyers often purchase a rudere, a ruined farmhouse, to restore. Under paragraph 746, while a building is demolished or undergoes restoration, conservative refurbishment or structural renovation under article 3(1)(c), (d) and (f) of DPR 380/2001, IMU is charged on the value of the land, considered buildable, and not on the old rendita. This lasts until the works are finished or the building is used, if earlier. From then on, paragraph 741 (a) applies: a new or rebuilt building pays as a building from completion or first use, on its new cadastral income.</p>
+  <p>In practice the land value of a site under renovation is estimated like a plot with the same buildable volume. Budget for it: during a two-year restoration the yearly IMU can be higher than it was on the ruin.</p>
+
+  <h2>Farmers keep paying as farmland</h2>
+  <p>Land owned and farmed by registered farmers (coltivatori diretti or IAP enrolled with the agricultural pension scheme), on which farming continues, is not considered buildable even if the plan allows building. For them it stays exempt farmland. A co-owner without that status pays on his share as <a href={route('terreni', lang)}>agricultural land</a>, as the Department of Finance stated in Resolution 2/DF of 2020.</p>
+
+  <h2>When a plot loses its building status</h2>
+  <p>Plans change, and a plot may revert to agricultural use after years of tax on its market value. Any refund depends on the comune: paragraph 777 (c) lets comuni provide in their regulations for refunds on land that has become unbuildable, with their own time limits and conditions. Without such a rule there is no automatic refund. The <a href={route('rimborso', lang)}>IMU refund guide</a> covers overpayments in general.</p>
+
+  <h2>Paying and keeping evidence</h2>
+  <p>Pay with the F24 under code {P.f24.aree} and the cadastral code of the comune; from abroad, a bank transfer to the comune’s treasury quoting the same references works. Keep the valuation you relied on, the deed or the comune’s reference table: building land is among the items comuni check most, comparing payments with sales in the area, and they have until 31 December of the fifth year after the payment was due to issue an assessment.</p>
+  <p>If you are buying a plot this year, the <a href={route('compravendita', lang)}>buying and selling guide</a> shows how months are split between seller and buyer.</p>
+  <h2>Building land you hold with others</h2>
+  <p>Plots bought jointly, or inherited by several heirs, are taxed share by share: each co-owner pays IMU on his or her percentage of the market value, under the same tax code and comune code. If one co-owner is a registered farmer still farming the plot, that person is exempt and the others pay on their shares as agricultural land, not as building land, following the Department of Finance’s Resolution 2/DF of 2020. Agree the value among co-owners before June, so that every payment is based on the same figure.</p>
+
+</Guide>

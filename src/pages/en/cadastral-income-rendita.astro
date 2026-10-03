@@ -1,0 +1,71 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, baseFabbricato, baseTerreno } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota, formatDecimal, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max, M = P.base.moltiplicatori;
+const RIV = P.base.rivalutazione_rendita, RIVD = P.base.rivalutazione_dominicale, MT = P.base.moltiplicatore_terreni;
+const k = formatDecimal(1 + RIV, 2, lang);
+const R = 512.46;
+const x = calcolaImu({ categoria: 'A4', rendita: R, aliquota: MAX });
+const glossary = [
+  ['Rendita catastale', 'Cadastral income: a notional yearly income set by the land registry', 'Base for buildings'],
+  ['Visura catastale', 'Extract of the land registry record', 'Where you read the rendita'],
+  ['Categoria (A/2, A/4, C/6…)', 'Use class of the unit: home, shop, garage', 'Chooses the multiplier'],
+  ['Classe', 'Quality grade within the area', 'Already inside the rendita'],
+  ['Consistenza (vani, m²)', 'Size in rooms or square metres', 'Already inside the rendita'],
+  ['Foglio, particella, subalterno', 'Map sheet, parcel and unit number', 'Identify the unit'],
+  ['Reddito dominicale', 'Notional income of farmland', 'Base for agricultural land'],
+];
+const sizes = [300, 450, 600, 800, 1100].map((r) => { const y = calcolaImu({ categoria: 'A4', rendita: r, aliquota: MAX }); return [$(r), $(y.base), $(y.imposta), $(y.acconto)]; });
+const DOM = 240;
+const faqs = [
+  { q: 'Can I get my visura catastale from outside Italy?', a: `Yes. The Agenzia delle Entrate lets you download it online if you have SPID or a CIE identity card; otherwise a notary, a geometra, a property manager or the land registry office can obtain it for you. You need the comune and either the cadastral identifiers or your Italian tax code. Read the rendita in the last column and enter it unchanged: the ${formatPercent(RIV, 0, lang)} uplift is added by the calculator.` },
+  { q: 'Is the rendita the same as the value in my purchase deed?', a: `No. The deed shows the price you paid, while the rendita is a small notional income set by the land registry. A flat bought for 200,000 euro may have a rendita of only a few hundred euro. IMU is never based on the price: it uses the rendita × ${k} × ${M.A} for a home, so the price has no effect on the tax.` },
+  { q: 'Which rendita applies if my house was renovated this year?', a: 'IMU uses the rendita on record on 1 January. When building works change it, the new figure applies from the date the works were completed or, if earlier, from when the building was used. The year is then split: months before at the old rendita, months after at the new one, with the half-month rule deciding the month of the change.' },
+  { q: 'Why does my farmland have no rendita?', a: `Land is recorded in the land registry for plots (catasto terreni), which gives a reddito dominicale instead. IMU on farmland uses it × ${formatDecimal(1 + RIVD, 2, lang)} × ${MT}: ${$(DOM)} of reddito dominicale gives a taxable value of ${$(baseTerreno(DOM))}. Land farmed by registered farmers, and land in listed mountain comuni, is exempt.` },
+];
+---
+<Guide lang={lang} id="rendita" title="Cadastral Income (Rendita) for IMU: Find and Use It"
+  description={`Cadastral income (rendita catastale) for IMU 2026: where to read it on the visura, the ${formatPercent(RIV, 0, lang)} uplift, multipliers, mid-year changes and common mistakes.`}
+  h1="Rendita catastale: the number your IMU is built on"
+  intro="Italian property tax is not based on what your house is worth. It starts from a figure most foreign owners have never heard of until the first bill."
+  resume={`The rendita catastale, or cadastral income, is a notional yearly income that the Italian land registry assigns to every building unit from its area, use category, quality class and size. It is not the price you paid and not the rent you could charge, and it changes only when the land registry record is updated. IMU uses the rendita on record on 1 January of the tax year, exactly as printed on the visura catastale, the registry extract. The calculation adds ${formatPercent(RIV, 0, lang)} and multiplies by a coefficient that depends on the category: ${M.A} for homes, ${M.C1} for shops, ${M.D} for warehouses. A village house classed A/4 with ${$2(R)} of rendita therefore has a taxable value of ${$(x.base)}, and at the ${al(MAX)} rate most comuni charge on second homes it pays ${$(x.imposta)} a year, in two instalments of ${$(x.acconto)}. Getting this one number right is most of the work.`}
+  faqs={faqs} related={['home', 'coefficienti', 'secondaCasa', 'esteri', 'terreni', 'compravendita', 'aliquote', 'f24']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti', 'istat')}>
+  <MiniSim client:visible kind="rendita" lang={lang} href={route('home', lang)} />
+  <h2>A notional income, not a valuation</h2>
+  <p>In many countries property tax follows a market or rental valuation. Italy instead uses the cadastre, a national register that classifies each unit and gives it a rendita through a tariff for its area, its use category and its class. The tariffs date back decades, so the rendita is usually far below what the property would earn on the market, and two similar flats in the same street can carry different figures if one was registered recently. That gap is not an error: the multipliers in the IMU formula were set precisely to turn a low notional income into a taxable value.</p>
+  <p>Practical consequence for buyers: the rendita of a house you are considering is public information and shows you the IMU you will pay before you sign. Ask the agent or notary for the visura, or look up the unit yourself, and run the figure through the <a href={route('home', lang)}>IMU calculator</a> with the comune’s rate.</p>
+
+  <h2>The Italian terms on the visura</h2>
+  <p>The visura is short but dense. These are the fields you will meet, and which ones matter for the tax.</p>
+  <ContentTable headers={['On the visura', 'What it means', 'Role in IMU']} align={['l', 'l', 'l']} rows={glossary} />
+  <p>Garages, cellars and attics often have their own line with their own subalterno and rendita. Each one is taxed separately with its own multiplier, unless it is a pertinenza of your main home in Italy, which non-residents rarely have.</p>
+
+  <h2>From the registry figure to the payment</h2>
+  <p>Take the rendita, multiply by {k}, multiply by the category coefficient, apply the comune’s rate, then scale for your share of ownership and the months you owned the property. Co-owners use the rendita of the whole unit: never divide it by your share before starting, or you will apply the share twice. The table shows the yearly tax on homes classed A/4 at the {al(MAX)} rate.</p>
+  <ContentTable headers={['Rendita', 'Taxable value', 'IMU per year', 'Each instalment']} align={['r', 'r', 'r', 'r']} rows={sizes} />
+
+  <h2>Why the category matters as much as the figure</h2>
+  <p>The same rendita produces very different taxable values depending on the category, because the multiplier changes: {$(R)} on a shop gives {$(baseFabbricato(R, 'C1'))}, on an office {$(baseFabbricato(R, 'A10'))}, on a home {$(baseFabbricato(R, 'A4'))}. A rural building converted into a holiday let but still classed as a barn is not a loophole: once the use changes, the classification should be updated, and the comune can assess the difference. The <a href={route('coefficienti', lang)}>multipliers guide</a> lists every category.</p>
+
+  <h2>Changes during the year</h2>
+  <p>The law freezes the rendita on 1 January, with one exception: when building works change the rendita, the new one applies from the end of the works or from first use, if earlier. A new house is taxed from the same moment, even before the definitive rendita is recorded; until then the plot is treated as building land and taxed on its market value. If you buy or sell during the year, the rendita does not change, but the months are split between buyer and seller, with the day of the deed counting for the buyer, as explained in the guide on <a href={route('compravendita', lang)}>buying and selling</a>.</p>
+
+  <h2>Farmland uses a different figure</h2>
+  <p>Plots in the countryside are recorded in the land registry for land, where each parcel has a reddito dominicale (owner’s income) and a reddito agrario (farming income). IMU looks only at the first, increased by {formatPercent(RIVD, 0, lang)} and multiplied by {MT}. Olive groves and vineyards bought with a country house are taxed this way, at a base rate of {al(P.aliquote_base.ter)}, unless the comune lists its farmland as exempt; the <a href={route('terreni', lang)}>agricultural land guide</a> covers the exemptions.</p>
+
+  <h2>When the rendita looks wrong</h2>
+  <p>If the visura does not match the property, for instance a garage converted into a room or a flat merged with the one next door, the fix goes through the land registry, usually with a geometra who files an update. The comune keeps using the rendita on record until then, and a payment based on your own estimate of the “right” figure exposes you to back tax, a penalty and interest. Comuni can check up to the end of the fifth year after the payment was due. If an official correction shows you paid too much, you can ask the comune for a <a href={route('rimborso', lang)}>refund</a>.</p>
+
+  <h2>Checklist before your first payment</h2>
+  <p>Get the visura for every unit you own, including garage and cellar lines. Note the category and the rendita of each. Check the comune’s rate for second homes in the <a href={route('aliquote', lang)}>rates by comune</a> tool, since it can be anywhere from zero to {al(MAX + P.limiti.maggiorazione_ex_tasi)}. Enter your share and months. Keep a copy of the visura with your payment receipts: it is the document you will need if the comune ever questions the amount.</p>
+</Guide>

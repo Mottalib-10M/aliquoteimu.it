@@ -1,0 +1,35 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('A662')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const CC = diffRate('A662', /art\. 2, comma 3/)!, COM = diffRate('A662', /Comodato d'uso gratuito/)!;
+const R = 750;
+const empty = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const agreed = calcolaImu({ categoria: 'A3', rendita: R, aliquota: CC, canoneConcordato: true });
+const lent = calcolaImu({ categoria: 'A3', rendita: R, aliquota: COM });
+const faqs = [
+  { q: 'How much does letting at agreed rent save on IMU in Bari?', a: `A lot: Bari’s schedule cuts the rate from ${al(r.altri)} to ${al(CC)} for agreed-rent leases where the tenant lives in the flat, and the national rule then charges 75 % of that. On ${$(R)} of cadastral income: ${$(empty.imposta)} a year empty, ${$(agreed.imposta)} at agreed rent.` },
+  { q: 'I let my parents live in my flat in Bari for free: is there a reduction?', a: `Yes. If you meet the national conditions (registered free-loan contract, residence in Bari, no other homes apart from your own main home there) the taxable value is halved. If you do not, Bari still offers ${al(COM)} on one home lent to a parent or child who lives there: ${$(lent.imposta)} a year on a ${$(R)} rendita.` },
+  { q: 'Which comune code goes on an IMU payment for Bari?', a: `Bari’s cadastral code is ${c.code}. Put it in the comune field of the F24, or in the reference of a bank transfer from abroad, together with your codice fiscale, tax code ${P.f24.altri} for a flat or shop and the tax year. A wrong comune code sends the money to another comune and leaves your IMU unpaid.` },
+];
+---
+<CityPage lang={lang} city="bari" rendita={R} title={`IMU Bari 2026: Rates, Agreed Rent and Family Loans`}
+  description={`IMU in Bari for 2026: ${al(r.altri)} on second homes, ${al(CC)} at agreed rent, ${al(COM)} on homes lent to parents or children, rural buildings exempt. Calculator.`}
+  h1="IMU in Bari in 2026: rates and calculator"
+  intro="Bari charges the ordinary maximum on empty homes but has some of the lowest rates on this site for regulated lets and family loans."
+  resume={`Bari applies ${al(r.altri)} to second homes, shops, offices, group D buildings, building land and farmland, ${al(r.ap)} to luxury main homes and nothing to rural farm buildings. The schedule in force, resolution no. ${c.delibera} of ${c.data}, is still the 2025 one on ${P.retrieved_at}. A flat in category A/3 with ${$(R)} of cadastral income kept as a second home pays ${$(empty.imposta)} a year. What sets Bari apart is how far it cuts the rate for homes that are lived in: ${al(CC)} for agreed-rent, transitional and student leases, where the tenant uses the home as a main residence; ${al(COM)} for a home lent free to a parent or child who lives there, when the national free-loan relief does not apply. With the national 25 % cut on agreed-rent leases, the same flat pays ${$(agreed.imposta)}. For owners from Puglia now living abroad who let the family home, the type of lease is worth more than any other choice.`}
+  faqs={faqs} related={['home', 'esteri', 'concordato', 'comodato', 'aliquote', 'confronto', 'locati']}>
+  <h2>Two ways to lend a home to family</h2>
+  <p>The national rule halves the taxable value when an owner lends a home to a parent or child under a registered contract, lives in the same comune and owns no other home apart from his or her own main home there. Owners abroad usually fail the residence condition. Bari’s own targeted rate of {al(COM)} fills that gap for one home lent to a first-degree relative who lives there. The two reliefs are alternatives, not cumulative.</p>
+  <h2>Rural buildings and farmland</h2>
+  <p>Bari sets a zero rate on rural farm buildings, so a barn or farm store classed D/10 pays no IMU. Farmland pays {al(r.ter)} unless it is farmed by a registered farmer.</p>
+  <h2>Paying</h2>
+  <p>Payments go to comune code {c.code}, tax code {P.f24.altri} for a home or shop. If you miss an instalment, the <a href={route('ravvedimento', lang)}>late payment calculator</a> shows the reduced penalty.</p>
+</CityPage>

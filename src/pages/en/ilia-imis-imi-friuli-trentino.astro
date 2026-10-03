@@ -1,0 +1,72 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { COMUNI, META } from '../../lib/comuni';
+import { formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+const lang = 'en';
+const n = (v: number) => formatNumber(v, 0, lang);
+const C = META.counts;
+const total = C.ILIA + C.IMIS + C.IMI;
+const capitals = (st: string) => COMUNI.filter((c) => c.st === st && c.cap).map((c) => c.name).sort().join(', ');
+const rows = [
+  ['Friuli Venezia Giulia', 'ILIA (imposta locale immobiliare autonoma)', 'Regional Law 17 of 14 November 2022', 'since 1 January 2023', n(C.ILIA), capitals('ILIA')],
+  ['Autonomous Province of Trento', 'IMIS (imposta immobiliare semplice)', 'Provincial Law 14 of 30 December 2014', 'kept by para. 739', n(C.IMIS), capitals('IMIS')],
+  ['Autonomous Province of Bolzano (South Tyrol)', 'IMI (imposta municipale immobiliare)', 'Provincial Law 3 of 23 April 2014', 'kept by para. 739', n(C.IMI), capitals('IMI')],
+];
+const places = [
+  ['Cortina d’Ampezzo', 'Veneto (Belluno)', 'IMU'],
+  ['Asiago', 'Veneto (Vicenza)', 'IMU'],
+  ['Madonna di Campiglio', 'Trentino (Trento)', 'IMIS'],
+  ['Canazei', 'Trentino (Trento)', 'IMIS'],
+  ['Ortisei / St. Ulrich', 'South Tyrol (Bolzano)', 'IMI'],
+  ['Merano / Meran', 'South Tyrol (Bolzano)', 'IMI'],
+  ['Lignano Sabbiadoro', 'Friuli Venezia Giulia (Udine)', 'ILIA'],
+  ['Sappada', 'Friuli Venezia Giulia (Udine)', 'ILIA'],
+];
+const faqs = [
+  { q: 'I bought a flat in Trieste: do I pay IMU?', a: `No. Trieste is in Friuli Venezia Giulia, which replaced IMU with its own tax, ILIA, from 1 January 2023 under Regional Law 17 of 2022, as paragraph 739 of Law 160/2019 acknowledges. All ${n(C.ILIA)} comuni of the region apply ILIA. Its rates are set by the comuni under the regional law, so check the comune of Trieste’s ILIA resolution.` },
+  { q: 'Is South Tyrol property tax the same as IMU?', a: `No. The ${n(C.IMI)} comuni of the province of Bolzano apply IMI, the municipal property tax of Provincial Law 3 of 2014. It has its own rates, reliefs and payment rules, set by the province and the comuni, which do not necessarily match IMU. Our calculator does not compute it.` },
+  { q: 'Why does the IMU calculator refuse my comune in Trentino?', a: `Because IMU does not apply there. The ${n(C.IMIS)} comuni of the province of Trento levy IMIS under Provincial Law 14 of 2014, and they do not file the IMU rate schedule our data comes from. Showing an IMU figure would give you a number you do not owe, so the calculator names the local tax instead.` },
+];
+---
+<Guide lang={lang} id="regimi" title="ILIA, IMIS and IMI 2026: Where IMU Does Not Apply in Italy"
+  description={`ILIA in Friuli Venezia Giulia, IMIS in Trento and IMI in South Tyrol: the ${n(total)} comuni where owners pay a local tax instead of IMU in 2026, and what that means.`}
+  h1="ILIA, IMIS and IMI: the property taxes that replace IMU in north-east Italy"
+  intro="If your Italian property is in Trieste, the Dolomites of Trentino or South Tyrol, the yearly property tax is not IMU, and IMU rules may not apply to you."
+  resume={`IMU applies in every Italian comune except those of Friuli Venezia Giulia and of the autonomous provinces of Trento and Bolzano, which have their own taxing powers under special statutes. Paragraph 739 of Law 160 of 2019 spells it out: the province of Trento keeps IMIS, set up by Provincial Law 14 of 2014; the province of Bolzano keeps IMI, set up by Provincial Law 3 of 2014; and Friuli Venezia Giulia has applied ILIA since 1 January 2023, under Regional Law 17 of 2022. That covers ${n(total)} comuni: ${n(C.ILIA)} in Friuli Venezia Giulia, ${n(C.IMIS)} in Trentino and ${n(C.IMI)} in South Tyrol. For owners there, rates, reliefs, deadlines and payment methods come from regional or provincial law and the comune’s own resolutions, not from the IMU rules explained elsewhere on this site. British, German and Austrian buyers in the Alps are often caught out because neighbouring resorts sit under different systems. Our calculator recognises these comuni and names the right tax instead of showing an IMU you do not owe.`}
+  faqs={faqs} related={['home', 'aliquote', 'esteri', 'secondaCasa', 'esenzioni', 'confronto']} sources={src(lang, 'legge160', 'mef_prospetti', 'istat')}>
+  <MiniSim client:visible kind="regimi" lang={lang} href={route('home', lang)} />
+  <h2>Three taxes at a glance</h2>
+  <p>The number of comuni comes from ISTAT’s official list. The three taxes have similar names and similar purposes, but each rests on its own law and its own regulations.</p>
+  <ContentTable headers={['Area', 'Tax', 'Law', 'Status', 'Comuni', 'Provincial capitals']} align={['l', 'l', 'l', 'l', 'r', 'l']} rows={rows} />
+
+  <h2>Why these areas are different</h2>
+  <p>Friuli Venezia Giulia and Trentino-Alto Adige are regions with special statutes. In Trentino-Alto Adige most powers belong to the two autonomous provinces of Trento and Bolzano, including local taxation. National law therefore cannot impose IMU where the region or province has created a tax of its own. Paragraph 739 says IMU applies across the country "without prejudice" to the taxing autonomy granted by these statutes, and names the three local laws. Financial relations with the State are settled separately, as paragraph 783 confirms.</p>
+
+  <h2>Friuli Venezia Giulia: ILIA since 2023</h2>
+  <p>Until 2022 the comuni of Friuli Venezia Giulia applied IMU like the rest of Italy. Regional Law 17 of 14 November 2022 created ILIA, which replaced IMU on 1 January 2023 in all {n(C.ILIA)} comuni, from the cities of Trieste, Udine, Gorizia and Pordenone to the beach resorts of Lignano and Grado and the mountain villages of Carnia. If you bought there before 2023, your old IMU payments were correct for those years; from 2023 the comune’s ILIA resolution is the document to check.</p>
+
+  <h2>Trentino: IMIS</h2>
+  <p>The autonomous province of Trento introduced IMIS with Provincial Law 14 of 30 December 2014. When IMU was rewritten nationally in 2020, paragraph 739 left IMIS in place. The {n(C.IMIS)} comuni of Trentino, including the ski areas of the Val di Fassa and the Brenta Dolomites, set their IMIS rates within the provincial framework.</p>
+
+  <h2>South Tyrol: IMI</h2>
+  <p>In the province of Bolzano the tax is IMI, imposta municipale immobiliare, governed by Provincial Law 3 of 23 April 2014. It applies in all {n(C.IMI)} comuni, from Bolzano and Merano to Val Gardena and Alta Badia. Comuni usually publish their resolutions in both Italian and German.</p>
+
+  <h2>Neighbouring resorts, different taxes</h2>
+  <p>The borders do not follow the Dolomites as a tourist area. Whether a house pays IMU, IMIS, IMI or ILIA depends only on the province of its comune.</p>
+  <ContentTable headers={['Place', 'Region (province)', 'Property tax']} align={['l', 'l', 'l']} rows={places} />
+  <p>Sappada is listed by ISTAT under Friuli Venezia Giulia, so this resort pays ILIA even though it lies on the edge of the Veneto Dolomites.</p>
+
+  <h2>What this means in practice</h2>
+  <p>The IMU rate schedule that every other comune must file with the Department of Finance does not exist for these comuni, and the Department’s regional archive for Friuli Venezia Giulia is empty. Rules on main homes, garages, reduced rates and payment are those of the regional or provincial law and the comune’s regulation, and you should not assume that an IMU relief, such as the halved value for a home lent to your child, exists there too. Ask the comune’s tax office (ufficio tributi) or read its resolution for the year.</p>
+  <p>Owners with property both inside and outside these areas pay two different taxes: IMU in ordinary comuni, with the national rate schedule and tax codes explained in our guides, and the local tax in the north-east. The <a href={route('confronto', lang)}>comparison tool</a> works only between comuni that levy IMU.</p>
+
+  <h2>Buying in the north-east: questions to ask</h2>
+  <p>Before signing for a flat in Trieste, a chalet in Val di Fassa or an apartment in Merano, ask the seller or the agent for the last two years of local property tax receipts. They show which tax was paid, on which cadastral category and for how much, and they reveal arrears that a buyer would rather see settled at the deed. Ask the comune’s tax office which resolution sets the current year’s rates, and whether second homes, homes let to tourists and homes lent to relatives are treated differently. If the property is in a village that changed region or merged with a neighbour, check which comune and which province it belongs to today: the cadastral code on the visura tells you.</p>
+  <p>Remember that the national rules explained on the rest of this site still matter for anything you own elsewhere in Italy. A couple with a flat in Milan and a chalet in South Tyrol pays IMU in Milan, with its June and December instalments and the comune’s rate schedule, and IMI on the chalet, with the rules and deadlines that the province and the comune set. Two systems, two sets of receipts, and no offsetting between them.</p>
+  <h2>A theoretical IMU, for comparison only</h2>
+  <p>The simulator above shows what the same property would pay under IMU in an ordinary comune. It helps when you weigh a purchase in, say, Cortina against one in Val Gardena, but it is not an estimate of IMIS, IMI or ILIA, which have their own taxable bases and rates. For a real IMU calculation elsewhere in Italy, use the <a href={route('home', lang)}>IMU calculator</a> and the <a href={route('aliquote', lang)}>rates by comune</a>.</p>
+</Guide>

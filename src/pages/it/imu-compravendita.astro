@@ -1,0 +1,66 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, mesiTrasferimento, semestri } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 900;
+const anno = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const date = ['2026-01-15', '2026-01-17', '2026-02-15', '2026-03-16', '2026-03-17', '2026-06-30', '2026-09-16', '2026-11-20'];
+const fmt = (d: string) => d.split('-').reverse().join('/');
+const righe = date.map((d) => { const t = mesiTrasferimento(d); return [fmt(d), String(t.venditore), String(t.acquirente), $(anno.imposta * t.venditore / 12), $(anno.imposta * t.acquirente / 12)]; });
+const rogito = '2026-04-10';
+const tr = mesiTrasferimento(rogito);
+const ven = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: tr.venditore, periodo: 'inizio' });
+const acq = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: tr.acquirente, periodo: 'fine' });
+const [a1, a2] = semestri(tr.acquirente, 'fine');
+const rate = [
+  ['Venditore', String(tr.venditore), $(ven.acconto), $(ven.saldo), $(ven.imposta)],
+  ['Acquirente (seconda casa)', String(tr.acquirente), $(acq.acconto), $(acq.saldo), $(acq.imposta)],
+];
+const faqs = [
+  { q: 'Chi paga l’IMU del mese del rogito?', a: 'Chi ha posseduto l’immobile per più della metà dei giorni del mese. Il giorno del rogito si conta per l’acquirente, che si tiene il mese anche quando i giorni sono pari (legge 160/2019, comma 761). In un mese di 31 giorni, con rogito fino al 16 il mese è dell’acquirente, dal 17 resta al venditore; a febbraio 2026 il confine è il 15.' },
+  { q: 'L’IMU si paga dal compromesso o dal rogito?', a: 'Dal rogito. Il contratto preliminare non trasferisce la proprietà, quindi fino all’atto definitivo il soggetto passivo resta il venditore, anche se l’acquirente ha già le chiavi e abita la casa. Se le parti vogliono dividere diversamente il costo, possono accordarsi nel rogito, ma verso il comune ciascuno risponde per i propri mesi.' },
+  { q: 'Il notaio trattiene l’IMU al momento del rogito?', a: `No. Il notaio non è sostituto d’imposta per l’IMU: venditore e acquirente pagano ciascuno la propria parte con il proprio F24. Nell’esempio con rogito il 10 aprile, il venditore versa ${$(ven.imposta)} per ${tr.venditore} mesi e l’acquirente ${$(acq.imposta)} per ${tr.acquirente} mesi, su una casa con ${$(R)} di rendita all’${al(MAX)}.` },
+  { q: 'Chi compra la prima casa paga l’IMU per il periodo prima della residenza?', a: 'Sì, se tra il rogito e il trasferimento della residenza passa più di mezzo mese: in quei mesi la casa non è ancora abitazione principale e paga con l’aliquota degli altri fabbricati. Dal mese in cui l’acquirente vi risiede e dimora per più della metà dei giorni, l’esenzione si applica, salvo le categorie A/1, A/8 e A/9.' },
+];
+---
+<Guide lang={lang} id="compravendita" title="IMU compravendita 2026: mesi di venditore e acquirente"
+  description="IMU nella compravendita 2026: regola dei 15 giorni, rogito all’acquirente, acconto e saldo divisi tra venditore e compratore, compromesso e case nuove."
+  h1="IMU nella compravendita: come si dividono i mesi tra chi vende e chi compra"
+  intro="Una casa venduta a metà anno ha due contribuenti per lo stesso anno. La legge stabilisce con precisione dove passa il confine, fino al singolo giorno."
+  resume={`Nella compravendita l’IMU dell’anno si divide tra venditore e acquirente in base ai mesi di possesso, secondo il comma 761 della legge 160 del 2019. Un mese si conta per intero a chi ha posseduto l’immobile per più della metà dei suoi giorni; il giorno del rogito si attribuisce all’acquirente, che si tiene il mese anche quando i giorni delle due parti sono uguali. In un mese di 31 giorni, quindi, con il rogito fino al 16 il mese è del compratore, dal 17 resta al venditore. Per una seconda casa con ${$(R)} di rendita all’aliquota dell’${al(MAX)}, che costa ${$(anno.imposta)} l’anno, un rogito il 10 aprile lascia ${tr.venditore} mesi al venditore, cioè ${$(ven.imposta)}, e ${tr.acquirente} mesi all’acquirente, cioè ${$(acq.imposta)}. Ognuno versa la propria parte con il proprio F24, a giugno per i mesi del primo semestre e a dicembre per il resto. Il notaio non trattiene nulla, e il compromesso non sposta la data: conta l’atto definitivo.`}
+  faqs={faqs} related={['home', 'acconto', 'saldo', 'primaCasa', 'secondaCasa', 'eredita', 'usufrutto', 'f24']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti')}>
+  <MiniSim client:visible kind="compravendita" lang={lang} href={route('home', lang)} />
+  <h2>La regola dei quindici giorni, giorno per giorno</h2>
+  <p>Il comma 761 contiene due frasi decisive. La prima: il mese durante il quale il possesso si è protratto per più della metà dei giorni di cui il mese è composto è computato per intero. La seconda, aggiunta per chiudere i casi dubbi: il giorno di trasferimento del possesso si computa in capo all’acquirente, e l’imposta del mese resta interamente a suo carico quando i giorni di possesso sono uguali a quelli del cedente. Il risultato è che ogni mese ha un solo contribuente, mai due.</p>
+  <ContentTable caption={`Seconda casa con IMU annua di ${$(anno.imposta)}`} headers={['Rogito', 'Mesi venditore', 'Mesi acquirente', 'IMU venditore', 'IMU acquirente']} align={['l', 'r', 'r', 'r', 'r']} rows={righe} />
+  <p>Le righe del 16 e 17 marzo mostrano il confine in un mese di 31 giorni; quella del 15 febbraio mostra il caso di parità, 14 giorni a testa, che la legge risolve a favore dell’acquirente come contribuente. In un mese di 30 giorni il confine è il 16: con rogito il 16 l’acquirente ha 15 giorni, pari al venditore, e il mese è suo.</p>
+
+  <h2>Acconto e saldo quando la casa cambia proprietario</h2>
+  <p>Ciascuna parte divide la propria imposta tra acconto e saldo secondo i mesi che cadono nel primo e nel secondo semestre. Con rogito il 10 aprile il venditore possiede la casa da gennaio a marzo e il suo acconto di giugno copre tutti i suoi mesi; l’acquirente ha {a1} mesi nel primo semestre e {a2} nel secondo, quindi a giugno paga solo la parte da aprile a giugno.</p>
+  <ContentTable caption={`Rogito il 10 aprile 2026, rendita ${$(R)}, aliquota ${al(MAX)}`} headers={['Parte', 'Mesi', 'Acconto 16 giugno', 'Saldo 16 dicembre', 'Totale 2026']} align={['l', 'r', 'r', 'r', 'r']} rows={rate} />
+  <p>Se il rogito cade dopo il 16 giugno, il venditore paga a giugno l’acconto per tutto il primo semestre e a dicembre i mesi residui del secondo; l’acquirente paga tutto a dicembre. Il calcolatore, nelle opzioni avanzate, ha il campo dei mesi di possesso e la scelta «da gennaio» o «fino a dicembre» per fare questi conti.</p>
+
+  <h2>Compromesso, chiavi anticipate e accordi tra le parti</h2>
+  <p>Il preliminare di vendita non trasferisce la proprietà: obbliga a farlo. Finché non c’è il rogito, il venditore resta soggetto passivo, anche se ha consegnato le chiavi e il compratore ha già traslocato. Le parti possono pattuire nel rogito che una rimborsi all’altra una quota dell’IMU, ma è un accordo privato: verso il comune ciascuna paga per i mesi che la legge le attribuisce. Chi compra con un leasing immobiliare paga invece dalla stipula del contratto, come locatario.</p>
+
+  <h2>Comprare la prima casa</h2>
+  <p>Chi compra per andarci a vivere non paga l’IMU dal mese in cui la casa diventa davvero la sua abitazione principale, cioè quando vi trasferisce la residenza anagrafica e vi dimora per più della metà dei giorni del mese. Se il trasloco arriva tre mesi dopo il rogito, quei mesi sono tassati con l’aliquota degli altri fabbricati. Allo stesso modo la casa che si lascia diventa seconda casa dal mese del trasferimento, se non si vende subito. Le pertinenze, box e cantina comprati con la casa, seguono la stessa sorte.</p>
+
+  <h2>Case nuove dal costruttore</h2>
+  <p>Un fabbricato di nuova costruzione è soggetto all’IMU dalla data di ultimazione dei lavori o, se precedente, da quando è comunque utilizzato (comma 741, lettera a). Finché l’impresa costruttrice lo tiene in vendita senza affittarlo, è esente come bene merce (comma 751). Chi compra dal costruttore comincia quindi a pagare dal mese del rogito, con le regole di sempre. Se la rendita cambia in corso d’anno per lavori sul fabbricato, la nuova rendita vale dalla data di fine lavori o di utilizzo (comma 745).</p>
+
+  <h2>Permute, donazioni e vendite tra parenti</h2>
+  <p>La regola dei mesi vale per ogni passaggio di proprietà o di diritto reale: una donazione, una permuta, una vendita della nuda proprietà con riserva di usufrutto. In quest’ultimo caso il venditore, se resta usufruttuario, continua a essere il solo soggetto passivo, come spiega la guida su <a href={route('usufrutto', lang)}>usufrutto e nuda proprietà</a>. Per i passaggi per causa di morte valgono le stesse regole sui mesi, con le particolarità dell’<a href={route('eredita', lang)}>immobile ereditato</a>.</p>
+
+  <h2>Dichiarazione e controlli dopo la vendita</h2>
+  <p>Gli atti di compravendita arrivano ai comuni attraverso le banche dati catastali e il modello unico informatico del notaio, quindi per una vendita ordinaria non serve una dichiarazione IMU. Serve invece quando l’acquirente ha diritto a un’agevolazione che il comune non può conoscere da quei dati. Per non sbagliare le rate, controlla l’aliquota del comune nella <a href={route('aliquote', lang)}>pagina delle aliquote</a> e usa le guide su <a href={route('acconto', lang)}>acconto</a> e <a href={route('saldo', lang)}>saldo</a>.</p>
+</Guide>

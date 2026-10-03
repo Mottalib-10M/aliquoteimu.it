@@ -1,0 +1,66 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti, B = P.aliquote_base;
+const V = 120000;
+const x = calcolaImu({ tipo: 'area', rendita: V, aliquota: L.altri_max });
+const dist = distribuzione('aree').slice(0, 5);
+const tot = conProspetto.length;
+const sopra = quanti('aree', (v) => v > L.altri_max);
+const diffFiles = import.meta.glob<{ default: Record<string, { d: Array<[string, number, string]>; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const conAree = Object.values(diffFiles).reduce((s, f) => s + Object.values(f.default).filter((v) => v.d.some((d) => d[0] === 'aree')).length, 0);
+const genova = comune('D969')!;
+const valori = [40000, 80000, 120000, 250000, 500000].map((v) => [$(v), $(calcolaImu({ tipo: 'area', rendita: v, aliquota: B.aree }).imposta), $(calcolaImu({ tipo: 'area', rendita: v, aliquota: L.altri_max }).imposta), $(calcolaImu({ tipo: 'area', rendita: v, aliquota: L.altri_max }).acconto)]);
+const distRows = dist.map((d) => [al(d.aliquota), n(d.n), $(calcolaImu({ tipo: 'area', rendita: V, aliquota: d.aliquota }).imposta)]);
+const faqs = [
+  { q: 'Il terreno è diventato edificabile con il nuovo piano regolatore: da quando pago come area?', a: `Dal momento in cui lo strumento urbanistico generale è adottato dal comune, anche prima dell’approvazione regionale: il comma 741, lettera d, richiama l’articolo 36, comma 2, del decreto-legge 223 del 2006. Su un valore di ${$(V)} e un’aliquota dell’${al(L.altri_max)} si pagano ${$(x.imposta)} l’anno. Il comune, su richiesta, attesta se l’area è fabbricabile.` },
+  { q: 'Che valore devo dichiarare per un’area edificabile?', a: `Il valore venale in comune commercio al 1° gennaio, stimato su zona, indice di edificabilità, destinazione d’uso, oneri di adattamento del terreno e prezzi di aree simili (comma 746). Se il comune ha deliberato valori di riferimento per zone omogenee e paghi su un valore non inferiore, il comune non può accertarti di più (comma 777, lettera d).` },
+  { q: 'Sto ristrutturando casa con demolizione: l’IMU si calcola sulla rendita?', a: 'No. Durante una demolizione o un intervento di restauro, risanamento o ristrutturazione ai sensi dell’articolo 3, comma 1, lettere c, d e f, del DPR 380 del 2001, la base imponibile è il valore dell’area, considerata fabbricabile, fino alla fine dei lavori o al primo utilizzo dell’edificio, se precedente (comma 746).' },
+  { q: 'Se l’area torna agricola posso riavere l’IMU pagata?', a: 'Solo se il regolamento del tuo comune lo prevede. Il comma 777, lettera c, permette ai comuni di stabilire il rimborso dell’imposta versata per aree poi divenute inedificabili, fissandone termini, limiti e condizioni. Senza quella norma comunale il rimborso non è automatico: va letto il regolamento IMU del comune.' },
+];
+---
+<Guide lang={lang} id="aree" title={`IMU aree fabbricabili 2026: valore venale e aliquote`}
+  description={`IMU aree fabbricabili 2026: base sul valore venale al 1° gennaio, valori di riferimento del comune, aliquota fino all’${al(L.altri_max)}, cantieri e codice tributo ${P.f24.aree}.`}
+  h1="IMU sulle aree fabbricabili: valore di mercato, cantieri e valori comunali"
+  intro="Un lotto in zona di espansione, un terreno reso edificabile dal piano, una casa demolita per essere ricostruita: per l’IMU sono aree, e la base è il loro valore di mercato."
+  resume={`Le aree fabbricabili sono l’unico caso in cui l’IMU non parte da un valore catastale. La base imponibile è il valore venale in comune commercio al 1° gennaio dell’anno, cioè il prezzo a cui l’area si venderebbe, stimato su zona, indice di edificabilità, destinazione consentita, costi per rendere il terreno costruibile e prezzi medi di aree simili (comma 746 della legge 160 del 2019). Su quel valore si applica l’aliquota che il comune fissa per le aree, che parte dallo ${al(B.aree)} e può arrivare all’${al(L.altri_max)}. Un lotto che vale ${$(V)} paga così ${$(x.imposta)} l’anno, in due rate da ${$(x.acconto)}, con il codice tributo ${P.f24.aree}. Molti comuni pubblicano valori di riferimento per zona: pagare su un valore non inferiore mette al riparo dall’accertamento. Un’area posseduta e coltivata da un coltivatore diretto o IAP resta invece un terreno agricolo.`}
+  faqs={faqs} related={['home', 'terreni', 'aliquote', 'compravendita', 'dichiarazione', 'rimborso', 'f24', 'eredita']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="aree" lang={lang} href={route('home', lang)} />
+  <h2>Quando un terreno diventa area fabbricabile</h2>
+  <p>La lettera d del comma 741 definisce area fabbricabile quella utilizzabile a scopo edificatorio secondo gli strumenti urbanistici generali o attuativi, oppure secondo le possibilità effettive di edificazione valutate con i criteri dell’indennità di esproprio. Il richiamo all’articolo 36, comma 2, del decreto-legge 223 del 2006 anticipa il momento: basta che il piano regolatore sia adottato dal comune, anche se la regione non l’ha ancora approvato e mancano i piani attuativi. Chi riceve la notizia del nuovo piano dovrebbe quindi rifare il conto già per l’anno in corso.</p>
+  <p>Per evitare contestazioni la stessa norma dà al contribuente uno strumento: su richiesta, il comune attesta se un’area del suo territorio è fabbricabile secondo questi criteri. È una richiesta utile soprattutto per i terreni ai margini dei centri abitati, dove la destinazione cambia spesso tra una variante e l’altra.</p>
+
+  <h2>Il valore venale e i valori di riferimento comunali</h2>
+  <p>Non esiste un coefficiente che trasformi l’area in un numero: il valore lo stima il proprietario. Il comma 746 indica i criteri, che sono quelli di un perito: la zona territoriale, l’indice di edificabilità, la destinazione d’uso consentita, gli oneri per eventuali lavori di adattamento del terreno, i prezzi medi rilevati sul mercato per aree con caratteristiche analoghe. Un atto di compravendita recente nella stessa zona è il riferimento più solido.</p>
+  <p>Per ridurre il contenzioso, il comma 777, lettera d, consente ai comuni di determinare periodicamente valori venali per zone omogenee. Non sono un minimo obbligatorio, ma un limite al potere di accertamento: se versi l’imposta su un valore non inferiore a quello predeterminato, il comune non può pretendere di più. Vale quindi la pena cercare sul sito del comune la delibera dei valori delle aree prima di scegliere la cifra.</p>
+  <ContentTable headers={['Valore dell’area', `IMU a ${al(B.aree)}`, `IMU a ${al(L.altri_max)}`, 'Acconto di giugno']} align={['r', 'r', 'r', 'r']} rows={valori} />
+
+  <h2>Le aliquote che i comuni applicano alle aree</h2>
+  <p>Il prospetto delle aliquote ha una riga dedicata alle aree fabbricabili. Nella maggioranza dei {n(tot)} prospetti letti l’aliquota coincide con quella degli altri fabbricati, ma non sempre: {n(sopra)} comuni superano l’{al(L.altri_max)} grazie alla maggiorazione ex TASI, e {n(conAree)} prevedono aliquote differenziate per particolari aree, residenziali o produttive, o per zone di trasformazione. Genova, per esempio, applica un’aliquota ridotta alle aree del distretto Fiera-Kennedy, mentre la sua aliquota ordinaria per le aree è {al(ratesOf(genova).aree)}.</p>
+  <ContentTable caption={`Aliquote più frequenti per le aree e IMU su ${$(V)} di valore`} headers={['Aliquota', 'Comuni', 'IMU annua']} align={['r', 'r', 'r']} rows={distRows} />
+
+  <h2>Demolizioni, ristrutturazioni e cantieri</h2>
+  <p>Una casa che viene demolita, o sottoposta a restauro, risanamento conservativo o ristrutturazione edilizia ai sensi dell’articolo 3, comma 1, lettere c, d ed f, del testo unico dell’edilizia, smette di pagare sulla rendita. Fino alla fine dei lavori, o fino al primo utilizzo se avviene prima, la base è il valore dell’area su cui sorge, senza contare il fabbricato in corso d’opera. Il comma 741, lettera a, completa la regola: il fabbricato nuovo paga come tale dalla data di ultimazione dei lavori o da quella in cui viene comunque utilizzato.</p>
+  <p>Nella pratica il valore dell’area di un edificio in ristrutturazione si stima come quello di un lotto edificabile con la stessa volumetria. Chi ristruttura con i bonus edilizi dovrebbe metterlo in conto: per uno o due anni l’IMU può essere più alta di quella che si pagava sulla rendita.</p>
+
+  <h2>Coltivatori diretti e IAP</h2>
+  <p>La stessa lettera d considera non fabbricabili i terreni posseduti e condotti da coltivatori diretti e imprenditori agricoli professionali iscritti alla previdenza agricola, comprese le società agricole, su cui prosegue l’attività agro-silvo-pastorale. Per loro l’area resta un terreno agricolo ed è esente. Il Dipartimento delle Finanze, con la Risoluzione n. 2/DF del 2020, ha precisato che il comproprietario privo di queste qualifiche paga sulla sua quota come <a href={route('terreni', lang)}>terreno agricolo</a>, non come area.</p>
+
+  <h2>Rimborso se l’area perde l’edificabilità</h2>
+  <p>Capita che una variante riporti a verde agricolo un lotto su cui si è pagato per anni sul valore di mercato. La legge non prevede un rimborso automatico: il comma 777, lettera c, lascia al comune la facoltà di introdurlo con il regolamento, stabilendone termini, limiti temporali e condizioni, anche in base a quanto spesso il piano viene modificato. La guida sul <a href={route('rimborso', lang)}>rimborso IMU</a> spiega i termini generali per le somme versate in più.</p>
+
+  <h2>Dichiarazione, versamento e controlli</h2>
+  <p>L’IMU delle aree si versa con codice tributo {P.f24.aree} e codice catastale del comune. Il comune non conosce il valore che hai usato, e per questo conviene conservare la stima o l’atto su cui si basa e verificare nella guida sulla <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> se l’acquisto o la variazione vanno dichiarati entro il 30 giugno dell’anno successivo. L’accertamento sulle aree è frequente: i comuni confrontano i versamenti con le compravendite della zona e con i propri valori di riferimento, e hanno tempo fino al 31 dicembre del quinto anno successivo.</p>
+</Guide>

@@ -1,0 +1,74 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, arrotonda } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const F = P.f24;
+const codes = [
+  [F.ap, 'Luxury main home (A/1, A/8, A/9) and its pertinenze', 'Comune'],
+  [F.rur, 'Rural farm buildings used for farming', 'Comune'],
+  [F.ter, 'Agricultural land', 'Comune'],
+  [F.aree, 'Building land', 'Comune'],
+  [F.altri, 'Other buildings: second homes, rented homes, shops, offices, garages', 'Comune'],
+  [F.D_stato, 'Group D buildings, State share', 'State'],
+  [F.D_comune, 'Group D buildings, extra rate set by the comune', 'Comune'],
+];
+const fi = comune('D612')!, ve = comune('L736')!;
+const flat = calcolaImu({ categoria: 'A2', rendita: 1200, aliquota: ratesOf(fi).altri });
+const gar = calcolaImu({ categoria: 'C6', rendita: 150, aliquota: ratesOf(fi).altri });
+const villa = calcolaImu({ categoria: 'A7', rendita: 1500, aliquota: ratesOf(ve).altri });
+const lines = [
+  [F.altri, fi.code, 'Acc. + Saldo', '2', $(arrotonda(flat.imposta + gar.imposta))],
+  [F.altri, ve.code, 'Acc. + Saldo', '1', $(arrotonda(villa.imposta))],
+];
+const round = [87.2, 87.49, 87.5, 87.99].map((v) => [$2(v), $(arrotonda(v))]);
+const faqs = [
+  { q: 'What tax code do I use to pay IMU on a holiday home in Italy?', a: `Code ${F.altri}, IMU on “other buildings”, which also covers rented homes, shops, offices and garages that are not pertinenze of a main home. Write it in the IMU and local taxes section of the F24, with the cadastral code of the comune where the property is, the year 2026 and the instalment box.` },
+  { q: 'Can I pay IMU for two Italian properties on one F24?', a: `Yes. One F24 can hold lines for different comuni and different tax codes. Properties in the same comune with the same tax code go on a single line with the number of properties stated; a flat in ${fi.name} and a villa in ${ve.name} need two lines, one with code ${fi.code} and one with ${ve.code}.` },
+  { q: 'I have no Italian bank account. How do I quote the IMU codes?', a: 'Pay by international transfer to the treasury account your comune publishes for non-resident owners. In the payment reference, state your Italian tax code (codice fiscale), “IMU”, the tax code, the comune’s cadastral code, the year and whether it is the June or December instalment, so the comune can match the payment to your property.' },
+];
+---
+<Guide lang={lang} id="f24" title={`IMU F24 Tax Codes 2026: ${F.altri}, ${F.ap}, ${F.D_stato} and More`}
+  description={`IMU F24 tax codes for 2026 explained for foreign owners: ${F.altri} second homes, ${F.ap} luxury homes, ${F.ter} land, ${F.D_stato} and ${F.D_comune} group D, comune codes and rounding.`}
+  h1="IMU tax codes and the F24 payment form"
+  intro="Italy collects IMU through the F24 form, the same form used for most taxes. A handful of codes covers every type of property."
+  resume={`IMU is paid with the F24 form or the matching postal slip (Law 160 of 2019, article 1, paragraph 765), in the section for IMU and other local taxes. Each line names the comune that receives the money by its four-character cadastral code, the tax code, whether it is the June instalment (acconto), the December balance (saldo) or both, the number of properties and the year. Seven tax codes cover everything: ${F.altri} for second homes and other buildings, ${F.ap} for a luxury main home, ${F.rur} for rural farm buildings, ${F.ter} for farmland, ${F.aree} for building land, and ${F.D_stato} plus ${F.D_comune} for warehouses, hotels and other group D buildings. Amounts are rounded to the whole euro on each line. An owner with a flat and a garage in ${fi.name} pays the full year on one line, ${$(arrotonda(flat.imposta + gar.imposta))}, under code ${F.altri} and comune code ${fi.code}. The calculator writes these lines for you.`}
+  faqs={faqs} related={['home', 'esteri', 'acconto', 'saldo', 'capannoni', 'ravvedimento', 'secondaCasa', 'scadenze']} sources={src(lang, 'codici_tributo', 'legge160', 'legge296', 'mef_versamenti')}>
+  <MiniSim client:visible kind="f24" lang={lang} href={route('home', lang)} />
+  <h2>The seven IMU tax codes</h2>
+  <ContentTable headers={['Code', 'Property', 'Paid to']} align={['l', 'l', 'l']} rows={codes} />
+  <p>Two further codes, {F.interessi_accertamento} and {F.sanzioni_accertamento}, are only for interest and penalties demanded in an assessment notice from the comune. If you correct a late payment yourself, the penalty and interest are added to the tax on the property’s own code instead, with the “Ravv.” box ticked.</p>
+
+  <h2>What goes in each box</h2>
+  <p>The comune code is the cadastral code of the town where the property is located, not where you live: a letter followed by three digits. “Ravv.” is ticked only for late payments under the ravvedimento. “Immob. variati” is ticked if something about one of the properties changed during the year. “Acc.” marks the June instalment and “Saldo” the December balance; tick both if you pay the whole year at once. Then come the number of properties covered by the line, the reference year and the amount in the debit column. The credit column is for offsetting a tax credit, which most foreign owners never use.</p>
+
+  <h2>Two homes, two comuni</h2>
+  <p>Take an owner with a flat classed A/2 (cadastral income 1,200 euros) and a garage C/6 (150 euros) in {fi.name}, where the rate is {al(ratesOf(fi).altri)}, and a detached house A/7 (1,500 euros) in {ve.name}, at {al(ratesOf(ve).altri)}. Paying the whole year in June, the F24 carries two lines:</p>
+  <ContentTable headers={['Tax code', 'Comune code', 'Instalment', 'Properties', 'Amount']} align={['l', 'l', 'l', 'r', 'r']} rows={lines} />
+  <p>The flat and the garage share a line because they are in the same comune under the same code. The house needs its own line because the money goes to a different comune.</p>
+
+  <h2>Group D: the split line</h2>
+  <p>Warehouses, factories, hotels and other buildings in cadastral group D are the only case where the State takes a share of IMU. The yield at {al(P.limiti.D_quota_stato)} is reserved to the State (paragraph 744) and paid under {F.D_stato}; anything the comune charges above that goes under {F.D_comune}. If you wrote the whole amount under one code the total would be right but the split wrong, and the comune or the State would ask for a correction. The <a href={route('capannoni', lang)}>group D guide</a> shows the arithmetic.</p>
+
+  <h2>Rounding to the euro</h2>
+  <p>Local taxes are paid in whole euros: amounts are rounded down when the cents are below 49 and up when they are above (Law 296 of 2006, paragraph 166). The calculator also rounds exactly 49 cents down. The rule applies to the total of each line, after adding up properties with the same code.</p>
+  <ContentTable headers={['Calculated', 'Amount to write']} align={['r', 'r']} rows={round} />
+
+  <h2>Ways to submit the form</h2>
+  <p>With an Italian bank account, the F24 is submitted through online banking, through the Agenzia delle Entrate’s online services or at a bank or post office counter. The law also accepts a dedicated postal payment slip for IMU (paragraph 765). Owners abroad without an Italian account use the comune’s international transfer details, quoting the same codes in the payment reference. The <a href={route('esteri', lang)}>non-residents guide</a> covers this route step by step.</p>
+
+  <h2>Which code for which property</h2>
+  <p>The code follows the use of the property, not the owner. A flat you live in as your registered Italian residence pays nothing unless it is classed A/1, A/8 or A/9, in which case it goes under {F.ap} together with its garage and cellar. The same flat let to tenants, lent to a friend or kept empty for holidays goes under {F.altri}. A plot that the town plan marks as buildable goes under {F.aree} even if it is still a field; farmland goes under {F.ter} unless it is exempt, as it is in the mountain and hill comuni and for registered farmers. A barn or a store used for a farm business, recorded as rural, goes under {F.rur}. When in doubt, the calculator picks the code from the property type you select and shows it next to each amount.</p>
+
+  <h2>Mistakes that cost time</h2>
+  <p>Writing the comune code of your Italian residence instead of the property’s sends the money to the wrong town, which then has to pass it on. Using {F.ap} for a holiday home because it is “the house” is wrong: that code is reserved for a luxury main home. Leaving out the year or the instalment box makes it harder for the comune to match the payment. And co-owners usually each need their own payment under their own codice fiscale, unless the comune’s regulations accept one co-owner paying for all.</p>
+</Guide>

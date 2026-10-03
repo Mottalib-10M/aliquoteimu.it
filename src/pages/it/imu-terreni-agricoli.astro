@@ -1,0 +1,68 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, baseTerreno } from '../../lib/engine/imu';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatDecimal, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const B = P.aliquote_base, L = P.limiti;
+const riv = formatDecimal(1 + P.base.rivalutazione_dominicale, 2, lang);
+const mol = P.base.moltiplicatore_terreni;
+const RD = 300;
+const x = calcolaImu({ tipo: 'terreno', rendita: RD, aliquota: B.ter });
+const xMax = calcolaImu({ tipo: 'terreno', rendita: RD, aliquota: L.altri_max });
+const esenti = quanti('ter', (v) => v < 0);
+const tot = conProspetto.length;
+const tassati = distribuzione('ter').filter((d) => d.aliquota >= 0).slice(0, 5);
+const distRows = tassati.map((d) => [al(d.aliquota), n(d.n), $(calcolaImu({ tipo: 'terreno', rendita: RD, aliquota: d.aliquota }).imposta)]);
+const zero = quanti('ter', (v) => v === 0);
+const redditi = [50, 150, 300, 600, 1200].map((r) => [$(r), $(baseTerreno(r)), $(calcolaImu({ tipo: 'terreno', rendita: r, aliquota: B.ter }).imposta), $(calcolaImu({ tipo: 'terreno', rendita: r, aliquota: L.altri_max }).imposta)]);
+const faqs = [
+  { q: 'Il terreno ereditato che non coltivo paga l’IMU?', a: `Sì, a meno che il comune sia montano o di collina e il prospetto lo indichi come esente. La legge considera terreno agricolo anche quello incolto (comma 741, lettera e). Con ${$(RD)} di reddito dominicale e l’aliquota di base dello ${al(B.ter)} l’IMU annua è ${$(x.imposta)}, versata con il codice tributo ${P.f24.ter}.` },
+  { q: 'Mio padre è coltivatore diretto e il terreno è cointestato con me: pago la mia quota?', a: `Sì. L’esenzione del comma 758, lettera a, è soggettiva: spetta al comproprietario coltivatore diretto o IAP iscritto alla previdenza agricola che conduce il fondo. Il contitolare senza qualifica paga sulla propria quota come terreno agricolo, come chiarito dalla Risoluzione n. 2/DF del 10 marzo 2020 del Dipartimento delle Finanze.` },
+  { q: 'Come capisco se il mio comune è esente per i terreni?', a: `Il prospetto delle aliquote lo dice nella riga dei terreni agricoli: ${n(esenti)} comuni su ${n(tot)} li indicano come esenti ai sensi del comma 758, lettera d, perché ricadono in aree montane o di collina delimitate secondo la circolare n. 9 del 1993. Il calcolatore legge quella riga e azzera l’imposta.` },
+  { q: 'Il reddito agrario conta per l’IMU dei terreni?', a: `No. La base imponibile si calcola solo sul reddito dominicale della visura, rivalutato del ${formatPercent(P.base.rivalutazione_dominicale, 0, lang)} e moltiplicato per ${mol} (comma 746). Il reddito agrario, che remunera il lavoro di chi coltiva, serve per l’Irpef, non per l’IMU: anche se è più alto del dominicale non cambia l’imposta.` },
+];
+---
+<Guide lang={lang} id="terreni" title={`IMU terreni agricoli 2026: esenti, aliquote e dominicale`}
+  description={`IMU terreni agricoli 2026: reddito dominicale × ${riv} × ${mol}, aliquota base ${al(B.ter)}, esenzione per coltivatori diretti, IAP e comuni montani, codice F24 ${P.f24.ter}.`}
+  h1="IMU sui terreni agricoli nel 2026: chi paga, chi è esente, quanto costa"
+  intro="Un campo ereditato, un uliveto dato in affitto, un appezzamento incolto alle porte del paese: per l’IMU sono tutti terreni agricoli, ma molti non pagano nulla."
+  resume={`I terreni agricoli pagano l’IMU sul reddito dominicale scritto nella visura catastale, non sulla rendita come i fabbricati. Il dominicale si aumenta del ${formatPercent(P.base.rivalutazione_dominicale, 0, lang)} e si moltiplica per ${mol}: un terreno con ${$(RD)} di dominicale ha una base imponibile di ${$(x.base)}. L’aliquota di base è lo ${al(B.ter)}, e il comune può portarla fino all’${al(L.altri_max)} o azzerarla (comma 752). Con l’aliquota di base l’IMU annua di quel terreno è ${$(x.imposta)}; al massimo arriva a ${$(xMax.imposta)}. Prima di fare il conto, però, conviene verificare le esenzioni del comma 758: non pagano i terreni posseduti e condotti da coltivatori diretti e imprenditori agricoli professionali iscritti alla previdenza agricola, quelli delle isole minori, quelli a proprietà collettiva indivisibile e quelli che ricadono nelle aree montane o di collina. Questa ultima esenzione copre ${n(esenti)} dei ${n(tot)} comuni di cui abbiamo letto il prospetto.`}
+  faqs={faqs} related={['home', 'aree', 'rurali', 'aliquote', 'esenzioni', 'eredita', 'f24', 'rendita']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="terreni" lang={lang} href={route('home', lang)} />
+  <h2>Dominicale, non rendita: la base dei terreni</h2>
+  <p>La visura di un terreno riporta due redditi. Il reddito dominicale misura la parte di frutto che spetta al proprietario; il reddito agrario quella che spetta a chi lavora il fondo. L’IMU guarda solo al primo. Il comma 746 della legge 160 del 2019 lo rivaluta del {formatPercent(P.base.rivalutazione_dominicale, 0, lang)} e applica un moltiplicatore unico di {mol}, valido per qualsiasi coltura e qualsiasi zona. Il dominicale è quello vigente al 1° gennaio: se in corso d’anno la qualità di coltura viene aggiornata in catasto, l’effetto arriva dall’anno successivo.</p>
+  <ContentTable headers={['Reddito dominicale', 'Base imponibile', `IMU a ${al(B.ter)}`, `IMU a ${al(L.altri_max)}`]} align={['r', 'r', 'r', 'r']} rows={redditi} />
+  <p>I redditi dominicali sono spesso bassi, perché le tariffe d’estimo risalgono a revisioni catastali di decenni fa: un ettaro di seminativo in pianura vale pochi euro di dominicale in molte province. Per questo l’IMU dei terreni, quando è dovuta, resta in genere contenuta rispetto a quella di una casa.</p>
+
+  <h2>Le quattro esenzioni del comma 758</h2>
+  <p>La legge elenca i terreni che non pagano, indipendentemente da quanto decide il comune. Sono esenti i terreni posseduti e condotti da coltivatori diretti e IAP iscritti alla previdenza agricola, comprese le società agricole, ovunque si trovino. Sono esenti quelli ubicati nei comuni delle isole minori elencati nell’allegato A della legge 448 del 2001. Sono esenti i terreni a immutabile destinazione agrosilvo-pastorale a proprietà collettiva indivisibile e inusucapibile, come gli usi civici. E sono esenti quelli che ricadono in aree montane o di collina delimitate in base alla circolare del Ministero delle finanze n. 9 del 14 giugno 1993.</p>
+  <p>Le prime due condizioni riguardano la persona o l’isola, l’ultima il territorio. Nella pratica è proprio la delimitazione del 1993 a esentare la gran parte dei terreni italiani: lungo l’Appennino e sulle Alpi quasi tutti i comuni ne beneficiano, mentre in pianura padana e nelle pianure costiere i terreni pagano.</p>
+
+  <h2>Quanti comuni tassano i terreni, e a quale aliquota</h2>
+  <p>Sui {n(tot)} prospetti letti, {n(esenti)} indicano i terreni agricoli come esenti. Gli altri applicano un’aliquota, e la scelta più comune non è quella di base: molti comuni di pianura hanno portato i terreni al massimo, come gli altri immobili. Altri {n(zero)} hanno azzerato l’aliquota pur senza essere montani, una scelta politica a favore dell’agricoltura locale.</p>
+  <ContentTable caption={`Aliquote più frequenti nei comuni che tassano i terreni, e IMU con ${$(RD)} di dominicale`} headers={['Aliquota', 'Comuni', 'IMU annua']} align={['r', 'r', 'r']} rows={distRows} />
+  <p>Il dato del tuo comune è nella <a href={route('aliquote', lang)}>ricerca delle aliquote per comune</a>: la riga «terreni agricoli» del prospetto riporta l’aliquota oppure la dicitura di esenzione.</p>
+
+  <h2>Coltivatori diretti, IAP e comproprietari</h2>
+  <p>L’esenzione per chi coltiva richiede due condizioni insieme: la qualifica di coltivatore diretto o imprenditore agricolo professionale con iscrizione alla previdenza agricola, e la conduzione effettiva del fondo. Un pensionato ex coltivatore che ha dato il terreno in affitto non conduce più il fondo e paga. Un coltivatore che lavora il terreno di un parente senza esserne proprietario non fa scattare l’esenzione per il proprietario.</p>
+  <p>Quando il terreno è cointestato, l’esenzione segue la persona. La Risoluzione n. 2/DF del 2020 del Dipartimento delle Finanze ha chiarito che il comproprietario con la qualifica è esente, mentre l’altro, che non ce l’ha, paga sulla propria quota come terreno agricolo. Nel calcolatore basta indicare la propria quota e rispondere alla domanda sul coltivatore diretto.</p>
+
+  <h2>Terreno incolto, orto, giardino</h2>
+  <p>Per la lettera e del comma 741 è terreno agricolo qualunque terreno iscritto in catasto, a qualsiasi uso destinato, compreso quello non coltivato. Un campo abbandonato paga quindi come un vigneto, sul suo dominicale. Diverso è il caso dell’area che fa parte del fabbricato: il giardino accatastato insieme alla villa è già compreso nella rendita della casa e non paga separatamente. Se invece lo strumento urbanistico rende il terreno edificabile, non è più un terreno agricolo ma un’<a href={route('aree', lang)}>area fabbricabile</a>, con una base molto più alta: il valore di mercato.</p>
+
+  <h2>Pagare: codice {P.f24.ter} e due rate</h2>
+  <p>L’IMU dei terreni si versa con l’F24, codice tributo {P.f24.ter}, con il codice catastale del comune in cui si trova il terreno. Se possiedi appezzamenti in comuni diversi, ogni comune ha il suo rigo. L’acconto del 16 giugno si calcola con l’aliquota dell’anno prima, il saldo del 16 dicembre con quella del 2026. Ogni rigo si arrotonda all’euro. Se il totale è molto basso, alcuni regolamenti comunali fissano un importo minimo sotto il quale non si versa: va controllato nel regolamento del comune.</p>
+  <p>I <a href={route('rurali', lang)}>fabbricati rurali strumentali</a> che servono al fondo, come stalle e magazzini agricoli, hanno un’aliquota e un codice propri e non vanno sommati al terreno.</p>
+
+  <h2>Tre errori frequenti</h2>
+  <p>Il primo è applicare il moltiplicatore dei fabbricati al reddito dominicale, che porta a importi enormi e sbagliati. Il secondo è credere che il terreno dato in affitto a un coltivatore sia esente: l’esenzione vale per chi possiede e conduce, non per chi affitta a chi conduce. Il terzo è dimenticare i terreni di poche centinaia di metri ricevuti in successione, che spesso restano intestati a più eredi e generano piccoli importi non pagati per anni, poi richiesti dal comune con sanzioni.</p>
+</Guide>

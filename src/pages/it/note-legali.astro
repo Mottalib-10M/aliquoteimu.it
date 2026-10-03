@@ -1,0 +1,24 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import LegalIdentity from '../../components/LegalIdentity.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema } from '../../lib/seo';
+const lang = 'it';
+---
+<PageLayout title="Note legali e condizioni d’uso di AliquoteIMU.it" description="Note legali di AliquoteIMU.it: editore, hosting, natura indicativa dei calcoli IMU, responsabilità, riutilizzo dei contenuti e widget gratuito del calcolatore da inserire nel tuo sito." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Note legali', path: route('terms', lang) }])]} breadcrumbs={[{ label: 'Note legali' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Note legali e condizioni d’uso</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <h2>Editore</h2>
+    <LegalIdentity lang="it" />
+    <h2>Hosting</h2>
+    <LegalIdentity lang="it" mode="hosting" />
+    <h2>Natura dei risultati</h2>
+    <p>I calcolatori forniscono una stima indicativa dell’IMU sulla base della legge 160 del 2019 e dei prospetti delle aliquote pubblicati dal Dipartimento delle Finanze, letti alla data indicata su ogni pagina. Non sostituiscono il prospetto del comune, il regolamento comunale né il parere di un commercialista o di un CAF. I limiti del calcolo sono elencati nella pagina <a href={route('method', lang)}>metodologia</a>.</p>
+    <h2>Responsabilità</h2>
+    <p>Curiamo l’esattezza delle aliquote e correggiamo rapidamente gli errori segnalati, ma non possiamo garantire che il sito sia privo di errori o sempre disponibile. Non rispondiamo delle decisioni prese sulla base delle stime. Restano salve le responsabilità che la legge non consente di limitare.</p>
+    <h2>Riutilizzo</h2>
+    <p>Testi, tabelle e codice sono protetti dal diritto d’autore. Puoi citarne brevi estratti con un link alla pagina. Il calcolatore può essere inserito gratuitamente in un altro sito con il codice della pagina <a href={route('widget', lang)}>widget</a>, purché il link di credito resti visibile.</p>
+    <h2>Legge applicabile</h2>
+    <p>Queste condizioni sono regolate dal diritto francese, legge del luogo di stabilimento dell’editore, fatte salve le norme imperative a tutela dei consumatori del paese di residenza.</p>
+  </div>
+</PageLayout>

@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const SD = P.sanzioni_dichiarazione, MAX = P.limiti.altri_max;
+const scad = displayDate(P.scadenze.dichiarazione, 'it-IT');
+const sanz = (imposta: number) => [$(imposta), $(Math.max(SD.minimo, imposta * SD.omessa)), $(Math.max(SD.minimo, imposta * SD.infedele)), $(Math.max(SD.minimo, imposta * SD.omessa) * SD.acquiescenza)];
+const casi = [30, 400, 900, 1800, 3500].map(sanz);
+const ina = calcolaImu({ categoria: 'A3', rendita: 700, aliquota: MAX, riduzione: 'inagibile' });
+const piena = calcolaImu({ categoria: 'A3', rendita: 700, aliquota: MAX });
+const quando = [
+  ['Inizio del possesso nel 2026 o variazione rilevante nel 2026', scad],
+  ['Effetto della dichiarazione', 'anche per gli anni successivi, finché i dati non cambiano'],
+  ['Modalità', 'esclusivamente telematica (comma 768-bis)'],
+  ['Modelli in uso', 'DM 29 luglio 2022 e DM 4 maggio 2023'],
+  ['Enti non commerciali', 'dichiarazione ogni anno'],
+];
+const faqs = [
+  { q: 'Entro quando va presentata la dichiarazione IMU per il 2026?', a: `Entro il ${scad}, cioè il 30 giugno dell’anno successivo a quello in cui è iniziato il possesso o sono cambiati i dati rilevanti per l’imposta. La presentazione è solo telematica, con i modelli approvati dal Ministero dell’economia nel 2022 e nel 2023, e vale anche per gli anni seguenti finché la situazione resta la stessa (comma 768-bis).` },
+  { q: 'Ho comprato casa con un notaio: devo fare la dichiarazione IMU?', a: 'Di regola no: compravendite, successioni registrate e variazioni catastali arrivano al comune dalle banche dati pubbliche, e la legge rinvia al decreto ministeriale per individuare i casi in cui la dichiarazione è dovuta. Serve invece quando il comune non può conoscere da solo un elemento che riduce o cambia l’imposta, come un’agevolazione che richiede un’attestazione.' },
+  { q: 'Che sanzione rischio se non presento la dichiarazione IMU?', a: `Il ${formatPercent(SD.omessa, 0, lang)} del tributo non versato, con un minimo di ${$(SD.minimo)}; per una dichiarazione infedele il ${formatPercent(SD.infedele, 0, lang)}, sempre con minimo ${$(SD.minimo)} (comma 775). Se accetti l’avviso entro il termine del ricorso e paghi tributo, sanzione e interessi, la sanzione scende a un terzo.` },
+  { q: 'La dichiarazione IMU si presenta ogni anno?', a: 'No, salvo per gli enti non commerciali, che la presentano ogni anno. Per tutti gli altri ha effetto anche per gli anni successivi, sempre che non cambino i dati dichiarati in modo da modificare l’imposta. Restano valide anche le dichiarazioni IMU e TASI presentate in passato, se compatibili con le regole attuali.' },
+];
+---
+<Guide lang={lang} id="dichiarazione" title="Dichiarazione IMU 2026: quando serve, scadenza e sanzioni"
+  description={`Dichiarazione IMU: quando è obbligatoria, scadenza del ${scad} per le variazioni 2026, invio telematico, modelli in uso e sanzioni del comma 775.`}
+  h1="La dichiarazione IMU: chi la deve presentare e cosa si rischia"
+  intro="Non è un adempimento annuale e la maggior parte dei proprietari non la presenta mai. Ma quando serve, dimenticarla costa caro."
+  resume={`La dichiarazione IMU è il modello con cui il contribuente comunica al comune gli elementi dell’imposta che il comune non può conoscere da solo. Secondo il comma 768-bis della legge 160 del 2019 si presenta solo in via telematica, entro il 30 giugno dell’anno successivo a quello in cui il possesso è iniziato o sono intervenute variazioni rilevanti: per i fatti del 2026 la scadenza è il ${scad}. Una volta presentata, vale anche per gli anni seguenti finché i dati non cambiano. In attesa di un nuovo decreto si usano i modelli approvati con i decreti del 29 luglio 2022 e del 4 maggio 2023. Chi non la presenta quando è dovuta rischia una sanzione pari al ${formatPercent(SD.omessa, 0, lang)} del tributo non versato, con un minimo di ${$(SD.minimo)}; su un’imposta di ${$(900)} significa ${$(Math.max(SD.minimo, 900 * SD.omessa))}, che scendono a ${$(Math.max(SD.minimo, 900 * SD.omessa) * SD.acquiescenza)} se si accetta l’avviso entro i termini del ricorso.`}
+  faqs={faqs} related={['home', 'inagibili', 'comodato', 'ravvedimento', 'scadenze', 'esenzioni', 'occupati', 'f24']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_agevolazioni', 'dlgs471')}>
+  <MiniSim client:visible kind="dichiarazione" lang={lang} href={route('ravvedimento', lang)} />
+  <h2>Le regole del comma 768-bis in sintesi</h2>
+  <ContentTable headers={['Aspetto', 'Regola']} align={['l', 'l']} rows={quando} />
+  <p>La legge lascia al decreto ministeriale il compito di elencare i casi in cui la dichiarazione è dovuta, e chiarisce che resta l’unico modo per assolvere l’obbligo dichiarativo. Un modello compilato a mano e lasciato allo sportello, o una lettera generica, non bastano a far valere un’agevolazione che richiede la dichiarazione.</p>
+
+  <h2>Perché nella maggior parte dei casi non serve</h2>
+  <p>Il comune riceve molte informazioni senza che il proprietario faccia nulla: gli atti notarili di compravendita, le successioni, le variazioni catastali, i cambi di residenza registrati all’anagrafe. Per questo chi compra una seconda casa, la eredita o trasferisce la residenza nella casa di proprietà non deve, di norma, presentare alcuna dichiarazione: il comune ha già i dati per verificare che l’imposta sia stata calcolata bene.</p>
+  <p>La dichiarazione diventa necessaria quando un elemento che riduce l’imposta non risulta da nessuna banca dati. È questa la logica da tenere a mente: se il comune non può saperlo, devi dirglielo tu.</p>
+
+  <h2>I casi in cui la legge la richiede espressamente</h2>
+  <p>Il comma 768-bis impone di attestare nel modello il possesso dei requisiti per alcune agevolazioni: i fabbricati destinati ad alloggi sociali adibiti ad abitazione principale, l’unico immobile del personale delle Forze armate, delle Forze di polizia, dei Vigili del fuoco e della carriera prefettizia, che è considerato abitazione principale anche senza residenza, e i fabbricati costruiti dalle imprese e destinati alla vendita. Per gli immobili occupati abusivamente e denunciati, esenti dal comma 759, il proprietario comunica al comune il possesso dei requisiti con lo stesso modello e lo comunica di nuovo quando l’esenzione finisce.</p>
+  <p>Per i fabbricati inagibili o inabitabili, il comma 747 prevede che l’inagibilità sia accertata dall’ufficio tecnico comunale con perizia a carico del proprietario, che allega la documentazione alla dichiarazione, oppure attestata con una dichiarazione sostitutiva basata sulla perizia di un tecnico abilitato. Con l’agevolazione l’imposta di un appartamento A/3 con 700 euro di rendita passa da {$(piena.imposta)} a {$(ina.imposta)} l’anno: la guida sugli <a href={route('inagibili', lang)}>immobili inagibili</a> spiega le condizioni.</p>
+
+  <h2>Le sanzioni del comma 775, con i numeri</h2>
+  <p>La legge distingue tre situazioni: dichiarazione omessa, dichiarazione infedele, risposta mancata o incompleta a un questionario del comune. Nei primi due casi la sanzione è proporzionale al tributo non versato, con un minimo fisso. La tabella applica le percentuali e il minimo a imposte di diversa entità, insieme alla riduzione a un terzo che spetta a chi presta acquiescenza, cioè paga entro il termine per il ricorso.</p>
+  <ContentTable headers={['Tributo non versato', `Omessa (${formatPercent(SD.omessa, 0, lang)})`, `Infedele (${formatPercent(SD.infedele, 0, lang)})`, 'Omessa con acquiescenza']} align={['r', 'r', 'r', 'r']} rows={casi} />
+  <p>Per il questionario la sanzione va da 100 a 500 euro, e da 50 a 200 euro se la risposta arriva oltre i sessanta giorni dalla notifica. A queste sanzioni si somma quella del {formatPercent(P.ravvedimento.sanzione_base, 0, lang)} per l’omesso versamento, se anche l’imposta non è stata pagata. Il comune può prevedere nel regolamento circostanze attenuanti o esimenti.</p>
+
+  <h2>Dichiarazione e versamento sono due obblighi distinti</h2>
+  <p>Presentare la dichiarazione non sostituisce il pagamento, e pagare non sostituisce la dichiarazione quando è dovuta. Un proprietario che versa regolarmente l’IMU ridotta per un immobile inagibile, senza aver mai documentato l’inagibilità, si espone al recupero della differenza e alla sanzione per omessa dichiarazione. Al contrario, chi dichiara correttamente ma salta una rata può regolarizzare il solo versamento con il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a>, che riduce la sanzione a una frazione.</p>
+
+  <h2>Come si presenta in pratica</h2>
+  <p>L’invio è telematico, direttamente tramite i servizi dell’Agenzia delle Entrate o attraverso un intermediario abilitato come un commercialista o un CAF. Il modello raccoglie i dati del contribuente, gli identificativi catastali dell’immobile, la quota e i mesi di possesso, il tipo di agevolazione e le date di inizio e fine. Conviene conservare la ricevuta di trasmissione insieme alla documentazione allegata: è l’unica prova di aver adempiuto se, a distanza di anni, il comune contesta l’agevolazione. Gli avvisi di accertamento possono arrivare fino al 31 dicembre del quinto anno successivo.</p>
+
+  <h2>Cosa fare se ti accorgi di non averla presentata</h2>
+  <p>Se l’agevolazione spettava davvero, la priorità è presentare subito la dichiarazione, anche tardiva, prima che il comune avvii un controllo, e verificare che i versamenti corrispondano alla situazione dichiarata. Se invece l’agevolazione non spettava, la differenza d’imposta va versata con sanzioni e interessi ridotti attraverso il ravvedimento. In entrambi i casi il <a href={route('home', lang)}>calcolatore IMU</a> aiuta a ricostruire l’imposta corretta anno per anno, con l’aliquota del comune e le eventuali riduzioni, e la guida sulle <a href={route('scadenze', lang)}>scadenze</a> riepiloga le date da rispettare.</p>
+</Guide>

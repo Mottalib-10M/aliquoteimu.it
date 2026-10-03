@@ -1,0 +1,67 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route, CITTA } from '../../i18n/routes';
+import { cityName } from '../../i18n/nav';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const AB = P.aliquote_base, M = P.base.moltiplicatori, MAX = P.limiti.altri_max;
+const R = 700;
+const asSecond = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const pens = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, pensionatoEstero: true });
+const rows = CITTA.slice(2, 10).map((c) => { const k = comune(c.code)!; const a = ratesOf(k).altri; return [cityName(c.id, lang), al(a), $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: a }).imposta)]; });
+const who = [
+  ['Resident in Italy, living in the home, category A/2 to A/7 or A/11', 'Exempt'],
+  ['Resident in Italy, living in an A/1, A/8 or A/9 home', `Pays at ${al(AB.ap)} base rate, ${$(P.detrazione_ap)} deduction`],
+  ['Italian registered with AIRE, living abroad', 'Pays as a second home'],
+  ['Foreign national living abroad, holiday home in Italy', 'Pays as a second home'],
+  ['Pensioner abroad with a pension under a treaty with Italy', `Half the tax on one home not let or lent (${formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang)})`],
+];
+const faqs = [
+  { q: 'I moved to Italy and took residence in my house in Puglia: when does it stop paying IMU?', a: 'From the month in which you both hold registered residence (residenza anagrafica) and actually live there, counting a month when that situation lasts more than half its days (Law 160/2019, art. 1, paras. 741 and 761). Until then it is a second home. If the house is classed A/1, A/8 or A/9 it keeps paying, at the reduced main home rate.' },
+  { q: 'Can a foreigner who spends six months a year in Italy claim the main home exemption?', a: 'Only by registering as resident with the comune (iscrizione anagrafica) and making the house the place where he or she habitually lives. Spending half the year there without Italian residence leaves the home a second home for IMU. Residence has wider consequences, including Italian tax residence, so it is not a decision to take for IMU alone.' },
+  { q: 'My Italian home is my only property but I live in London: is it exempt?', a: `No. The exemption depends on living in the home with Italian residence, not on owning a single property. Since 2020 homes of Italians registered with AIRE are no longer treated as main homes. On a ${$(R)} rendita at ${al(MAX)} you pay ${$(asSecond.imposta)} a year, or ${$(pens.imposta)} if you qualify for the half rate for treaty pensioners (Law 178/2020, para. 48).` },
+];
+---
+<Guide lang={lang} id="primaCasa" title="IMU Main Home Exemption 2026: Who Qualifies in Italy"
+  description={`IMU main home exemption in Italy for 2026: Italian residence plus actual living, one garage, cellar and shed, luxury A/1, A/8, A/9 homes at ${al(AB.ap)}, AIRE owners.`}
+  h1="The IMU main home exemption: who qualifies, and why most foreign owners do not"
+  intro="Italy exempts the home you live in from IMU. For owners who live abroad, the word that matters is residence: without it, the house is a second home."
+  resume={`Your main home in Italy (abitazione principale) pays no IMU, provided it is not classed A/1, A/8 or A/9, under article 1, paragraph 740, of Law 160/2019. To qualify you must have both your registered residence (residenza anagrafica) at the comune and your habitual dwelling (dimora abituale) in that same home. The exemption extends to pertinenze: at most one cellar or storeroom (C/2), one garage or parking space (C/6) and one shed (C/7). Owning a single property is not enough. A foreign owner who lives in Germany, or an Italian registered abroad with AIRE, pays IMU on the Italian house as on any second home: a flat classed A/3 with ${$(R)} of cadastral income (rendita catastale) costs ${$(asSecond.imposta)} a year at the ${al(MAX)} rate most comuni use. Pensioners living abroad who receive a pension under a social security agreement with Italy pay half on one home that is neither let nor lent. Luxury main homes pay a reduced rate of ${al(AB.ap)} with a ${$(P.detrazione_ap)} deduction.`}
+  faqs={faqs} related={['home', 'esteri', 'lusso', 'pertinenze', 'coniugi', 'secondaCasa', 'separazione', 'anziani']} sources={src(lang, 'legge160', 'corte209', 'legge178', 'mef_versamenti')}>
+  <MiniSim client:visible kind="primaCasa" lang={lang} href={route('home', lang)} />
+  <h2>Two tests: residence on paper and life in fact</h2>
+  <p>Italian law defines the main home as the unit, registered or registrable in the land registry (catasto) as a single unit, where the owner habitually lives and is registered as resident. Registration is the administrative step: you apply to the comune’s registry office (ufficio anagrafe), which checks that you really live at the address. Habitual dwelling is the factual side, the place where your daily life happens. The comune can test it with utility consumption, employment and school records. A house where you are registered but nobody lives is not a main home.</p>
+  <p>For couples, the Constitutional Court ruling no. 209 of 13 October 2022 removed the requirement that the whole family live in the same home. Each owner is now assessed on his or her own situation, which matters when spouses live in two places; see the guide on <a href={route('coniugi', lang)}>spouses with different homes</a>.</p>
+
+  <h2>Where foreign and non-resident owners stand</h2>
+  <p>The table sums up the situations we are asked about most often by owners who are not Italian or do not live in Italy.</p>
+  <ContentTable headers={['Owner', 'IMU on the Italian home']} align={['l', 'l']} rows={who} />
+  <p>The half rate for pensioners abroad has narrow conditions: you must live outside Italy, receive a pension accrued under an international agreement with Italy, and the home must not be rented out or lent. It applies to one dwelling. The <a href={route('esteri', lang)}>guide for non-residents</a> covers it with examples and payment from abroad.</p>
+
+  <h2>What the exemption is worth, town by town</h2>
+  <p>The value of the exemption equals the IMU the same home would pay as a second home, so it depends on the comune’s rate for other buildings. For an A/3 flat with {$(R)} of rendita:</p>
+  <ContentTable headers={['City', 'Second home rate', 'IMU avoided each year']} align={['l', 'r', 'r']} rows={rows} />
+
+  <h2>Luxury categories still pay</h2>
+  <p>The exemption is tied to the cadastral category on the visura catastale (the land registry record), not to size or price. Categories A/2 to A/7 and A/11 are exempt; A/1 (high-class homes), A/8 (villas) and A/9 (castles and historic palaces) pay even as a main home. The national base rate is {al(AB.ap)}, which the comune may raise to {al(P.limiti.ap_max)} or lower, and a {$(P.detrazione_ap)} deduction applies. A modern villa with a pool may well be classed A/7 and be exempt; an older flat in a period building classed A/1 may pay. The <a href={route('lusso', lang)}>luxury home guide</a> runs the numbers.</p>
+
+  <h2>Garages, cellars and the one-per-category rule</h2>
+  <p>Pertinenze follow the main home, but only one per category: one C/2 (cellar, loft, storeroom), one C/6 (garage, parking space) and one C/7 (shed or canopy), even if a unit is registered together with the flat. If you have a garage and a separate parking space, both C/6, one is exempt and the other pays as an ordinary building at the comune’s rate. The <a href={route('pertinenze', lang)}>pertinenze guide</a> explains the common combinations.</p>
+
+  <h2>Homes treated as a main home by law</h2>
+  <p>Paragraph 741 c) of Law 160/2019 extends the exemption to a few situations without the usual ownership and residence pattern: homes of undivided-ownership housing cooperatives assigned to members (and to student members even without residence), social housing as defined by the decree of 22 April 2008, the family home that a court assigns to the parent who has custody of the children, and one home, not let, owned by permanent members of the armed forces, police, fire service and prefectural career, without the residence requirement. Comuni may also choose to treat as a main home the house of an elderly or disabled person who moves permanently into a care institution, if it is not let; see the guide on <a href={route('anziani', lang)}>elderly owners in care</a>.</p>
+
+  <h2>Moving in or out during the year</h2>
+  <p>IMU is computed month by month. If you take residence in your Italian house in April, it is a second home for the months before and a main home from the month the new situation covered more than half the days. Selling your old Italian home and buying a new one works the same way: each property pays only for the months in which it was not your main home. The calculator handles this in the advanced options with months owned and the period; the guide on <a href={route('compravendita', lang)}>buying or selling</a> explains how the day of the deed is counted.</p>
+
+  <h2>Checks before you rely on the exemption</h2>
+  <p>Read the visura: the category decides whether the home pays, and a unit that was never merged in the land registry with the flat next door remains a separate property, of which only one can be the main home. Make sure your residence registration is complete, not just requested. And if you are not resident, do not stop paying because the house is your only property in Italy: a comune can assess unpaid IMU until 31 December of the fifth year after the payment was due (Law 296/2006, para. 161), with interest and penalties.</p>
+</Guide>

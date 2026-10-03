@@ -1,0 +1,47 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import ConfrontoComuni from '../../components/calc/ConfrontoComuni';
+import MiniSim from '../../components/calc/MiniSim';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { capoluoghi } from '../../lib/stats';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatAliquota, formatMoney, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const R = 900;
+const imu = (code: string) => calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(comune(code)!).altri }).imposta;
+const alto = capoluoghi.slice(0, 6), basso = capoluoghi.slice(-6).reverse();
+const rowsA = alto.map((c) => [c.name, c.prov, al(ratesOf(c).altri), $(calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(c).altri }).imposta)]);
+const rowsB = basso.map((c) => [c.name, c.prov, al(ratesOf(c).altri), $(calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(c).altri }).imposta)]);
+const coppie = [['Milano', 'F205', 'Monza', 'F704'], ['Roma', 'H501', 'Fiumicino', 'M297'], ['Torino', 'L219', 'Moncalieri', 'F335'], ['Bologna', 'A944', 'Casalecchio di Reno', 'B880']] as const;
+const rowsC = coppie.map(([a, ca, b, cb]) => [`${a} / ${b}`, `${al(ratesOf(comune(ca)!).altri)} / ${al(ratesOf(comune(cb)!).altri)}`, $(Math.abs(imu(ca) - imu(cb)))]);
+const faqs = [
+  { q: 'Conviene comprare la seconda casa nel comune accanto per pagare meno IMU?', a: `L’IMU pesa poco rispetto al prezzo, ma su molti anni conta. Con ${$(R)} di rendita la differenza tra un comune all’${al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} e uno allo ${al(P.aliquote_base.altri)} è di ${$(calcolaImu({ categoria: 'A2', rendita: R, aliquota: P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi }).imposta - calcolaImu({ categoria: 'A2', rendita: R, aliquota: P.aliquote_base.altri }).imposta)} l’anno. Considera però che anche la rendita cambia da un comune all’altro, a parità di metri quadri.` },
+  { q: 'Due comuni con la stessa aliquota fanno pagare la stessa IMU?', a: 'Sì, se la rendita catastale è la stessa. Ma la rendita dipende dalla zona censuaria e dalla classe, che variano da un comune all’altro: un appartamento uguale può avere una rendita più alta in città che in periferia. Per un confronto onesto usa la rendita reale di ciascun immobile, non la stessa cifra.' },
+  { q: 'Il confronto tiene conto delle aliquote agevolate?', a: 'Il confronto usa l’aliquota ordinaria della fattispecie scelta, quella che paga chi non ha agevolazioni. Se in uno dei due comuni c’è un’aliquota ridotta per il tuo caso, per esempio per il canone concordato, la trovi aprendo quel comune nel calcolo IMU, che elenca le aliquote differenziate del prospetto.' },
+];
+---
+<ToolPage lang={lang} id="confronto" title="Confronto IMU tra comuni 2026: stessa casa, due aliquote"
+  description={`Confronto IMU 2026 tra due comuni: stessa rendita, aliquote dei prospetti ufficiali e differenza annua, e i capoluoghi più cari e meno cari per la seconda casa.`}
+  h1="Confronto IMU tra due comuni"
+  intro="Scegli due comuni, il tipo di immobile e la rendita: vedi subito quanto pagheresti in ciascuno e la differenza ogni anno."
+  resume={`A parità di immobile, l’IMU dipende solo dall’aliquota che il comune ha scritto nel suo prospetto. Per una seconda casa la legge 160 del 2019 fissa una base dello ${al(P.aliquote_base.altri)} e consente di salire fino all’${al(P.limiti.altri_max)}, o all’${al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} dove sopravvive la maggiorazione ex TASI, oppure di scendere fino a zero. Tra i capoluoghi di provincia la distanza è ampia: un appartamento A/2 con ${$(R)} di rendita paga ${$(calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(alto[0]).altri }).imposta)} a ${alto[0].name} e ${$(calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(basso[0]).altri }).imposta)} a ${basso[0].name}. Il confronto qui sopra usa le aliquote dei prospetti 2026, o 2025 dove il comune non ha ancora pubblicato quello nuovo, e lo stesso motore del calcolatore principale. È utile prima di un acquisto, per capire quanto costa ogni anno tenere una casa in un posto o nell’altro, o per verificare se il comune accanto applica davvero un’aliquota diversa.`}
+  faqs={faqs} related={['home', 'aliquote', 'aliquoteBase', 'secondaCasa', 'compravendita', 'novita']} sources={src(lang, 'mef_prospetti', 'legge160', 'mef_ricerca')}>
+  <ConfrontoComuni slot="tool" client:load lang={lang} />
+  <h2>I capoluoghi con l’aliquota più alta</h2>
+  <p>Capoluoghi di provincia ordinati per aliquota degli altri fabbricati; IMU annua di un appartamento A/2 con {$(R)} di rendita posseduto come seconda casa.</p>
+  <ContentTable headers={['Comune', 'Prov.', 'Aliquota', 'IMU annua']} align={['l', 'l', 'r', 'r']} rows={rowsA} />
+  <h2>I capoluoghi con l’aliquota più bassa</h2>
+  <ContentTable headers={['Comune', 'Prov.', 'Aliquota', 'IMU annua']} align={['l', 'l', 'r', 'r']} rows={rowsB} />
+  <h2>Città e comuni della cintura</h2>
+  <p>Chi cerca casa vicino a una grande città spesso esita tra il capoluogo e un comune confinante. La differenza annua di IMU, per la stessa seconda casa, è questa:</p>
+  <ContentTable headers={['Coppia', 'Aliquote', 'Differenza annua']} align={['l', 'r', 'r']} rows={rowsC} />
+  <MiniSim client:visible kind="confronto" lang={lang} href={route('aliquote', lang)} opts={{ a1: ratesOf(alto[0]).altri, a2: ratesOf(basso[0]).altri, n1: alto[0].name, n2: basso[0].name }} />
+  <h2>Cosa il confronto non dice</h2>
+  <p>La rendita catastale non è la stessa da un comune all’altro: dipende dalla zona censuaria, dalla categoria e dalla classe attribuite dal catasto, spesso decenni fa. Una casa di cento metri quadri in centro storico può avere una rendita più bassa di una villetta recente in periferia. Il confronto a parità di rendita isola l’effetto dell’aliquota; per decidere un acquisto conviene ripeterlo con le rendite vere dei due immobili, che il venditore o il notaio possono fornire dalla visura. Contano anche le agevolazioni: canone concordato, comodato e immobili locati hanno spesso aliquote proprie, diverse da comune a comune.</p>
+</ToolPage>

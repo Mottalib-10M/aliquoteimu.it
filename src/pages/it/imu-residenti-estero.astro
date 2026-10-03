@@ -1,0 +1,84 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max, BASE = P.aliquote_base.altri;
+const R = 700;
+const piena = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const ridotta = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, pensionatoEstero: true });
+const meta = formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const rows = [400, 550, 700, 900, 1200].map((r) => {
+  const a = calcolaImu({ categoria: 'A3', rendita: r, aliquota: MAX });
+  const b = calcolaImu({ categoria: 'A3', rendita: r, aliquota: MAX, pensionatoEstero: true });
+  return [$(r), $(a.imposta), $(b.imposta), $(b.acconto), $(a.imposta - b.imposta)];
+});
+const casi = [
+  ['Italiano iscritto all’AIRE, non pensionato', 'No', $(piena.imposta)],
+  ['Pensionato estero, pensione in convenzione, casa vuota', 'Sì', $(ridotta.imposta)],
+  ['Pensionato estero, casa affittata a turisti', 'No', $(piena.imposta)],
+  ['Pensionato estero, casa in comodato a un figlio', 'No (eventuale comodato)', $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, riduzione: 'comodato' }).imposta)],
+  ['Pensione solo estera, senza contributi italiani', 'No', $(piena.imposta)],
+];
+const faqs = [
+  { q: 'Gli italiani iscritti all’AIRE pagano l’IMU sulla casa in Italia?', a: `Sì. Dal 2020 la casa posseduta in Italia da un cittadino iscritto all’AIRE non è più assimilata all’abitazione principale, come precisa il Dipartimento delle Finanze. Paga come una seconda casa, con l’aliquota degli altri fabbricati del comune: con ${$(R)} di rendita e l’${al(MAX)} sono ${$(piena.imposta)} l’anno. Resta solo la riduzione per i pensionati in convenzione internazionale.` },
+  { q: 'Quali pensionati residenti all’estero hanno l’IMU ridotta a metà?', a: `Chi non risiede in Italia, è titolare di una pensione maturata in regime di convenzione internazionale con l’Italia e risiede in uno Stato di assicurazione diverso dall’Italia. La riduzione del ${meta} vale per una sola abitazione, posseduta in proprietà o usufrutto, che non sia locata né data in comodato (legge 178/2020, art. 1, comma 48).` },
+  { q: 'Si può pagare l’IMU dall’estero senza un conto italiano?', a: 'Sì. Il modello F24 richiede di norma un conto in Italia o un intermediario italiano, ma i comuni accettano anche il bonifico internazionale sul conto di tesoreria comunale. Nella causale si indicano il codice fiscale, il codice catastale del comune, il codice tributo IMU, l’anno e se si tratta di acconto o saldo. L’IBAN si trova sul sito del comune.' },
+  { q: 'Il pensionato estero che affitta la casa d’estate perde la riduzione?', a: `Sì, se la casa è locata. Il comma 48 della legge 178/2020 richiede che l’abitazione non sia locata né data in comodato d’uso. Un affitto, anche breve, fa venir meno la riduzione per il periodo interessato, e l’imposta torna piena: ${$(piena.imposta)} invece di ${$(ridotta.imposta)} nell’esempio con ${$(R)} di rendita.` },
+];
+---
+<Guide lang={lang} id="esteri" title="IMU residenti all’estero 2026: AIRE, pensionati e bonifico"
+  description={`IMU per chi vive all’estero nel 2026: niente esenzione AIRE, riduzione del ${meta} per i pensionati in convenzione, aliquota del comune e pagamento con bonifico.`}
+  h1="IMU per chi vive all’estero: AIRE, pensionati e pagamento dall’estero"
+  intro="Chi ha lasciato l’Italia e tiene la casa di famiglia, o chi da straniero ha comprato un appartamento in Italia, paga l’IMU come qualunque proprietario."
+  resume={`Chi risiede all’estero non ha in Italia un’abitazione principale ai fini IMU, perché l’esenzione richiede residenza anagrafica e dimora abituale nell’immobile. La casa in Italia paga quindi come una seconda casa, con l’aliquota che il comune fissa per gli altri fabbricati. Dal 2020 è venuta meno anche l’assimilazione all’abitazione principale per gli italiani iscritti all’AIRE già pensionati nel Paese di residenza. Resta una sola agevolazione, prevista dal comma 48 della legge 178 del 2020: l’imposta è dovuta nella misura della metà per una sola unità abitativa, non locata e non data in comodato, posseduta da chi non risiede in Italia ed è titolare di una pensione maturata in convenzione internazionale con l’Italia. Con ${$(R)} di rendita e l’aliquota dell’${al(MAX)}, l’IMU passa da ${$(piena.imposta)} a ${$(ridotta.imposta)} l’anno. Si paga in due rate, il 16 giugno e il 16 dicembre, anche con bonifico dall’estero.`}
+  faqs={faqs} related={['home', 'aliquote', 'secondaCasa', 'locati', 'comodato', 'f24', 'acconto', 'ravvedimento']} sources={src(lang, 'legge160', 'legge178', 'mef_versamenti', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="esteri" lang={lang} href={route('home', lang)} />
+  <h2>Perché la casa in Italia non è abitazione principale</h2>
+  <p>La legge 160 del 2019 definisce abitazione principale l’immobile in cui il possessore e il suo nucleo familiare dimorano abitualmente e risiedono anagraficamente (comma 741, lettera b). Chi si è trasferito fuori dall’Italia ha la residenza anagrafica all’estero e, se è italiano, è iscritto all’Anagrafe degli italiani residenti all’estero. Manca quindi la condizione base, e l’esenzione del comma 740 non si applica, qualunque sia il legame affettivo con la casa o il tempo che vi si trascorre in estate.</p>
+  <p>Fino al 2019 esisteva un’eccezione: una sola casa posseduta da un pensionato iscritto all’AIRE era considerata abitazione principale. La nuova IMU non l’ha ripresa, e il Dipartimento delle Finanze lo dice espressamente nella pagina dedicata all’abitazione principale. Dal 2020 quell’immobile paga, salvo la riduzione a metà descritta più avanti.</p>
+
+  <h2>La riduzione a metà per i pensionati in convenzione</h2>
+  <p>Il comma 48 dell’articolo 1 della legge 178 del 2020 riconosce dal 2021 un’IMU dimezzata. Le condizioni sono cumulative e vanno lette una per una:</p>
+  <ul>
+    <li>il proprietario o usufruttuario non risiede nel territorio dello Stato;</li>
+    <li>è titolare di una pensione maturata in regime di convenzione internazionale con l’Italia, cioè costruita sommando contributi versati in Italia e in un altro Stato;</li>
+    <li>risiede in uno Stato di assicurazione diverso dall’Italia;</li>
+    <li>l’agevolazione riguarda una sola unità immobiliare a uso abitativo;</li>
+    <li>quella casa non è locata e non è data in comodato d’uso.</li>
+  </ul>
+  <p>Una pensione interamente estera, senza contributi italiani totalizzati, non dà diritto alla riduzione; nemmeno una pensione italiana pagata all’estero senza convenzione. Nella pratica il pensionato presenta la dichiarazione IMU o la documentazione richiesta dal regolamento del suo comune, perché il comune non può conoscere da solo il tipo di pensione.</p>
+  <ContentTable caption={`Abitazione A/3 all’aliquota dell’${al(MAX)}`} headers={['Rendita', 'IMU piena', 'IMU ridotta', 'Ogni rata ridotta', 'Risparmio annuo']} align={['r', 'r', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Chi paga e chi no: cinque situazioni frequenti</h2>
+  <ContentTable headers={['Situazione', 'Riduzione a metà', `IMU con ${$(R)} di rendita`]} align={['l', 'l', 'r']} rows={casi} />
+  <p>La casa data al figlio che vi abita può invece usufruire del <a href={route('comodato', lang)}>comodato a parenti in linea retta</a>, ma solo se il comodante risiede nello stesso comune: chi vive all’estero non soddisfa quella condizione, quindi la base resta piena. La tabella mostra l’importo che si avrebbe se il comodato fosse ammesso, per confronto.</p>
+
+  <h2>Pagare dall’estero: F24 o bonifico</h2>
+  <p>Il modo ordinario di versare l’IMU è il modello F24, presentato tramite una banca, la posta o i servizi telematici dell’Agenzia delle Entrate. Chi ha ancora un conto in Italia lo usa senza difficoltà. Chi non lo ha può pagare con bonifico internazionale direttamente sul conto di tesoreria del comune in cui si trova l’immobile: i comuni pubblicano IBAN e BIC nella pagina dei tributi.</p>
+  <p>Nella causale del bonifico vanno indicati con chiarezza:</p>
+  <ul>
+    <li>il codice fiscale italiano del proprietario (non il passaporto né il codice fiscale estero);</li>
+    <li>il codice catastale del comune, che il calcolatore mostra accanto al nome;</li>
+    <li>il codice tributo: {P.f24.altri} per le abitazioni, {P.f24.ter} per i terreni, {P.f24.aree} per le aree fabbricabili;</li>
+    <li>l’anno d’imposta e la rata, acconto o saldo;</li>
+    <li>il numero di immobili, se più di uno.</li>
+  </ul>
+  <p>Conviene inviare copia della ricevuta all’ufficio tributi via posta elettronica, perché il bonifico non passa per il circuito dell’Agenzia delle Entrate che alimenta automaticamente le banche dati dei comuni. Le spese bancarie restano a carico di chi paga: l’importo accreditato deve essere quello dovuto.</p>
+
+  <h2>Scadenze e importi in valuta</h2>
+  <p>Le scadenze sono le stesse per tutti: acconto entro il 16 giugno, saldo entro il 16 dicembre, oppure tutto entro il 16 giugno. Un bonifico partito da un Paese extra euro può impiegare alcuni giorni: conta la data in cui il comune riceve l’importo in euro, quindi è prudente disporlo con una settimana di margine. L’acconto di giugno si calcola con l’aliquota dell’anno precedente e il saldo con quella dell’anno in corso, come per chi vive in Italia; trovi entrambe nella <a href={route('aliquote', lang)}>pagina delle aliquote per comune</a>.</p>
+
+  <h2>Se una rata è saltata</h2>
+  <p>Chi si accorge di non aver pagato, magari perché non sapeva che la casa in Italia fosse tassata, può regolarizzare con il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> finché il comune non gli ha notificato un accertamento: la sanzione del {formatPercent(P.ravvedimento.sanzione_base, 0, lang)} si riduce a una frazione, purché si versino insieme imposta e interessi. Il comune ha tempo fino al 31 dicembre del quinto anno successivo per accertare (legge 296 del 2006, comma 161): oltre quel termine le annualità non più accertabili sono chiuse.</p>
+
+  <h2>Venditori e acquirenti non residenti</h2>
+  <p>Lo straniero che compra casa in Italia diventa soggetto passivo dal giorno del rogito, con la regola dei mesi della <a href={route('compravendita', lang)}>compravendita</a>; l’italiano emigrato che vende la casa di famiglia paga fino al mese del trasferimento. In entrambi i casi il notaio non versa l’IMU per conto delle parti: ognuno paga la propria parte dell’anno. Se l’immobile è stato ereditato, valgono le regole dell’<a href={route('eredita', lang)}>immobile ereditato</a>, con un F24 per ogni erede.</p>
+</Guide>

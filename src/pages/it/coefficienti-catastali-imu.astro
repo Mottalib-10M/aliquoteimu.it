@@ -1,0 +1,70 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, baseFabbricato, moltiplicatore, type Categoria } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota, formatDecimal, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max, M = P.base.moltiplicatori, RIV = P.base.rivalutazione_rendita;
+const k = formatDecimal(1 + RIV, 2, lang);
+const R = 1000;
+const gruppi: Array<[string, Categoria, string]> = [
+  ['A/1-A/9, A/11 abitazioni', 'A2', 'comma 745 a'],
+  ['C/2 magazzini e cantine, C/6 box, C/7 tettoie', 'C6', 'comma 745 a'],
+  ['Gruppo B (collegi, uffici pubblici, scuole)', 'B', 'comma 745 b'],
+  ['C/3 laboratori, C/4 locali sportivi, C/5 stabilimenti balneari', 'C3', 'comma 745 b'],
+  ['A/10 uffici e studi privati', 'A10', 'comma 745 d'],
+  ['D/5 banche e assicurazioni', 'D5', 'comma 745 c'],
+  ['Gruppo D escluso D/5 (capannoni, alberghi, centri commerciali)', 'D', 'comma 745 e'],
+  ['C/1 negozi e botteghe', 'C1', 'comma 745 f'],
+];
+const rows = gruppi.map(([l, c, rif]) => { const b = baseFabbricato(R, c); return [l, String(moltiplicatore(c)), $(b), $(b * MAX / 100), rif]; });
+const negozio = calcolaImu({ categoria: 'C1', rendita: R, aliquota: MAX });
+const casa = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const ufficio = calcolaImu({ categoria: 'A10', rendita: R, aliquota: MAX });
+const cambio = [600, 900, 1200, 1500].map((r) => { const u = calcolaImu({ categoria: 'A10', rendita: r, aliquota: MAX }).imposta; const a = calcolaImu({ categoria: 'A2', rendita: r, aliquota: MAX }).imposta; return [$(r), $(u), $(a), $(a - u)]; });
+const faqs = [
+  { q: 'Qual è il coefficiente IMU per un box auto C/6?', a: `${M.C6}, lo stesso delle abitazioni: il comma 745 della legge 160 del 2019 raggruppa nella stessa fascia il gruppo A (tranne A/10) e le categorie C/2, C/6 e C/7. Un box con 150 euro di rendita ha quindi una base di ${$(baseFabbricato(150, 'C6'))}. Se è pertinenza dell’abitazione principale non di lusso, però, non paga nulla.` },
+  { q: 'Perché il negozio ha un moltiplicatore così basso?', a: `Il coefficiente ${M.C1} è quello che la legge assegna alla categoria C/1, il più basso di tutti. A parità di rendita un negozio ha una base imponibile pari a circa un terzo di quella di un’abitazione: con ${$(R)} di rendita, ${$(negozio.base)} contro ${$(casa.base)}.` },
+  { q: 'Il moltiplicatore cambia se il comune alza l’aliquota?', a: 'No. I moltiplicatori sono fissati dalla legge e valgono in tutta Italia; il comune decide solo le aliquote, entro i limiti dei commi da 748 a 755, e lo fa nel prospetto pubblicato sul sito del Dipartimento delle Finanze. Una differenza di imposta tra due città dipende quindi dall’aliquota, non dal coefficiente.' },
+  { q: 'Come si calcola l’IMU di un capannone non ancora accatastato?', a: 'Per i fabbricati del gruppo D interamente posseduti da imprese, distintamente contabilizzati e privi di rendita, fino alla richiesta di attribuzione il valore si determina dai costi iscritti in contabilità con i coefficienti aggiornati dal Ministero (comma 746). Dopo l’accatastamento si passa alla rendita moltiplicata per ' + M.D + '.' },
+];
+---
+<Guide lang={lang} id="coefficienti" title={`Coefficienti catastali IMU 2026: ${M.A}, ${M.B}, ${M.A10}, ${M.D} e ${M.C1}`}
+  description={`Coefficienti catastali IMU 2026: ${M.A} abitazioni e box, ${M.B} gruppo B, ${M.A10} uffici e banche, ${M.D} gruppo D, ${M.C1} negozi, ed esempi sulla stessa rendita.`}
+  h1="I coefficienti catastali dell’IMU, categoria per categoria"
+  intro="Il moltiplicatore è il secondo numero della formula, dopo la rendita: dipende solo dalla categoria catastale ed è uguale in ogni comune."
+  resume={`I coefficienti catastali, chiamati anche moltiplicatori, trasformano la rendita catastale rivalutata del ${formatPercent(RIV, 0, lang)} nel valore su cui si applica l’aliquota IMU. La legge 160 del 2019, al comma 745, ne prevede cinque: ${M.A} per le abitazioni e per cantine, box e tettoie; ${M.B} per il gruppo B e per laboratori, locali sportivi e stabilimenti balneari; ${M.A10} per gli uffici A/10 e per le banche D/5; ${M.D} per gli altri immobili del gruppo D; ${M.C1} per i negozi C/1. La stessa rendita di ${$(R)} dà quindi una base di ${$(casa.base)} per una casa, ${$(ufficio.base)} per uno studio professionale e ${$(negozio.base)} per un negozio. All’aliquota dell’${al(MAX)} significa ${$(casa.imposta)}, ${$(ufficio.imposta)} e ${$(negozio.imposta)} di imposta annua. I terreni agricoli seguono una regola a parte, con il reddito dominicale rivalutato del ${formatPercent(P.base.rivalutazione_dominicale, 0, lang)} e un moltiplicatore di ${P.base.moltiplicatore_terreni}.`}
+  faqs={faqs} related={['home', 'rendita', 'negozi', 'uffici', 'capannoni', 'pertinenze', 'aliquoteBase', 'terreni']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti')}>
+  <MiniSim client:visible kind="coefficienti" lang={lang} href={route('home', lang)} />
+  <h2>La tabella completa dei moltiplicatori</h2>
+  <p>La tabella mette tutte le categorie sulla stessa rendita di {$(R)}, così da isolare l’effetto del coefficiente. L’ultima colonna di importi applica l’aliquota massima ordinaria degli altri fabbricati, {al(MAX)}; per il gruppo D è anche l’aliquota più frequente nei prospetti comunali.</p>
+  <ContentTable headers={['Categorie', 'Moltiplicatore', 'Base imponibile', `IMU a ${al(MAX)}`, 'Riferimento']} align={['l', 'r', 'r', 'r', 'l']} rows={rows} />
+  <p>La base imponibile si ottiene sempre con lo stesso prodotto: rendita × {k} × moltiplicatore. Nel <a href={route('home', lang)}>calcolatore</a> basta scegliere la categoria: il coefficiente si imposta da solo.</p>
+
+  <h2>Perché esistono fasce diverse</h2>
+  <p>Le rendite catastali non sono omogenee tra le categorie: quelle dei negozi e degli immobili produttivi sono state costruite su criteri diversi da quelle delle abitazioni. I moltiplicatori servono a riportare i valori su una scala comparabile. Il risultato è che un locale commerciale, a parità di rendita, paga molto meno di un appartamento; il confronto reale però va fatto sulla rendita effettiva di ciascun immobile, che per un negozio può essere ben diversa da quella di una casa della stessa superficie.</p>
+  <p>Per il legislatore il moltiplicatore è una leva stabile: non cambia da un anno all’altro e non dipende dal comune. Le scelte locali si fanno solo sulle aliquote, che i comuni fissano nel prospetto e che il sito raccoglie per ogni comune nella pagina delle <a href={route('aliquote', lang)}>aliquote per comune</a>.</p>
+
+  <h2>Abitazioni e pertinenze nella stessa fascia</h2>
+  <p>Il gruppo A, escluso l’A/10, condivide il coefficiente {M.A} con le categorie C/2, C/6 e C/7. È una scelta coerente con il trattamento delle <a href={route('pertinenze', lang)}>pertinenze</a>: cantina, box e tettoia seguono l’abitazione a cui servono. Se la casa è principale e non di lusso, una pertinenza per categoria è esente; le altre pagano come fabbricati autonomi, sempre con il {M.C6}. Per le abitazioni di lusso A/1, A/8 e A/9 il coefficiente resta {M.A}, ma l’aliquota è quella agevolata dell’abitazione principale con la detrazione.</p>
+
+  <h2>Ufficio o abitazione: quanto pesa la categoria</h2>
+  <p>Uno studio professionale accatastato A/10 ha un moltiplicatore pari alla metà di quello di un’abitazione. Chi trasforma un ufficio in casa, o il contrario, con un cambio di destinazione registrato al catasto, vede cambiare insieme rendita e coefficiente. La tabella mostra l’effetto del solo coefficiente su rendite tipiche, a parità di aliquota.</p>
+  <ContentTable headers={['Rendita', 'IMU come A/10', 'IMU come abitazione', 'Differenza']} align={['r', 'r', 'r', 'r']} rows={cambio} />
+  <p>Nella realtà la variazione catastale ricalcola anche la rendita, quindi il confronto va rifatto con i dati della nuova visura. La guida sugli <a href={route('uffici', lang)}>uffici A/10</a> approfondisce il caso.</p>
+
+  <h2>Gruppo D: due moltiplicatori e una quota allo Stato</h2>
+  <p>Gli immobili produttivi hanno il coefficiente {M.D}, tranne le banche e le assicurazioni D/5, che salgono a {M.A10}. Per tutto il gruppo, la parte di imposta calcolata allo {al(P.limiti.D_quota_stato)} va allo Stato e il resto al comune, con due codici tributo distinti. I fabbricati rurali strumentali, anche se accatastati D/10, usano lo stesso {M.D} ma hanno un’aliquota propria, al massimo {al(P.aliquote_base.rur)}. I dettagli sono nella guida sui <a href={route('capannoni', lang)}>capannoni</a>.</p>
+
+  <h2>Terreni e aree: niente coefficiente catastale classico</h2>
+  <p>Per i terreni agricoli la legge non usa la rendita del catasto urbano ma il reddito dominicale, rivalutato del {formatPercent(P.base.rivalutazione_dominicale, 0, lang)} e moltiplicato per {P.base.moltiplicatore_terreni}. Le aree fabbricabili non hanno alcun moltiplicatore: la base è il valore venale al 1° gennaio, spesso guidato dai valori di riferimento che molti comuni deliberano per zone. Due immobili con lo stesso valore commerciale possono quindi avere basi IMU lontanissime, a seconda che siano un terreno, un’area o un fabbricato.</p>
+
+  <h2>Errori frequenti con i coefficienti</h2>
+  <p>Il più comune è applicare il {M.A} a tutto, anche a un negozio o a un ufficio, gonfiando l’imposta di due o tre volte. Il secondo è usare la categoria di fatto invece di quella in visura: un magazzino usato come abitazione resta C/2 per l’IMU finché non viene aggiornato il catasto, anche se il comune può contestare la situazione. Il terzo riguarda le unità con più subalterni: ogni subalterno ha la sua categoria e il suo coefficiente, e va calcolato a parte prima di sommare le imposte.</p>
+</Guide>

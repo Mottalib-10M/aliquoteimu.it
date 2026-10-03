@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const AB = P.aliquote_base, M = P.base.moltiplicatori, D = P.detrazione_ap, MAX = P.limiti.altri_max;
+const R = 3000;
+const x = calcolaImu({ categoria: 'A8', rendita: R, aliquota: AB.ap, uso: 'ap' });
+const notMain = calcolaImu({ categoria: 'A8', rendita: R, aliquota: MAX });
+const top = distribuzione('ap')[0];
+const zero = quanti('ap', (v) => v === 0);
+const milano = ratesOf(comune('F205')!).ap;
+const grid = [1200, 2000, 3000, 4500].map((r) => { const a = calcolaImu({ categoria: 'A8', rendita: r, aliquota: AB.ap, uso: 'ap' }); const b = calcolaImu({ categoria: 'A8', rendita: r, aliquota: P.limiti.ap_max, uso: 'ap' }); const c = calcolaImu({ categoria: 'A8', rendita: r, aliquota: MAX }); return [$(r), $(a.imposta), $(b.imposta), $(c.imposta)]; });
+const half = calcolaImu({ categoria: 'A8', rendita: R, aliquota: AB.ap, uso: 'ap', quota: 50, mesi: 6, periodo: 'fine' });
+const faqs = [
+  { q: 'We bought an A/8 villa in Tuscany and moved our residence there in July: how is the deduction worked out?', a: `The ${$(D)} deduction is scaled to the months the villa was your main home and to each owner’s share (Law 160/2019, para. 749). Two spouses with 50 % each, resident from July, count six months: each deducts ${$(D / 4)}. On a ${$(R)} rendita at ${al(AB.ap)}, each pays ${$(half.imposta)} for 2026.` },
+  { q: 'Is a palazzo apartment classed A/1 taxed even if it is my Italian residence?', a: `Yes. A/1, A/8 and A/9 are the only main homes that still pay IMU (para. 740). The rate starts at ${al(AB.ap)} and the comune may raise it to ${al(P.limiti.ap_max)}, or reduce it; many keep ${al(top.aliquota)}. The ${$(D)} deduction is taken off the tax.` },
+  { q: 'Can a foreign owner who is not resident in Italy use the luxury main home rate?', a: `No. The reduced rate and the deduction require Italian registered residence and habitual dwelling in the home. Without them an A/8 villa is an ordinary second home: on a ${$(R)} rendita at ${al(MAX)} that is ${$(notMain.imposta)} a year instead of ${$(x.imposta)}.` },
+];
+---
+<Guide lang={lang} id="lusso" title="IMU Luxury Home 2026: A/1, A/8, A/9 Rate and Deduction"
+  description={`IMU on luxury main homes in Italy for 2026: categories A/1, A/8 and A/9, base rate ${al(AB.ap)} up to ${al(P.limiti.ap_max)}, the ${$(D)} deduction, garages and worked examples.`}
+  h1="IMU on luxury homes: categories A/1, A/8 and A/9 as a main home"
+  intro="Villas, high-class flats and historic palaces are the only main homes in Italy that still pay IMU. They do so at a reduced rate, with a fixed deduction."
+  resume={`If your Italian residence is a home classed A/1 (high-class dwelling), A/8 (villa) or A/9 (castle or palace of historic or artistic value), it pays IMU even though it is your main home. This is the one exception to the main home exemption in article 1, paragraph 740, of Law 160/2019. The national base rate is ${al(AB.ap)}; each comune may raise it by a tenth of a point to ${al(P.limiti.ap_max)} or lower it to zero. A ${$(D)} yearly deduction (detrazione) comes off the tax, scaled to the months of residence and split between resident co-owners by share. The taxable value is worked out as for any home: cadastral income (rendita) × 1.05 × ${M.A}. A villa with ${$(R)} of rendita has a taxable value of ${$(x.base)}; at the base rate the gross tax is ${$(x.impostaLorda)} and the net IMU after the deduction is ${$(x.imposta)}, paid in two instalments of ${$(x.acconto)} under F24 tax code ${P.f24.ap}. If you are not resident, none of this applies: the villa pays as a second home.`}
+  faqs={faqs} related={['home', 'primaCasa', 'pertinenze', 'storici', 'esteri', 'aliquote', 'f24', 'coefficienti']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="lusso" lang={lang} href={route('home', lang)} />
+  <h2>The category on the visura decides</h2>
+  <p>Whether your home counts as a luxury home has nothing to do with its price or its view. It depends on the cadastral category recorded on the visura catastale, the land registry record you can obtain from the Agenzia delle Entrate. Many substantial modern villas are classed A/7 (villino) and are fully exempt as a main home, while some period apartments in city centres were classed A/1 decades ago and pay every year. Buyers from abroad are often surprised in both directions. If you believe the category no longer matches the property, a reclassification goes through a licensed surveyor (geometra) and a filing with the Agenzia delle Entrate.</p>
+
+  <h2>Base rate, maximum and what comuni charge</h2>
+  <p>In the rate schedules we read, the most common luxury main home rate is {al(top.aliquota)}, used by {n(top.n)} comuni out of {n(conProspetto.length)}. {n(zero)} comuni have set it to zero. A few exceed {al(P.limiti.ap_max)} because they kept the old TASI surcharge of up to {al(P.limiti.maggiorazione_ex_tasi)}, which only comuni already applying it before 2020 may do: Milan, for example, charges {al(milano)}. The <a href={route('aliquote', lang)}>rates by comune</a> page shows your comune’s figure.</p>
+  <ContentTable headers={['Rendita', `Main home at ${al(AB.ap)}`, `Main home at ${al(P.limiti.ap_max)}`, `Not resident, at ${al(MAX)}`]} align={['r', 'r', 'r', 'r']} rows={grid} />
+
+  <h2>How the €200 deduction works</h2>
+  <p>The deduction of {$(D)} a year is set by paragraph 749. It is reduced in proportion to the months during which the home was your main home, and when several owners live there it is shared according to the share for which each one uses it as a main home. It cannot exceed the tax: if the gross IMU is lower, you pay nothing and the unused part is lost. On very large rendite the deduction becomes almost symbolic, which is why the IMU on an important villa is close to the gross figure.</p>
+
+  <h2>Garages and outbuildings of a villa</h2>
+  <p>The garage, cellar and covered parking of a luxury main home are not exempt: as pertinenze they follow the home and pay at the same reduced main home rate, within the limit of one unit per category C/2, C/6 and C/7. Their rendita is added to the home’s, with the same multiplier of {M.C6}, and the deduction applies to the total. A second garage or a guest annex registered as a separate dwelling pays at the ordinary rate for other buildings. In the calculator you can enter the pertinenze rendita in the advanced options when you choose a main home in A/1, A/8 or A/9.</p>
+
+  <h2>Listed villas and palaces</h2>
+  <p>Many A/9 properties and some A/8 villas are protected cultural heritage under article 10 of the Code of Cultural Heritage. For those, paragraph 747 a) halves the taxable value, whether or not the home is your main home. The <a href={route('storici', lang)}>listed buildings guide</a> explains which properties qualify and what proof the comune expects.</p>
+
+  <h2>Lending the villa to your children</h2>
+  <p>Italian law halves the taxable value of a home lent free of charge (comodato) to a child or parent who lives in it, but expressly excludes categories A/1, A/8 and A/9 (paragraph 747 c). A villa lent to a son or daughter therefore pays at the full rate for other buildings, unless the comune’s schedule has a specific reduced rate for homes lent to relatives.</p>
+
+  <h2>Paying from abroad or from Italy</h2>
+  <p>Resident owners pay with the F24 form under tax code {P.f24.ap}, entering the deduction in its own column. The June instalment uses last year’s rate and deduction; the December balance settles at the current rate. If your Italian residence is new and you do not yet have an Italian bank account, a payment by bank transfer to the comune is possible using the details the comune publishes, quoting your codice fiscale, the comune code and the year.</p>
+
+  <h2>Moving in or out during the year</h2>
+  <p>The reduced rate and the deduction follow the months in which the villa really is your main home. If you take Italian residence in May, the first four months are taxed as a second home at the comune’s ordinary rate, and the remaining months at the luxury main home rate with the deduction scaled to them. The calculator cannot mix two regimes in one run: work out the two periods separately with the months field, then add them up.</p>
+
+  <h2>Social housing and the same deduction</h2>
+  <p>The {$(D)} deduction also applies to homes regularly assigned by public housing bodies (IACP or equivalent agencies), whatever their category (paragraph 749). It is rarely relevant for foreign owners but explains why the deduction column appears in schedules of comuni with large public housing stocks.</p>
+</Guide>

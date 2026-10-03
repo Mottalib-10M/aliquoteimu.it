@@ -1,0 +1,58 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, ravvedimento } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { COUNTS, cambiati, N_IMU } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'it-IT');
+const RV = P.ravvedimento;
+const camb = cambiati('altri');
+const su = camb.filter((c) => c.rates!.altri > c.prev!.altri).length;
+const esempi = ['L850', 'H013', 'F279', 'G066', 'B677'].map((c) => comune(c)!);
+const rows = esempi.map((c) => [`${c.name} (${c.prov})`, al(ratesAcconto(c).altri), al(ratesOf(c).altri), $(calcolaImu({ categoria: 'A2', rendita: 800, aliquota: ratesOf(c).altri }).imposta - calcolaImu({ categoria: 'A2', rendita: 800, aliquota: ratesAcconto(c).altri }).imposta)]);
+const r60 = ravvedimento({ imposta: 1000, scadenza: P.scadenze.acconto, pagamento: '2026-08-15' });
+const faqs = [
+  { q: 'Che cosa cambia per l’IMU nel 2026?', a: `La formula no: rendita rivalutata del 5 %, moltiplicatori, aliquote di base e scadenze sono quelli della legge 160 del 2019. Cambiano le aliquote di molti comuni: ${n(camb.length)} hanno modificato quella delle seconde case rispetto al 2025. E il 2026 è il secondo anno in cui conta solo il prospetto delle aliquote: una delibera senza prospetto non ha effetti (comma 757).` },
+  { q: 'Il testo unico delle sanzioni tributarie cambia il ravvedimento IMU nel 2026?', a: `No. Il D.Lgs. 173 del 2024 riordina le sanzioni in un testo unico, ma l’articolo 102 lo rende applicabile dal 1° gennaio 2027. Per i ritardi del 2026 restano gli articoli 13 dei decreti legislativi 471 e 472 del 1997, con la sanzione del ${formatPercent(RV.sanzione_base, 0, lang)} introdotta per le violazioni dal 1° settembre 2024.` },
+  { q: 'Quando escono le aliquote IMU 2026 dei comuni?', a: `I comuni hanno potuto elaborare il prospetto 2026 dal 12 novembre 2025, con l’applicazione del Portale del federalismo fiscale aggiornata dal decreto del 6 novembre 2025. Devono inserirlo entro il ${d(P.scadenze.inserimento_prospetti)}; vale per il saldo se pubblicato entro il ${d(P.scadenze.pubblicazione_prospetti)}. Al 3 ottobre 2026 lo avevano fatto ${n(COUNTS.P26)} comuni.` },
+];
+---
+<Guide lang={lang} id="novita" title="IMU 2026 novità: prospetto obbligatorio e aliquote nuove"
+  description={`IMU 2026 novità: formula e scadenze invariate, prospetto delle aliquote vincolante, comuni che hanno cambiato aliquota, sanzione al 25 % e testo unico dal 2027.`}
+  h1="IMU 2026: che cosa è cambiato davvero"
+  intro="Ogni anno escono articoli sulle «novità IMU». Per il 2026 la legge è la stessa: a cambiare sono le aliquote dei comuni e il modo in cui vengono pubblicate."
+  resume={`Nel 2026 l’IMU si calcola come nel 2025: rendita catastale rivalutata del 5 %, moltiplicatori per categoria, aliquote di base dei commi da 748 a 754 della legge 160 del 2019, acconto il ${d(P.scadenze.acconto)} e saldo il ${d(P.scadenze.saldo)}. Le novità reali sono altrove. Dal 2025 l’unico atto che conta è il prospetto delle aliquote generato con l’applicazione del Dipartimento delle Finanze: una delibera senza prospetto non produce effetti, e chi non ne ha mai approvato uno conforme applica le aliquote di base. Per il 2026 i comuni hanno potuto usare l’applicazione dal 12 novembre 2025; ${n(COUNTS.P26)} hanno già pubblicato il nuovo prospetto e ${n(camb.length)} hanno cambiato l’aliquota delle seconde case, ${n(su)} al rialzo. Per una casa con 800 euro di rendita uno scarto di un decimo di punto vale circa ${$(800 * (1 + P.base.rivalutazione_rendita) * P.base.moltiplicatori.A * 0.001)} l’anno. Sul fronte delle sanzioni, la riforma del 2024 ha portato al 25 % la sanzione per omesso versamento, mentre il nuovo testo unico si applicherà solo dal 2027.`}
+  faqs={faqs} related={['home', 'aliquote', 'aliquoteBase', 'saldo', 'acconto', 'ravvedimento', 'scadenze', 'confronto']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_ricerca', 'dlgs471', 'dlgs472')}>
+  <MiniSim client:visible kind="novita" lang={lang} href={route('home', lang)} />
+  <h2>Ciò che non cambia</h2>
+  <p>Base imponibile, moltiplicatori, aliquote minime e massime, esenzione dell’abitazione principale non di lusso, detrazione di {$(P.detrazione_ap)} per le case A/1, A/8 e A/9, riduzioni per comodato, immobili storici e inagibili, canone concordato al 75 %, metà imposta per i pensionati residenti all’estero: tutto resta com’era. Restano invariate anche le date: due rate a giugno e dicembre, dichiarazione entro il 30 giugno dell’anno successivo, pubblicazione delle aliquote entro il 28 ottobre. Diffidare quindi dei titoli che annunciano «nuove regole» per tutti: le regole nazionali dell’IMU 2026 sono quelle del 2020.</p>
+
+  <h2>Il prospetto delle aliquote come unica fonte</h2>
+  <p>Il comma 757 impone ai comuni di redigere la delibera delle aliquote attraverso un’applicazione del Portale del federalismo fiscale, che genera un prospetto standard con le sole fattispecie ammesse dal decreto ministeriale. Una delibera approvata senza prospetto non produce effetti, e in caso di contrasto tra prospetto e regolamento prevale il prospetto (comma 764). Dal primo anno di applicazione obbligatoria, il 2025, un comune che non approva e pubblica un prospetto conforme applica le aliquote di base fissate dalla legge, non quelle che aveva deliberato a parole (comma 767, ultimo periodo). Nei nostri dati sono {n(COUNTS.B)} i comuni in questa situazione, su {n(N_IMU)} che applicano l’IMU.</p>
+  <p>Per il contribuente la conseguenza è positiva: il prospetto è leggibile, uguale in tutta Italia, e dice esattamente quale aliquota vale per quale immobile, comprese le aliquote ridotte per il canone concordato o il comodato e quelle più alte per le case a disposizione. È il documento che il nostro calcolatore legge per ogni comune.</p>
+
+  <h2>Il calendario dei prospetti 2026</h2>
+  <p>Secondo il decreto del 6 novembre 2025, l’applicazione per elaborare il prospetto 2026 è stata aperta ai comuni dal 12 novembre 2025. Molti hanno approvato le aliquote a dicembre, altri nei mesi successivi. Il termine perentorio per inserire prospetto e regolamento è il {d(P.scadenze.inserimento_prospetti)}; il Dipartimento li pubblica entro il {d(P.scadenze.pubblicazione_prospetti)}. Chi non arriva in tempo resta, per il 2026, sulle aliquote dell’anno prima. Al {d(P.retrieved_at)} i prospetti 2026 pubblicati erano {n(COUNTS.P26)}, quelli ancora fermi al 2025 {n(COUNTS.P25)}.</p>
+
+  <h2>Le aliquote che si sono mosse</h2>
+  <p>Confrontando i prospetti 2025 e 2026 dello stesso comune, {n(camb.length)} comuni hanno cambiato l’aliquota degli altri fabbricati, cioè di seconde case, immobili affittati, negozi e uffici. La grande maggioranza, {n(su)}, l’ha alzata. Gli scarti vanno da pochi centesimi di punto fino a casi estremi, come un comune che ha portato l’aliquota da zero allo {al(ratesOf(comune('G066')!).altri)} e uno che l’ha ridotta di quasi un punto intero.</p>
+  <ContentTable caption="Alcuni comuni che hanno cambiato aliquota: effetto annuo su una seconda casa con 800 euro di rendita" headers={['Comune', 'Aliquota 2025', 'Aliquota 2026', 'Differenza annua']} align={['l', 'r', 'r', 'r']} rows={rows} />
+  <p>Per chi possiede in questi comuni, il cambiamento si vede tutto nel saldo di dicembre, perché l’acconto di giugno è calcolato con l’aliquota 2025. La guida sul <a href={route('saldo', lang)}>saldo IMU</a> mostra il conguaglio rata per rata.</p>
+
+  <h2>Sanzioni: 25 % dal 2024, testo unico dal 2027</h2>
+  <p>Il decreto legislativo 87 del 2024 ha fissato al {formatPercent(RV.sanzione_base, 0, lang)} la sanzione per omesso o tardivo versamento prevista dall’articolo 13 del decreto legislativo 471 del 1997, per le violazioni commesse dal 1° settembre 2024. Resta la riduzione alla metà per i ritardi entro novanta giorni e a un quindicesimo per giorno entro quindici giorni. Con il ravvedimento operoso la sanzione scende ancora: un acconto di {$(1000)} pagato a metà agosto costa {$2(r60.sanzione)} di sanzione, più gli interessi al tasso legale.</p>
+  <p>Il D.Lgs. 173 del 2024 raccoglie tutte le sanzioni tributarie in un testo unico, ma il suo articolo 102 ne fissa l’applicazione dal 1° gennaio 2027. Per l’IMU 2026 valgono quindi ancora i decreti del 1997, come modificati nel 2024. Il <a href={route('ravvedimento', lang)}>calcolatore del ravvedimento</a> applica queste regole.</p>
+
+  <h2>Come verificare il proprio comune</h2>
+  <p>Il modo più rapido è la <a href={route('aliquote', lang)}>ricerca delle aliquote per comune</a>: indica se il prospetto è del 2026 o del 2025, le aliquote di tutte le fattispecie, le aliquote differenziate e le esenzioni decise dal comune, con il numero e la data della delibera. Lo stesso dato si trova nella sezione di ricerca del sito del Dipartimento delle Finanze. Chi vuole sapere se gli conviene di più una località o un’altra può usare il <a href={route('confronto', lang)}>confronto tra comuni</a>.</p>
+</Guide>

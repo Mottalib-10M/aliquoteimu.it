@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const r1 = 700, r2 = 550;
+const mareCode = 'L833', cittaCode = 'F205';
+const aMare = ratesOf(comune(mareCode)!).altri, aCitta = ratesOf(comune(cittaCode)!).altri;
+const x1 = calcolaImu({ categoria: 'A3', rendita: r1, aliquota: aCitta }).imposta;
+const x2 = calcolaImu({ categoria: 'A3', rendita: r2, aliquota: aMare }).imposta;
+const scenari = [
+  ['Ciascuno risiede e vive davvero nella propria casa', $(0), $(0), $(0)],
+  ['Residenze diverse, ma la famiglia vive a Milano', $(0), $(x2), $(x2)],
+  ['Nessuno dei due vive stabilmente nella seconda casa', $(0), $(x2), $(x2)],
+  ['Entrambe le case usate come seconde case', $(x1), $(x2), $(x1 + x2)],
+];
+const faqs = [
+  { q: 'Io vivo a Milano e mio marito a Viareggio per lavoro: paghiamo l’IMU su una delle due case?', a: `No, se ciascuno ha nella propria casa sia la residenza anagrafica sia la dimora abituale. Dopo la sentenza della Corte costituzionale n. 209 del 2022 l’esenzione spetta a ogni possessore sulla casa in cui vive, anche in comuni diversi. Se invece la casa di Viareggio fosse solo una residenza formale, pagherebbe ${$(x2)} l’anno all’aliquota del ${al(aMare)}.` },
+  { q: 'Due coniugi possono avere due prime case nello stesso comune?', a: 'Sì. La sentenza n. 209 del 2022 ha dichiarato illegittima anche la regola che, per un nucleo con componenti residenti in immobili diversi dello stesso comune, limitava l’agevolazione a un solo immobile scelto dalla famiglia. Conta che ciascun coniuge abbia davvero residenza e dimora abituale nella casa per cui chiede l’esenzione.' },
+  { q: 'Il comune può chiedermi di dimostrare che vivo davvero nella seconda casa del coniuge?', a: 'Sì. La dimora abituale è un requisito di fatto che il comune può verificare, per esempio con i consumi delle utenze, e se manca può emettere un avviso di accertamento entro il 31 dicembre del quinto anno successivo, con imposta, interessi e sanzione (legge 296/2006, comma 161). Conserva bollette, contratti di lavoro e documenti che provano dove vivi.' },
+];
+---
+<Guide lang={lang} id="coniugi" title="IMU coniugi con residenze diverse: due prime case nel 2026"
+  description="IMU per coniugi con residenze diverse nel 2026: dopo la sentenza 209/2022 ognuno ha l’esenzione sulla casa in cui risiede e vive, anche nello stesso comune."
+  h1="Coniugi con due case e due residenze: chi paga l’IMU"
+  intro="Lavoro in un’altra città, figli in un’altra scuola, una casa di famiglia da non lasciare: molte coppie vivono in due case. L’IMU ne tiene conto dal 2022."
+  resume={`Quando due coniugi vivono in due case diverse, ciascuno può avere l’esenzione IMU sulla casa in cui ha la residenza anagrafica e la dimora abituale, anche se le due case sono nello stesso comune. Lo ha stabilito la Corte costituzionale con la sentenza n. 209 del 13 ottobre 2022, che ha dichiarato illegittime le parti dell’articolo 1, comma 741, lettera b), della legge 160/2019 che legavano l’esenzione al nucleo familiare e la limitavano a un solo immobile per famiglia. Il requisito resta però doppio e personale: residenza e vita effettiva nella casa. Una coppia con un appartamento A/3 a Milano e uno a Viareggio, se ciascuno vive davvero nella propria casa, non paga nulla; se la casa al mare è abitata solo nei fine settimana, quella paga come seconda casa: con ${$(r2)} di rendita e l’aliquota comunale del ${al(aMare)}, ${$(x2)} l’anno. Il risparmio è reale, ma anche il rischio di accertamento quando la seconda residenza è solo sulla carta.`}
+  faqs={faqs} related={['home', 'primaCasa', 'separazione', 'secondaCasa', 'pertinenze', 'dichiarazione', 'ravvedimento', 'confronto']} sources={src(lang, 'corte209', 'legge160', 'legge296')}>
+  <MiniSim client:visible kind="coniugi" lang={lang} href={route('home', lang)} />
+  <h2>Cosa diceva la norma e cosa ha deciso la Corte</h2>
+  <p>Il testo originario del comma 741 definiva abitazione principale la casa in cui il possessore e il suo nucleo familiare dimorano e risiedono; se i componenti della famiglia avevano residenze diverse, nello stesso comune o in comuni diversi, l’agevolazione spettava per un solo immobile scelto dalla famiglia. La conseguenza era paradossale: due conviventi non sposati potevano avere due case esenti, due coniugi no.</p>
+  <p>La Corte costituzionale ha ritenuto questa differenza contraria ai principi di uguaglianza, di tutela della famiglia e di capacità contributiva. Ha dichiarato illegittimo il riferimento alla residenza e dimora del nucleo familiare, e in via consequenziale la regola dell’unico immobile per famiglia, sia per le case nello stesso comune sia per quelle in comuni diversi. Da allora ogni possessore si guarda da solo.</p>
+
+  <h2>Quattro scenari a confronto</h2>
+  <p>Una coppia possiede un A/3 a Milano ({$(r1)} di rendita, aliquota {al(aCitta)}) e un A/3 a Viareggio ({$(r2)} di rendita, aliquota {al(aMare)}). L’IMU annua cambia secondo dove vivono davvero i due coniugi.</p>
+  <ContentTable headers={['Situazione', 'Milano', 'Viareggio', 'Totale coppia']} align={['l', 'r', 'r', 'r']} rows={scenari} />
+
+  <h2>La dimora abituale si dimostra con i fatti</h2>
+  <p>La sentenza non ha toccato il requisito della dimora abituale: ha tolto solo il legame con la famiglia. Il comune che vede due coniugi residenti in due case può verificare che ciascuno ci viva davvero. Gli elementi che contano sono quelli della vita quotidiana: consumi di luce, gas e acqua compatibili con una presenza stabile, il luogo di lavoro, la scuola dei figli, il medico di base. Una casa al mare con consumi solo estivi difficilmente supera un controllo.</p>
+  <p>Il comune ha tempo fino al 31 dicembre del quinto anno successivo a quello del versamento omesso per notificare l’avviso di accertamento, secondo l’articolo 1, comma 161, della legge 296/2006. In caso di contestazione si pagano l’imposta non versata, gli interessi e le sanzioni previste per l’omesso versamento.</p>
+
+  <h2>Rimborsi per gli anni passati</h2>
+  <p>Chi ha pagato l’IMU sulla seconda casa del coniuge negli anni in cui la regola dell’unico immobile era in vigore, e ne aveva i requisiti di residenza e dimora, può chiedere il rimborso al comune. Il termine è di cinque anni dal giorno del versamento (legge 296/2006, comma 164) e il comune ha centottanta giorni per rimborsare. Le istruzioni e un calcolo dell’importo sono nella guida sul <a href={route('rimborso', lang)}>rimborso IMU</a>.</p>
+
+  <h2>Pertinenze e figli</h2>
+  <p>Ogni coniuge ha diritto alle proprie pertinenze esenti, una per categoria C/2, C/6 e C/7, nella casa in cui vive: due case possono quindi avere ciascuna il proprio box esente. I figli conviventi non modificano il calcolo, perché la sentenza ha separato l’esenzione dalla composizione della famiglia. Un figlio maggiorenne che vive con uno dei genitori non rende esente una terza casa intestata ai genitori: per quella valgono, semmai, le regole del <a href={route('comodato', lang)}>comodato</a>.</p>
+
+  <h2>Coniugi separati o divorziati</h2>
+  <p>Il caso dei coniugi che vivono in due case perché si sono separati è diverso: qui conta il provvedimento del giudice sull’assegnazione della casa familiare, che la legge assimila all’abitazione principale per il genitore affidatario dei figli. La guida sulla <a href={route('separazione', lang)}>casa coniugale e la separazione</a> spiega chi paga e chi no.</p>
+
+  <h2>Coppie che vivono all’estero</h2>
+  <p>Per chi vive fuori dall’Italia e conserva una o due case nel paese, la sentenza non cambia nulla: l’esenzione richiede la residenza anagrafica in Italia, quindi ogni casa italiana è una seconda casa. Le agevolazioni da guardare sono altre: la metà dell’imposta per i pensionati residenti all’estero con pensione maturata in convenzione internazionale, su una sola abitazione non locata né data in comodato, e le aliquote ridotte del prospetto comunale. Le trovi nella guida per i <a href={route('esteri', lang)}>residenti all’estero</a>.</p>
+
+  <h2>Cosa fare in pratica</h2>
+  <p>Se ciascuno dei due coniugi vive stabilmente nella propria casa, non c’è nulla da versare per nessuna delle due. Conviene però tenere pronta la documentazione che prova la dimora, e verificare che le pertinenze siano entro il limite di una per categoria. Se uno dei due ha spostato la residenza durante l’anno, l’esenzione decorre dal mese in cui la nuova situazione è durata più della metà dei giorni. Se una delle case non soddisfa i requisiti, il calcolatore con il profilo «seconda casa» dà l’importo esatto con l’aliquota del comune. In caso di dubbio sul passato, il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> permette di regolarizzare con una sanzione ridotta prima di un controllo.</p>
+</Guide>

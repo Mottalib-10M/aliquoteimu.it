@@ -1,0 +1,21 @@
+{
+ "name": "AliquoteIMU.it",
+ "short_name": "AliquoteIMU",
+ "description": "Calcolo IMU 2026 con le aliquote ufficiali del tuo comune: prima e seconda casa, terreni, comodato, acconto, saldo e codici F24.",
+ "start_url": "/it/",
+ "display": "standalone",
+ "background_color": "#ffffff",
+ "theme_color": "#00703C",
+ "icons": [
+  {
+   "src": "/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('D969')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const START = diffRate('D969', /Start up/, 'D')!, MICRO = diffRate('D969', /Microimprese/, 'D')!, FIERA = diffRate('D969', /Fiera/, 'aree')!, IACP = diffRate('D969', /IACP/)!, CC = diffRate('D969', /art\. 2, comma 3/)!, NEG = diffRate('D969', /C\/1 Negozi/)!, INAG = diffRate('D969', /inagibili/)!;
+const R = 750;
+const sc = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const conc = calcolaImu({ categoria: 'A3', rendita: R, aliquota: CC, canoneConcordato: true });
+const lusso = calcolaImu({ categoria: 'A1', rendita: 2800, aliquota: r.ap, uso: 'ap' });
+const lussoMax = calcolaImu({ categoria: 'A1', rendita: 2800, aliquota: P.limiti.ap_max, uso: 'ap' });
+const faqs = [
+  { q: 'Genova ha agevolazioni IMU per le start-up?', a: `Sì. Opifici D/1, uffici A/10 e laboratori C/3 usati o presi in affitto da imprese innovative costituite da non più di 36 mesi, con codice ATECO 72 (ricerca scientifica e sviluppo), pagano lo ${al(START)} invece dell’${al(r.D)} o dell’${al(r.altri)}. È una delle poche aliquote legate al tipo di attività nei prospetti delle grandi città.` },
+  { q: 'Quanto paga una casa affittata a canone concordato a Genova?', a: `L’aliquota del prospetto 2026 è lo ${al(CC)} e l’imposta si riduce poi al 75 % per legge. Con ${$(R)} di rendita la casa paga ${$(conc.imposta)} invece di ${$(sc.imposta)} come seconda casa a disposizione, cioè ${$(sc.imposta - conc.imposta)} in meno ogni anno.` },
+  { q: 'L’abitazione di lusso a Genova paga l’aliquota massima?', a: `No: Genova applica lo ${al(r.ap)}, sotto lo ${al(P.limiti.ap_max)} massimo. Una casa A/1 con 2 800 euro di rendita, abitazione principale, paga ${$(lusso.imposta)} dopo la detrazione di ${$(P.detrazione_ap)}, ${$(lussoMax.imposta - lusso.imposta)} in meno che all’aliquota massima. Chi non vi ha la residenza paga invece l’${al(r.altri)} degli altri fabbricati, senza detrazione.` },
+];
+---
+<CityPage lang={lang} city="genova" rendita={R} title={`IMU Genova 2026: aliquote, start-up e canone concordato`}
+  description={`IMU Genova 2026: seconda casa all’${al(r.altri)}, lusso allo ${al(r.ap)}, canone concordato allo ${al(CC)}, aliquote proprie per start-up e microimprese. Calcolo.`}
+  h1="IMU a Genova nel 2026: aliquote e calcolo"
+  intro="Genova ha uno dei prospetti più articolati tra le grandi città: aliquote ridotte per start-up, microimprese, il distretto Fiera-Kennedy, alloggi popolari e affitti concordati."
+  resume={`Il prospetto IMU 2026 di Genova, approvato con delibera n. ${c.delibera} del ${c.data}, conferma l’${al(r.altri)} per gli altri fabbricati e il gruppo D, e uno ${al(r.ap)} per l’abitazione principale di lusso, leggermente sotto il massimo. Una seconda casa A/3 con ${$(R)} di rendita paga ${$(sc.imposta)} l’anno. Il comune ha però usato quasi tutte le leve che il decreto ministeriale consente: lo ${al(CC)} per le case a canone concordato, lo ${al(IACP)} per gli alloggi popolari, lo ${al(NEG)} per negozi e laboratori usati per un’attività, lo ${al(START)} per gli immobili delle start-up innovative di ricerca, l’${al(MICRO)} per gli opifici delle microimprese e delle aziende fino a 49 dipendenti, lo ${al(FIERA)} per le aree edificabili del distretto Fiera-Kennedy. Le case già abitazione principale diventate inagibili non pagano. Le aliquote coincidono con quelle del 2025.`}
+  faqs={faqs} related={['home', 'capannoni', 'concordato', 'aree', 'negozi', 'aliquote', 'confronto']}>
+  <h2>Imprese: start-up, microimprese, industria</h2>
+  <p>Il gruppo D paga l’{al(r.D)}, ma con tre eccezioni legate a chi usa il capannone. Le start-up innovative di ricerca e sviluppo, costituite da non più di 36 mesi, hanno lo {al(START)} sia quando sono proprietarie sia quando sono in affitto. Gli opifici usati direttamente da microimprese o da aziende con non più di 49 dipendenti hanno l’{al(MICRO)}. Opifici e stabilimenti industriali D/1 e D/7 usati direttamente dal proprietario godono di un’aliquota ridotta prevista dal prospetto per specifiche tipologie di attività.</p>
+  <h2>Il distretto Fiera-Kennedy</h2>
+  <p>Le aree fabbricabili, residenziali e non, comprese nel distretto di trasformazione n. 20 Fiera-Kennedy del piano urbanistico comunale pagano lo {al(FIERA)} invece dell’{al(r.aree)}. Su un’area del valore di un milione di euro la differenza è di {$(1000000 * (r.aree - FIERA) / 100)} l’anno. È un esempio di aliquota per zona, una possibilità che pochi comuni usano.</p>
+  <h2>Case popolari, affitti e inagibili</h2>
+  <p>Gli alloggi regolarmente assegnati dagli enti di edilizia residenziale pubblica pagano lo {al(IACP)}; le case a canone concordato lo {al(CC)}, con in più la riduzione al 75 %. Chi aveva la residenza in una casa poi diventata inagibile, per una calamità o per altre cause, non paga nulla su quella casa: il prospetto prevede lo {al(INAG)}, purché non fosse di lusso.</p>
+</CityPage>

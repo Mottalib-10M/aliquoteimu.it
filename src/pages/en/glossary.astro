@@ -1,0 +1,30 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, organizationSchema } from '../../lib/seo';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const T: Array<[string, string, string?]> = [
+  ['Abitazione principale (main home)', 'The property where the owner is registered as resident and habitually lives. It pays no IMU unless classed A/1, A/8 or A/9.', 'primaCasa'],
+  ['Aliquota (rate)', 'The percentage the comune applies to the taxable value, set for each category in its rate schedule.', 'aliquoteBase'],
+  ['AIRE', 'The register of Italian citizens living abroad. Registration does not by itself give any IMU exemption.', 'esteri'],
+  ['Area fabbricabile (building land)', 'Land that can be built on under the planning rules; taxed on its market value on 1 January.', 'aree'],
+  ['Canone concordato (agreed rent)', `A lease at a rent set by local agreements under Law 431/1998; IMU is charged at ${P.riduzioni.canone_concordato_imposta * 100} %.`, 'concordato'],
+  ['Codice catastale (comune code)', 'The four-character code of the comune, such as H501 for Rome, used on the F24 form.', 'f24'],
+  ['Codice fiscale', 'The Italian tax code that identifies every taxpayer, needed on every IMU payment.', 'esteri'],
+  ['Comodato d’uso gratuito (free loan)', 'Lending a property free of charge; to a first-degree relative, with a registered contract and other conditions, it halves the taxable value.', 'comodato'],
+  ['F24', 'The Italian tax payment form, with a section for IMU and other local taxes.', 'f24'],
+  ['Moltiplicatore (multiplier)', 'The coefficient that turns the revalued cadastral income into the taxable value: ' + Object.entries(P.base.moltiplicatori).filter(([k]) => ['A', 'B', 'A10', 'D', 'C1'].includes(k)).map(([k, v]) => `${v} (${k})`).join(', ') + '.', 'coefficienti'],
+  ['Pertinenza', 'A cellar (C/2), garage (C/6) or shed (C/7) serving a home; for a main home, one per category.', 'pertinenze'],
+  ['Prospetto delle aliquote (rate schedule)', 'The standard table in which each comune publishes its IMU rates on the Department of Finance website; it prevails over the comune’s regulation.', 'aliquote'],
+  ['Ravvedimento operoso', 'Voluntary correction of a missed or late payment, with a reduced penalty and interest.', 'ravvedimento'],
+  ['Rendita catastale (cadastral income)', 'The notional value the land registry assigns to each property unit, shown on the visura.', 'rendita'],
+  ['Visura catastale', 'The land registry record giving a property’s category, class and cadastral income, available from the Agenzia delle Entrate.', 'rendita'],
+];
+---
+<PageLayout title="IMU Glossary: Italian Property Tax Terms in English" description="IMU glossary in English: abitazione principale, aliquota, rendita catastale, multiplier, rate schedule, comodato, canone concordato, F24 and AIRE explained." lang={lang} jsonLd={[organizationSchema(lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Glossary', path: route('glossary', lang) }])]} breadcrumbs={[{ label: 'Glossary' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">IMU glossary</h1></header>
+  <dl class="divide-y divide-navy-100">
+    {T.map(([t, d, id]) => <div class="py-3"><dt class="font-semibold text-navy-900">{t}</dt><dd class="mt-1 text-navy-700">{d}{id && <> <a href={route(id, lang)} class="text-accent-700 hover:underline">Read more</a></>}</dd></div>)}
+  </dl>
+</PageLayout>

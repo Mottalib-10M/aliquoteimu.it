@@ -1,0 +1,68 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const RID = formatPercent(1 - P.riduzioni.storico_base, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+let historic = 0;
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) if (byCode.get(code) && v.d.some((d) => /centro storico/i.test(d[2]))) historic++;
+const props = [
+  ['Tuscan villa, A/8, holiday home', 'A8', 3200],
+  ['Palazzo apartment, A/1', 'A1', 2400],
+  ['Flat in a listed building, A/2', 'A2', 1500],
+  ['Farmhouse of historic interest, A/7', 'A7', 1100],
+] as const;
+const rows = props.map(([l, c, r]) => { const a = calcolaImu({ categoria: c, rendita: r, aliquota: MAX }); const b = calcolaImu({ categoria: c, rendita: r, aliquota: MAX, riduzione: 'storico' }); return [l, $(r), $(a.imposta), $(b.imposta), $(a.imposta - b.imposta)]; });
+const R = 3200;
+const villa = calcolaImu({ categoria: 'A8', rendita: R, aliquota: MAX });
+const villaL = calcolaImu({ categoria: 'A8', rendita: R, aliquota: MAX, riduzione: 'storico' });
+const faqs = [
+  { q: 'My Tuscan villa is very old. Is it automatically a listed building for IMU?', a: `No. Age alone does not count. The reduction applies to buildings that are cultural heritage under article 10 of Legislative Decree 42/2004, which for privately owned property means a formal declaration of cultural interest by the Ministry of Culture. Without it, an A/8 villa with ${$(R)} of rendita pays the full ${$(villa.imposta)} at ${al(MAX)}.` },
+  { q: 'How do I find out whether my Italian property is listed?', a: 'Look at your purchase deed: notaries normally mention a heritage restriction (vincolo) because it affects the sale. The declaration is also notified to the owner and recorded in the property registers. If in doubt, the regional office of the Ministry of Culture responsible for the area (Soprintendenza) can confirm it.' },
+  { q: 'Does a listed building in a historic town centre get two reductions?', a: `It can. The halving of the taxable value is national law; separately, some comuni set lower rates for properties in the centro storico, mostly shops and workshops. We found such lines in ${n(historic)} rate schedules. A listed building meeting the comune’s conditions benefits from both, one on the value and one on the rate.` },
+];
+---
+<Guide lang={lang} id="storici" title={`IMU on Listed Buildings 2026: Heritage Homes Pay on Half`}
+  description={`IMU on listed heritage buildings in Italy: value cut by ${RID} for properties declared of cultural interest, villa and palazzo examples, how to check the vincolo.`}
+  h1="IMU on listed and historic buildings in Italy"
+  intro="Buying a palazzo apartment or a historic villa often comes with a heritage listing. For IMU, that listing halves the taxable value, every year, whatever you use the property for."
+  resume={`Buildings formally recognised as being of historic or artistic interest under article 10 of the Italian Code of Cultural Heritage (Legislative Decree 42/2004) pay IMU on a taxable value reduced by ${RID}. The rule is in paragraph 747 a of Law 160/2019. Unlike the relief for unfit buildings, it does not depend on the state of repair or on use: it applies to a holiday villa, a let apartment, a shop, an office and even a luxury main home. On a historic A/8 villa with ${$(R)} of cadastral income, at ${al(MAX)}, IMU falls from ${$(villa.imposta)} to ${$(villaL.imposta)} a year. What counts is the heritage listing itself, known in Italy as the vincolo, issued by the Ministry of Culture. A beautiful old farmhouse or a flat in a medieval town without such a declaration pays in full. Many foreign buyers of Italian heritage property do qualify, but the comune will not apply the reduction on its own: you calculate and pay it yourself.`}
+  faqs={faqs} related={['home', 'inagibili', 'esteri', 'lusso', 'secondaCasa', 'compravendita', 'rendita', 'aliquote']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti')}>
+  <MiniSim client:visible kind="storici" lang={lang} href={route('home', lang)} />
+  <h2>What “listed” means in Italy</h2>
+  <p>Italy protects cultural heritage through the Codice dei beni culturali e del paesaggio. For buildings in private hands, protection follows a formal procedure ending in a declaration of cultural interest, the dichiarazione dell’interesse culturale. It is notified to the owner, recorded in the property registers and binds every later owner. The building may be a Renaissance palazzo, a villa with gardens, a castle, a tower, or an ordinary-looking block within a protected complex. Landscape protection, which covers whole areas such as coastlines or hills, is a different regime and does not give the IMU reduction.</p>
+
+  <h2>What the reduction is worth</h2>
+  <p>The taxable value is halved before the comune’s rate is applied, so the tax is halved too. Heritage properties often have high cadastral incomes, which makes this one of the most valuable IMU reliefs in money terms.</p>
+  <ContentTable caption={`Second homes at ${al(MAX)}, one owner, full year`} headers={['Property', 'Rendita', 'IMU, not listed', 'IMU, listed', 'Saving']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Checking before you buy</h2>
+  <p>If you are buying, the listing will normally come up early: the sale of a listed building must be reported to the Ministry of Culture, which has a right of first refusal (prelazione) and may buy at the same price. Completion therefore takes longer than usual. Ask your notary or lawyer for a copy of the listing decree; it is the document that justifies paying half the IMU, and you may need to show it to the comune years later. For the year of purchase, the seller pays for the months up to the deed and you pay for the rest, both on the halved value; the <a href={route('compravendita', lang)}>buying and selling guide</a> shows how months are split.</p>
+
+  <h2>Main homes, rentals and businesses</h2>
+  <p>The reduction applies to every use. A luxury main home in category A/1, A/8 or A/9 pays IMU at the luxury rate on half the value, and the {$(P.detrazione_ap)} deduction is then taken off the reduced tax. A listed home let to tenants pays on half its value as well, whatever the lease; if you also let at agreed rent, ask the comune how it combines that reduction with the heritage one. Historic hotels and shops are covered too, including the State’s share for group D buildings.</p>
+
+  <h2>Restoration works on a listed building</h2>
+  <p>Works on a listed building need the Soprintendenza’s authorisation, and large restorations can last years. During demolition, reconstruction or major renovation, paragraph 746 replaces the building’s value with the value of the plot, treated as building land, until the works end or the building is used. Whether the heritage halving still applies during that phase is a point to raise with the comune’s tax office, since the taxable base is then the land rather than the listed building. Once the works are complete, the property returns to its cadastral income, possibly updated, and the halving applies again from that date.</p>
+
+  <h2>Historic centres are a separate matter</h2>
+  <p>Many comuni have rates tied to the centro storico, the old town. We found them in {n(historic)} rate schedules, mostly for shops and craft workshops, to keep businesses in historic quarters. These are the comune’s choices and apply to the rate; the national heritage relief applies to the value. One does not imply the other: a listed villa in the countryside gets the national relief, an unlisted shop in the old town may get only the comune’s rate.</p>
+
+  <h2>Listed and in poor repair</h2>
+  <p>Paragraph 747 lists listed buildings and unfit buildings as two separate cases. Our calculator applies one reduction at a time. If your building is both, keep the listing decree and the technician’s report and ask the comune’s tax office how it treats the combination before applying both. The <a href={route('inagibili', lang)}>uninhabitable buildings guide</a> explains the second relief.</p>
+
+  <h2>Letting the comune know</h2>
+  <p>The comune computes expected IMU from cadastral data, which does not show heritage listings. When you first apply the reduction, report it on the <a href={route('dichiarazione', lang)}>IMU return</a> by 30 June of the following year, as the official instructions to the form indicate, so that the comune knows why your payments are halved. Then pay as usual: tax code {P.f24.altri} for second homes and lets, {P.f24.ap} for a luxury main home, in June and December. In the <a href={route('home', lang)}>calculator</a>, the option “listed building” sits under advanced options.</p>
+</Guide>

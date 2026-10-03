@@ -1,0 +1,66 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, mesiTrasferimento } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 800;
+const x = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const rights = [
+  ['Full ownership (piena proprietà)', 'The owner', 'On their own share'],
+  ['Usufruct (usufrutto) with bare ownership (nuda proprietà)', 'The usufructuary', 'The bare owner pays nothing'],
+  ['Right of use or right of habitation (uso, abitazione)', 'The holder of the right', 'The owner pays nothing'],
+  ['Building right (superficie)', 'The holder (superficiario)', 'On the building'],
+  ['Emphyteusis (enfiteusi)', 'The emphyteuta', 'Rare today'],
+  ['Property leasing (locazione finanziaria)', 'The lessee', 'From signing to the end of the contract'],
+  ['Free loan or rental (comodato, affitto)', 'The owner or usufructuary', 'Borrower and tenant never pay'],
+];
+const ending = ['2026-03-14', '2026-03-16', '2026-06-30', '2026-09-01'].map((d) => { const t = mesiTrasferimento(d); return [new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }), String(t.venditore), String(t.acquirente), $(x.imposta * t.venditore / 12), $(x.imposta * t.acquirente / 12)]; });
+const faqs = [
+  { q: 'I own the bare ownership of my parents’ flat in Italy: do I pay IMU?', a: `No. While the usufruct lasts, the usufructuary is the taxpayer and pays the whole IMU (Law 160/2019, para. 743). If your parents live there as residents it is their main home and, outside categories A/1, A/8 and A/9, nobody pays. You start paying only when the usufruct ends, from the month in which you own the flat for more than half the days.` },
+  { q: 'My mother kept the usufruct and lives in Spain: who pays the IMU on the Italian house?', a: `She does, as usufructuary, and since she is not resident in Italy the house is not her main home: it pays at the comune’s rate for other buildings, ${$(x.imposta)} a year on ${$(R)} of rendita at ${al(MAX)}. If she receives a pension under a treaty with Italy and the house is neither let nor lent, she may pay half.` },
+  { q: 'Who pays IMU on a property bought through a leasing contract?', a: 'The lessee, from the date the leasing contract is signed and for its whole duration, even for buildings still to be built or under construction (para. 743). The leasing company remains the legal owner but is not the IMU taxpayer. When the lessee exercises the purchase option, they simply continue to pay as owner.' },
+];
+---
+<Guide lang={lang} id="usufrutto" title="IMU Usufruct and Bare Ownership 2026: Who Pays the Tax"
+  description="IMU on split ownership in 2026: the usufructuary pays, the bare owner does not; habitation and building rights, leasing, shares and the end of usufruct."
+  h1="IMU with usufruct and bare ownership: who actually pays"
+  intro="Italian families often pass a home to their children while the parents keep the right to live in it. For IMU, that split decides who receives the bill."
+  resume={`When an Italian property is split between usufruct and bare ownership, the whole IMU falls on the usufructuary. Paragraph 743 of Law 160 of 2019 names as taxpayers the owner or the holder of a real right of usufruct (usufrutto), use, habitation, emphyteusis or building right (superficie). Whenever one of those rights exists, its holder pays and the bare owner (nudo proprietario) pays nothing, even though the deed names them as owner. On a flat with ${$(R)} of cadastral income at the ${al(MAX)} rate, the usufructuary pays ${$(x.imposta)} a year in two instalments of ${$(x.acconto)}. If the usufructuary lives there as an Italian resident, it is their main home and, outside the luxury categories, nobody pays at all. When the usufruct ends, typically on the usufructuary’s death, the bare owner becomes full owner and pays from the first month in which they hold the property for more than half the days. The same logic applies to a right of habitation and to property leasing.`}
+  faqs={faqs} related={['home', 'eredita', 'compravendita', 'esteri', 'primaCasa', 'secondaCasa', 'f24']} sources={src(lang, 'legge160', 'mef_versamenti', 'legge178')}>
+  <MiniSim client:visible kind="usufrutto" lang={lang} href={route('home', lang)} />
+  <h2>Who the taxpayer is, right by right</h2>
+  <p>Italian law taxes the possessore, the person who enjoys the property through ownership or a real right, not necessarily the person whose name is on the title as owner. The table lists the possibilities.</p>
+  <ContentTable headers={['Situation', 'Who pays IMU', 'Note']} align={['l', 'l', 'l']} rows={rights} />
+  <p>Contracts that do not create a real right never shift the tax. A child living rent-free in a parent’s flat under a comodato, or a tenant under a lease, does not pay IMU. A free loan to a child or parent can however halve the taxable value if strict conditions are met, as the <a href={route('comodato', lang)}>free loan guide</a> explains.</p>
+
+  <h2>The classic Italian arrangement</h2>
+  <p>Parents donate or sell the bare ownership of the family home to their children and keep the usufruct, often to settle the succession early while staying at home. For IMU the result depends only on where the parents live. If they are resident in the house, it is their main home and exempt unless it is classed A/1, A/8 or A/9. If they live elsewhere, in Italy or abroad, the usufructuary pays as on a second home. The children pay nothing until the usufruct ends.</p>
+  <p>Many English-speaking owners meet this structure when an Italian spouse or parent dies: the surviving parent may hold the usufruct while the children hold the bare ownership, and the IMU stays with the parent.</p>
+
+  <h2>Several usufructuaries or owners</h2>
+  <p>Each taxpayer has an independent tax obligation and pays on their own share, with their own reliefs. If two spouses share the usufruct and only one lives in the home as a resident, that one is exempt on their share and the other pays on theirs. Each makes a separate payment under their own codice fiscale. A comune may decide in its regulation that a payment made by one co-holder counts for the others (para. 777 a), but without that rule separate payments are the safe course.</p>
+
+  <h2>When the usufruct ends during the year</h2>
+  <p>On the usufructuary’s death, or at the end date set in the deed, bare and usufruct merge and the bare owner becomes full owner. From that point they are the taxpayer. Months are split by the rule in paragraph 761: a month counts for whoever held the property for more than half its days, and the day of the change counts for the new holder, who also takes the month when the days are equal. The table splits one year’s IMU of {$(x.imposta)} for different end dates.</p>
+  <ContentTable headers={['Usufruct ends on', 'Months for the usufructuary', 'Months for the new full owner', 'IMU of the usufructuary', 'IMU of the full owner']} align={['l', 'r', 'r', 'r', 'r']} rows={ending} />
+  <p>Any IMU due for the usufructuary’s months is a debt of their estate, settled by their heirs. The same month-by-month rule governs a sale, worked through in the <a href={route('compravendita', lang)}>buying and selling guide</a>.</p>
+
+  <h2>Rights of habitation and building rights</h2>
+  <p>A right of habitation (diritto di abitazione) lets the holder live in a home with their family. Its holder is the IMU taxpayer, exactly like a usufructuary. The best-known case is the surviving spouse’s right to the family home, covered in the <a href={route('eredita', lang)}>inheritance guide</a>. A building right (diritto di superficie) lets someone build and own a structure on another person’s land; the holder pays IMU on the building.</p>
+
+  <h2>Leasing</h2>
+  <p>For property under a finance lease, including buildings still to be built, the lessee is the taxpayer from the signing of the contract and for its whole duration. The leasing company, though still legal owner, does not pay. For unregistered group D buildings, the taxable value comes from the lessor’s accounts, and the lessor must give the lessee the figures in time (para. 746).</p>
+
+  <h2>Giving away the bare ownership</h2>
+  <p>Parents often ask whether donating the bare ownership to their children changes the IMU. It does not. Before the gift they paid as owners; after it they pay as usufructuaries, on the same taxable value and at the same rate, and a main home stays exempt. The effect shows only when the usufruct ends and the child becomes full owner: if the child does not live there, IMU starts at the rate for other buildings. If the parent keeps only a right of habitation instead of a usufruct, nothing changes either, because the holder of a right of habitation is also the taxpayer.</p>
+  <h2>Paying and keeping records</h2>
+  <p>The usufructuary pays with the F24 form or, from abroad, by transfer to the comune, using tax code {P.f24.altri} for a dwelling that is not a main home or {P.f24.ap} for a luxury main home, and the comune’s cadastral code. Keep a copy of the deed creating the usufruct with your payment receipts: if the comune writes to the bare owner by mistake, the deed shows who the taxpayer is.</p>
+</Guide>

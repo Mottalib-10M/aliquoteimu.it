@@ -1,0 +1,23 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, faqSchema, organizationSchema } from '../../lib/seo';
+import MiniSim from '../../components/calc/MiniSim';
+const lang = 'en';
+const faqs = [
+  { q: 'When does a newly built house in Italy start paying IMU?', a: 'From the date the construction work is completed or, if earlier, from the date the building is actually used (Law 160/2019, paragraph 741 a). Until then, a building under construction on building land is taxed on the value of the plot rather than on a cadastral income.' },
+  { q: 'Do I pay IMU on the cadastral income while my Italian house is being renovated?', a: 'Not during major works. For demolition or for restoration and renovation works defined by the building code, the taxable base is the value of the land, treated as building land, until the works end or the building is first used (paragraph 746). Ask the comune whether it publishes reference values for the area.' },
+  { q: 'Who pays IMU on a property held under a finance lease?', a: 'The lessee, from the date the contract is signed and for its whole duration, including buildings still to be built or under construction (paragraph 743). For unregistered group D buildings, the value comes from the lessor’s accounts, and the lessor must give the lessee the figures needed.' },
+  { q: 'Does my apartment building pay IMU on shared areas?', a: 'Only on common parts registered separately in the land registry as a common unit with their own value, such as a caretaker’s flat. The building manager (amministratore) then pays for all owners (paragraph 768). Stairs, courtyards and other common parts without a separate rendita carry no IMU of their own.' },
+  { q: 'Which cadastral income counts if it changes during the year?', a: 'The one in force on 1 January. The exception is a change caused by building works on the property, which takes effect from the end of the works or, if earlier, from first use (paragraph 745). The year is then split into two periods with different incomes.' },
+  { q: 'My property straddles two comuni: which one do I pay?', a: 'The comune where all or most of the property’s surface lies (paragraph 742). If municipal boundaries change, the comune that counts is the one where the property sits on 1 January of the tax year. Its cadastral code goes in the comune field of the F24 or the transfer reference.' },
+  { q: 'Who pays IMU on a timeshare week in Italy?', a: 'For properties subject to timeshare rights under the Consumer Code, the payment is made by whoever manages the property (paragraph 768). The individual holder of a week does not file a separate payment; the manager usually recharges each holder’s share.' },
+];
+---
+<PageLayout title="IMU FAQ 2026: Special Cases for Property Owners in Italy" description="IMU FAQ for 2026: new builds, renovation works, finance leases, shared areas of a building, a rendita that changes, property across two comuni, timeshares." lang={lang} faqs={faqs} jsonLd={[faqSchema(faqs, lang), organizationSchema(lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'FAQ', path: route('faq', lang) }])]} breadcrumbs={[{ label: 'FAQ' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">IMU frequently asked questions</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <p>This page collects the special cases set out in Law 160 of 2019 that do not have a guide of their own. For the everyday questions on the calculation, rates and deadlines, see the <a href={route('home', lang)}>IMU calculator</a> and the topic guides.</p>
+  </div>
+  <MiniSim client:visible kind="rendita" lang={lang} href={route('home', lang)} />
+</PageLayout>

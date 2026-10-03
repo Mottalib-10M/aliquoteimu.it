@@ -1,0 +1,68 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, arrotonda, ravvedimento } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { COUNTS, cambiati } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'it-IT');
+const MAX = P.limiti.altri_max;
+const R = 900;
+const x = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const camb = cambiati('altri');
+const esempi = ['L850', 'E518', 'D593', 'B705'].map((c) => comune(c)!);
+const rows = esempi.map((c) => { const a = ratesOf(c).altri, p = ratesAcconto(c).altri; const y = calcolaImu({ categoria: 'A2', rendita: R, aliquota: a, aliquotaAcconto: p }); return [`${c.name} (${c.prov})`, al(p), al(a), $(y.acconto), $(y.saldo)]; });
+const acq = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: 4, periodo: 'fine' });
+const ven = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: 8, periodo: 'inizio' });
+const mesiRows = [12, 9, 6, 3].map((m) => { const y = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: m, periodo: 'fine' }); const z = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, mesi: m, periodo: 'inizio' }); return [String(m), $(y.acconto), $(z.acconto)]; });
+const rv = ravvedimento({ imposta: 500, scadenza: P.scadenze.acconto, pagamento: '2026-06-26' });
+const RV = P.ravvedimento;
+const faqs = [
+  { q: 'L’acconto IMU di giugno è sempre la metà dell’imposta annua?', a: `Solo se possiedi l’immobile tutto l’anno e l’aliquota non cambia. L’acconto è l’imposta del primo semestre calcolata con l’aliquota dell’anno precedente (comma 762): con ${$(R)} di rendita all’${al(MAX)} sono ${$(x.acconto)} su ${$(x.imposta)}. Se compri a settembre non devi nulla a giugno; se il comune ha alzato l’aliquota nel 2026, la differenza arriva col saldo.` },
+  { q: 'Posso pagare l’IMU in un’unica rata a giugno?', a: `Sì, la legge lascia al contribuente la facoltà di versare l’intera imposta annua entro il ${d(P.scadenze.acconto)} (comma 762). Conviene se l’aliquota del comune è già nota e stabile; se il prospetto 2026 non è ancora pubblicato, chi paga tutto a giugno usa le aliquote 2025 e, se a ottobre cambiano, deve integrare o chiedere il rimborso.` },
+  { q: 'Ho pagato l’acconto in ritardo di pochi giorni: quanto costa?', a: `Entro 15 giorni la sanzione, già dimezzata al ${formatPercent(RV.sanzione_base * RV.riduzione_entro_90_giorni, 1, lang)}, si riduce a un quindicesimo per ogni giorno di ritardo e poi, con il ravvedimento, a un decimo: su ${$(500)} di imposta pagati con dieci giorni di ritardo la sanzione è ${$2(rv.sanzione)}, più gli interessi al tasso legale giorno per giorno (D.Lgs. 471/1997 e 472/1997, art. 13).` },
+  { q: 'Nell’F24 dell’acconto quale casella devo barrare?', a: `Nella sezione «IMU e altri tributi locali» si barra la casella «Acconto», si indica il codice catastale del comune, il codice tributo (${P.f24.altri} per una seconda casa, ${P.f24.ap} per l’abitazione di lusso), il numero di immobili e l’anno di riferimento 2026. Se paghi in un’unica soluzione barri sia «Acconto» sia «Saldo».` },
+];
+---
+<Guide lang={lang} id="acconto" title="Acconto IMU 2026: importo, aliquota e scadenza del 16 giugno"
+  description={`Acconto IMU 2026 entro il 16 giugno: metà dell’imposta con l’aliquota 2025 del comune, mesi di possesso, rata unica, F24 e prospetto non pubblicato.`}
+  h1="Acconto IMU 2026: quanto pagare entro il 16 giugno"
+  intro="La prima rata dell’IMU si paga a metà giugno, prima che il comune abbia chiuso le aliquote dell’anno: per questo la legge la aggancia a quelle dell’anno prima."
+  resume={`L’acconto IMU 2026 andava versato entro il ${d(P.scadenze.acconto)} ed è pari all’imposta dovuta per il primo semestre, calcolata con l’aliquota e la detrazione dei dodici mesi dell’anno precedente (art. 1, comma 762, della legge 160 del 2019). In pratica, per chi possiede l’immobile da gennaio, è la metà dell’IMU annua calcolata con le aliquote 2025 del comune. Un appartamento A/2 con ${$(R)} di rendita, tenuto come seconda casa in un comune che applica l’${al(MAX)}, ha un’imposta annua di ${$(x.imposta)} e un acconto di ${$(x.acconto)}, che nel modello F24 si arrotonda a ${$(x.f24[0]?.importo ?? 0)}. Chi ha comprato o venduto nel corso del semestre paga solo i mesi di possesso tra gennaio e giugno. Il conguaglio con le aliquote 2026 arriva con il saldo di dicembre: se il comune le ha alzate, la seconda rata è più pesante della prima, e viceversa.`}
+  faqs={faqs} related={['home', 'saldo', 'scadenze', 'f24', 'ravvedimento', 'novita', 'aliquote', 'compravendita']} sources={src(lang, 'legge160', 'mef_versamenti', 'codici_tributo', 'legge296', 'dlgs471')}>
+  <MiniSim client:visible kind="acconto" lang={lang} href={route('home', lang)} />
+  <h2>Perché la prima rata usa le aliquote dell’anno prima</h2>
+  <p>A giugno molti comuni non hanno ancora pubblicato il prospetto dell’anno: possono farlo fino al {d(P.scadenze.pubblicazione_prospetti)}, inserendolo nel Portale del federalismo fiscale entro il {d(P.scadenze.inserimento_prospetti)}. La legge risolve il problema separando le due rate. La prima si calcola con aliquote certe, quelle dei dodici mesi precedenti; la seconda corregge il tiro una volta che le aliquote nuove sono note. Il contribuente non deve indovinare nulla: gli basta il prospetto dell’anno scorso.</p>
+  <p>Oggi {n(COUNTS.P26)} comuni hanno già un prospetto 2026, mentre {n(COUNTS.P25)} sono ancora fermi al 2025. Per questi ultimi l’acconto e il saldo coincidono, almeno finché non arriva un prospetto nuovo; per i primi la differenza dipende da quanto è cambiata l’aliquota. Il calcolatore lo fa da solo: per ogni comune usa il prospetto 2025 per la rata di giugno e quello 2026 per la rata di dicembre.</p>
+
+  <h2>Quando l’acconto non è la metà</h2>
+  <p>La metà vale per chi possiede tutto l’anno con la stessa quota. Negli altri casi conta il primo semestre. Un mese si computa se il possesso dura più della metà dei suoi giorni, e il giorno del rogito va all’acquirente (comma 761). Chi compra a settembre non paga nulla a giugno e versa tutto a dicembre; chi vende a fine aprile paga a giugno i quattro mesi da gennaio ad aprile e a dicembre non deve più niente.</p>
+  <ContentTable caption={`Acconto di un A/2 con ${$(R)} di rendita all’${al(MAX)}, secondo i mesi di possesso`} headers={['Mesi posseduti nel 2026', 'Comprato in corso d’anno', 'Venduto in corso d’anno']} align={['r', 'r', 'r']} rows={mesiRows} />
+  <p>Un esempio: con quattro mesi di possesso, da settembre a dicembre, l’acconto è {$(acq.acconto)} e il saldo {$(acq.saldo)}; il venditore della stessa casa, che l’ha avuta otto mesi da gennaio, paga {$(ven.acconto)} a giugno e {$(ven.saldo)} a dicembre. La somma dei due è l’imposta di un anno intero.</p>
+
+  <h2>Comuni che hanno cambiato aliquota</h2>
+  <p>Tra i prospetti 2025 e 2026 abbiamo trovato {n(camb.length)} comuni che hanno modificato l’aliquota degli altri fabbricati. Per i loro contribuenti l’acconto calcolato con la vecchia aliquota non è la metà dell’imposta definitiva. La tabella mostra quattro casi reali per la stessa casa da {$(R)} di rendita.</p>
+  <ContentTable headers={['Comune', 'Aliquota 2025', 'Aliquota 2026', 'Acconto', 'Saldo']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+  <p>Chi in questi comuni avesse pagato a giugno la metà dell’imposta calcolata con l’aliquota nuova non ha commesso un errore grave: ha anticipato una parte del saldo. Chi invece ha pagato con l’aliquota vecchia ha fatto esattamente ciò che chiede la legge e regola tutto a dicembre.</p>
+
+  <h2>La rata unica di giugno</h2>
+  <p>Il comma 762 permette di pagare l’intera imposta annua entro il 16 giugno. È una scelta pratica per chi possiede un solo immobile e vuole un unico F24. Il rischio è minimo se il comune ha già pubblicato il prospetto 2026; se non l’ha fatto, la rata unica si basa sulle aliquote 2025 e un aumento deciso entro ottobre andrebbe integrato a dicembre. In caso di riduzione, la parte versata in più si recupera con una domanda di <a href={route('rimborso', lang)}>rimborso</a> o, dove il regolamento lo prevede, in compensazione.</p>
+
+  <h2>L’acconto della casa di lusso e delle detrazioni</h2>
+  <p>Per l’abitazione principale accatastata A/1, A/8 o A/9 l’acconto tiene conto della detrazione di {$(P.detrazione_ap)}, rapportata ai mesi: a giugno se ne usa la metà, sei mesi su dodici. Lo stesso vale per le riduzioni: il comodato registrato, l’immobile storico e quello inagibile dimezzano la base imponibile anche nella prima rata, e il canone concordato porta l’imposta al 75 % fin da giugno. Le guide su <a href={route('lusso', lang)}>abitazioni di lusso</a> e <a href={route('comodato', lang)}>comodato</a> mostrano i conti.</p>
+
+  <h2>Compilare l’F24 della prima rata</h2>
+  <p>Il versamento si fa solo con il modello F24 o con il bollettino postale dedicato (comma 765). Nella sezione «IMU e altri tributi locali» ogni riga contiene il codice catastale del comune, il codice tributo, la casella «Acconto», il numero degli immobili e l’anno 2026. Gli importi di ogni riga si arrotondano all’euro: per difetto fino a 49 centesimi, per eccesso oltre (legge 296 del 2006, comma 166). Un acconto di {$2(x.acconto)} diventa {$(arrotonda(x.acconto))}. Per un capannone del gruppo D servono due righe, la quota dello Stato con il codice {P.f24.D_stato} e quella del comune con il {P.f24.D_comune}: i dettagli sono nella guida ai <a href={route('f24', lang)}>codici tributo F24</a>.</p>
+
+  <h2>Se la scadenza è passata</h2>
+  <p>Chi non ha pagato entro il {d(P.scadenze.acconto)} può regolarizzare da solo con il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a>, finché il comune non ha avviato un controllo: la sanzione piena del {formatPercent(RV.sanzione_base, 0, lang)} scende alla metà entro novanta giorni e il ravvedimento la riduce ancora a un decimo nei primi trenta giorni. Pagare l’acconto insieme al saldo di dicembre non cancella il ritardo della prima rata: conviene regolarizzarla subito, perché la sanzione cresce con il passare dei giorni.</p>
+</Guide>

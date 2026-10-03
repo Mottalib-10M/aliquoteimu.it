@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const M = P.base.moltiplicatori, MAX = P.limiti.altri_max, AB = P.aliquote_base;
+const box = 140, cantina = 60, posto = 70;
+const b2 = calcolaImu({ categoria: 'C6', rendita: posto, aliquota: MAX });
+const c2 = calcolaImu({ categoria: 'C2', rendita: cantina, aliquota: MAX });
+const casi = [
+  ['Casa A/3 + box C/6 + cantina C/2', $(0), 'tutte e tre esenti: una pertinenza per categoria'],
+  ['Casa A/3 + box C/6 + posto auto C/6', $(b2.imposta), 'uno dei due C/6 paga come altro fabbricato'],
+  ['Casa A/3 + due cantine C/2', $(c2.imposta), 'la seconda cantina paga'],
+  ['Seconda casa A/2 + box C/6', $(calcolaImu({ categoria: 'C6', rendita: box, aliquota: MAX }).imposta), 'il box segue la seconda casa e paga'],
+  ['Villa A/8 prima casa + box C/6', $(calcolaImu({ categoria: 'A8', rendita: 2000, renditaPertinenze: box, aliquota: AB.ap, uso: 'ap' }).imposta - calcolaImu({ categoria: 'A8', rendita: 2000, aliquota: AB.ap, uso: 'ap' }).imposta), `il box paga all’${al(AB.ap)} con la casa (quota attribuibile)`],
+];
+const faqs = [
+  { q: 'Ho un box e un posto auto scoperto: quale dei due è esente con la prima casa?', a: `Uno solo, perché sono entrambi C/6 e la legge esenta una pertinenza per categoria (art. 1, comma 741, lett. b), legge 160/2019). L’altro paga come altro fabbricato: con ${$(posto)} di rendita e l’aliquota dell’${al(MAX)} sono ${$(b2.imposta)} l’anno. Conviene considerare pertinenza quello con la rendita più alta.` },
+  { q: 'Il box in un altro palazzo può essere pertinenza della prima casa?', a: 'La legge non chiede che box e casa siano nello stesso edificio: chiede che siano accatastati nelle categorie C/2, C/6 o C/7 e destinati in modo durevole al servizio dell’abitazione, secondo l’articolo 817 del codice civile richiamato dai prospetti comunali. In caso di dubbio il comune può chiedere prova di questa destinazione.' },
+  { q: 'La cantina accatastata insieme all’appartamento conta come pertinenza?', a: 'Sì. Il comma 741 precisa che il limite di una pertinenza per categoria vale anche per quelle iscritte in catasto unitamente all’unità abitativa. Se la cantina è compresa nella rendita dell’appartamento, hai già usato la tua pertinenza C/2: un’altra cantina accatastata a parte pagherebbe come altro fabbricato.' },
+];
+---
+<Guide lang={lang} id="pertinenze" title="IMU pertinenze 2026: box, cantina e posto auto"
+  description={`IMU sulle pertinenze 2026: una C/2, una C/6 e una C/7 esenti con la prima casa, le altre pagano come altri fabbricati con rendita × 1,05 × ${M.C6}. Casi ed esempi.`}
+  h1="IMU su box, cantine e posti auto: quando la pertinenza è esente"
+  intro="Garage, cantina, soffitta e posto auto seguono la casa a cui servono. Ma l’esenzione ha un limite preciso, che molti proprietari superano senza saperlo."
+  resume={`Le pertinenze dell’abitazione principale sono esenti dall’IMU come la casa, ma solo nelle categorie C/2 (magazzini, cantine, soffitte), C/6 (box, autorimesse, posti auto) e C/7 (tettoie), e al massimo una per ciascuna categoria, come stabilisce l’articolo 1, comma 741, lettera b), della legge 160/2019. Chi ha la casa, un box e una cantina non paga nulla; chi ha due box, o un box e un posto auto, ne ha uno esente e l’altro tassato come altro fabbricato. La base imponibile della pertinenza in più è la sua rendita × 1,05 × ${M.C6}, lo stesso moltiplicatore delle abitazioni: un posto auto con ${$(posto)} di rendita, all’aliquota dell’${al(MAX)}, paga ${$(b2.imposta)} l’anno. Le pertinenze di una seconda casa, invece, pagano tutte, senza limite di numero, con l’aliquota del comune per gli altri fabbricati. Quelle di un’abitazione di lusso pagano con l’aliquota ridotta dell’abitazione principale.`}
+  faqs={faqs} related={['home', 'primaCasa', 'lusso', 'secondaCasa', 'coefficienti', 'rendita', 'aliquote', 'esenzioni']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_agevolazioni')}>
+  <MiniSim client:visible kind="pertinenze" lang={lang} href={route('home', lang)} />
+  <h2>Le tre categorie e il tetto di una per tipo</h2>
+  <p>Il catasto distingue molte categorie del gruppo C, ma per l’IMU della prima casa ne contano tre: C/2 per magazzini, cantine e soffitte, C/6 per stalle, scuderie, rimesse e autorimesse, cioè box e posti auto, C/7 per tettoie chiuse o aperte. Una per ciascuna può essere pertinenza esente dell’abitazione principale. Il numero massimo è quindi tre: un box, una cantina e una tettoia. Un laboratorio C/3 o un negozio C/1 non sono mai pertinenze ai fini IMU, anche se si trovano nello stesso edificio e li usi come ripostiglio.</p>
+  <p>Il limite si applica anche a ciò che il catasto ha unito all’appartamento: una soffitta compresa nella stessa rendita dell’abitazione consuma il posto della C/2. Per questo, prima di contare le pertinenze, conviene leggere la visura e vedere se la casa è iscritta da sola o con accessori.</p>
+
+  <h2>Esempi tipici</h2>
+  <p>Gli importi della tabella sono calcolati con l’aliquota dell’{al(MAX)} per gli altri fabbricati, un box da {$(box)}, una cantina da {$(cantina)} e un posto auto da {$(posto)} di rendita.</p>
+  <ContentTable headers={['Situazione', 'IMU sulle pertinenze', 'Perché']} align={['l', 'r', 'l']} rows={casi} />
+
+  <h2>Quale scegliere come pertinenza</h2>
+  <p>Quando due unità della stessa categoria servono la casa, solo una può essere esente. La legge non dice quale: la scelta ricade sul contribuente, che la manifesta pagando l’IMU sull’altra. Conviene esentare quella con la rendita più alta, perché l’imposta si calcola sulla rendita. Tieni traccia della scelta e mantienila coerente negli anni: in caso di controllo il comune guarderà quale unità hai trattato come esente e quale hai versato.</p>
+
+  <h2>Il vincolo di destinazione</h2>
+  <p>I prospetti comunali ricordano che le pertinenze non sono tassate in modo autonomo: secondo l’articolo 817 del codice civile e la giurisprudenza di legittimità, seguono il regime dell’immobile di cui sono al servizio. Per essere pertinenza, dunque, il box deve essere destinato in modo durevole all’abitazione. Un box affittato a un estraneo non è al servizio della tua casa e paga come altro fabbricato, anche se è l’unico che possiedi.</p>
+
+  <h2>Pertinenze della seconda casa e dei negozi</h2>
+  <p>Fuori dall’abitazione principale non esiste esenzione, e quindi non esiste neanche il tetto. Box, cantine e posti auto di una casa al mare pagano tutti, ciascuno sulla propria rendita, con l’aliquota che il comune applica agli altri fabbricati o con quella specifica per gli immobili di categoria C, se il prospetto la prevede. Il magazzino di un negozio paga con il moltiplicatore {M.C2} della sua categoria, mentre il negozio paga con il moltiplicatore {M.C1}.</p>
+
+  <h2>La pertinenza dell’abitazione di lusso</h2>
+  <p>Chi vive in una casa A/1, A/8 o A/9 paga l’IMU anche sulle pertinenze, ma con l’aliquota agevolata dell’abitazione principale e con la detrazione di {$(P.detrazione_ap)} calcolata sul totale. Nel modello F24 l’imposta della casa e quella delle pertinenze vanno insieme sotto il codice {P.f24.ap}. Le pertinenze oltre la prima per categoria, anche qui, pagano come altri fabbricati con il codice {P.f24.altri}.</p>
+
+  <h2>Box comprato separatamente o in un altro edificio</h2>
+  <p>Il box non deve per forza essere stato acquistato con la casa né trovarsi nello stesso palazzo: conta la destinazione durevole al servizio dell’abitazione. Se compri un box a pochi isolati di distanza e lo usi per l’auto della famiglia, può essere la tua pertinenza C/6. Se invece è in un’altra città, la destinazione a servizio della casa è difficile da sostenere e il comune può contestarla.</p>
+
+  <h2>Leggere rogito e visura insieme</h2>
+  <p>Il rogito elenca per ogni unità foglio, particella e subalterno. Ogni subalterno con una propria categoria è un immobile distinto per l’IMU: un appartamento venduto «con box e cantina» può essere composto da tre unità, oppure da una sola se gli accessori sono stati fusi nella scheda dell’abitazione. Un elenco delle unità con categoria e rendita, chiesto al notaio o a un geometra e conservato con le ricevute, è la base di ogni versamento e di ogni eventuale controllo del comune.</p>
+
+  <h2>Errori frequenti</h2>
+  <p>Il più comune è pagare zero su due box pensando che entrambi siano pertinenze. Il secondo è il contrario: pagare l’IMU su una cantina C/2 che in realtà è l’unica e quindi esente. Il terzo riguarda le soffitte e le cantine accatastate come C/2 ma già comprese nella rendita della casa: si finisce per considerare pertinenza un’unità mentre il posto della categoria è già occupato. Un controllo della visura evita tutti e tre.</p>
+</Guide>

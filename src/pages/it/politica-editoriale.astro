@@ -1,0 +1,22 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema } from '../../lib/seo';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+---
+<PageLayout title="Politica editoriale di AliquoteIMU.it: fonti e verifiche" description="Politica editoriale di AliquoteIMU.it: fonti ufficiali usate per l’IMU, frequenza di aggiornamento delle aliquote comunali, verifica del motore di calcolo e correzione degli errori." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Politica editoriale', path: route('editorial', lang) }])]} breadcrumbs={[{ label: 'Politica editoriale' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Politica editoriale</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <h2>Fonti</h2>
+    <p>Usiamo solo fonti ufficiali: la legge 160 del 2019 e le altre norme nel testo vigente su Normattiva, le pagine e i prospetti del Dipartimento delle Finanze, la Gazzetta Ufficiale, l’Agenzia delle entrate e l’ISTAT. Un articolo di stampa o di blog non è mai una fonte per un’aliquota o una regola. Ogni pagina elenca le fonti che usa.</p>
+    <h2>Aggiornamento</h2>
+    <p>I prospetti dei comuni si rileggono dopo il 28 ottobre, quando il Dipartimento pubblica quelli dell’anno, e di nuovo a inizio anno. I parametri di legge si verificano a ogni legge di bilancio e a ogni riforma che tocca l’IMU. La data dell’ultima verifica, oggi il {P.retrieved_at}, compare in cima e in fondo a ogni pagina.</p>
+    <h2>Verifica del calcolo</h2>
+    <p>Il motore di calcolo è separato dai testi e coperto da test automatici; ogni valore citato nelle pagine viene dal motore o dal file dei parametri, mai scritto a mano, così che una correzione si propaghi ovunque. Le aliquote estratte dai prospetti sono controllate contro i limiti di legge.</p>
+    <h2>Correzioni</h2>
+    <p>Un errore segnalato si verifica sulla fonte e si corregge entro pochi giorni; la correzione aggiorna la data della pagina. Le segnalazioni si inviano dalla pagina <a href={route('contact', lang)}>contatti</a>.</p>
+    <h2>Indipendenza</h2>
+    <p>Nessun comune, CAF, banca o professionista ha pagato per comparire o per orientare i contenuti. L’editore è Radif Partners.</p>
+  </div>
+</PageLayout>

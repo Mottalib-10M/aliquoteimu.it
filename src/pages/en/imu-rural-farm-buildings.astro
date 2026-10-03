@@ -1,0 +1,61 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, moltiplicatore } from '../../lib/engine/imu';
+import { quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const RUR = P.aliquote_base.rur, MAX = P.limiti.altri_max;
+const R = 1200;
+const barn = calcolaImu({ categoria: 'C2', rendita: R, aliquota: RUR, uso: 'rurale' });
+const barnLet = calcolaImu({ categoria: 'C2', rendita: R, aliquota: MAX });
+const tot = conProspetto.length;
+const zero = quanti('rur', (v) => v === 0);
+const full = quanti('rur', (v) => v === RUR);
+const rows = [400, 800, 1200, 2500, 5000].map((r) => [$(r), $(calcolaImu({ categoria: 'D10', rendita: r, aliquota: RUR }).imposta), $(calcolaImu({ categoria: 'C2', rendita: r, aliquota: RUR, uso: 'rurale' }).imposta)]);
+const shared = calcolaImu({ categoria: 'D10', rendita: R, aliquota: RUR, quota: 50 });
+const faqs = [
+  { q: 'Our Italian property has an old barn we only use for storage: is it a rural building for IMU?', a: `Only if it serves a farming activity. A barn holding hay, tools or produce for the farm qualifies for the rural rate of at most ${al(RUR)}; a barn used as a private garage or storeroom for a holiday home is an ordinary building. Registered as C/2 with ${$(R)} of rendita, the difference is ${$(barn.imposta)} against ${$(barnLet.imposta)} a year.` },
+  { q: 'Can a comune charge more than 0.1 % on farm buildings?', a: `No. Paragraph 750 of Law 160/2019 sets the base rate for rural buildings used for farming at ${al(RUR)} and lets comuni only reduce it, down to zero. In the schedules we read, ${n(full)} comuni apply ${al(RUR)} and ${n(zero)} charge nothing at all.` },
+  { q: 'Which tax code do I use for a farm building?', a: `Code ${P.f24.rur} on the F24 form, with the cadastral code of the comune where the building stands. The whole amount goes to the comune: unlike group D commercial buildings, there is no State share. If the comune has set the rate at zero, there is nothing to pay.` },
+];
+---
+<Guide lang={lang} id="rurali" title={`IMU on Rural Farm Buildings 2026: Barns, Stables, D/10`}
+  description={`IMU on rural farm buildings in Italy for 2026: rate capped at ${al(RUR)}, comuni that charge zero, barns, stables versus farmhouses, multipliers and tax code ${P.f24.rur}.`}
+  h1="IMU on rural farm buildings: barns, stables and agricultural sheds in Italy"
+  intro="Italian law treats buildings that serve farming very gently. The question for most owners is whether their outbuildings really do."
+  resume={`Rural buildings used for farming (fabbricati rurali ad uso strumentale) pay IMU at a base rate of ${al(RUR)}, and this is the one rate a comune can only lower, never raise (paragraph 750 of Law 160/2019). The category exists for barns, stables, haylofts, wine cellars, greenhouses and sheds that serve a farm business under article 9(3-bis) of Decree-Law 557/1993; the rate schedule lists it as rural buildings for business use, including cadastral category D/10. The taxable value is worked out like any building: rendita plus 5 %, times the category multiplier, ${moltiplicatore('D10')} for D/10 or ${moltiplicatore('C2')} for a C/2 storeroom. A C/2 barn with ${$(R)} of rendita pays ${$(barn.imposta)} a year at the full rural rate. Of the ${n(tot)} comuni whose schedules we read, ${n(zero)} have cut the rate to zero. The farmhouse itself is not a rural business building: it pays as a home.`}
+  faqs={faqs} related={['home', 'terreni', 'secondaCasa', 'capannoni', 'aliquote', 'f24', 'esteri']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="rurali" lang={lang} href={route('home', lang)} />
+  <h2>Use, not looks, decides</h2>
+  <p>Many foreign owners of Italian country houses also own a fienile (hayloft), a stalla (stable) or a rimessa (cart shed). Whether these count as rural business buildings depends on what they do today. Paragraph 750 refers to buildings serving agricultural activities as defined in the Civil Code; a stable full of a neighbour’s sheep under a farming arrangement may qualify, a stable converted into a guest annex does not. The cadastral category alone is not decisive: D/10 was created for farm buildings, but a farm shed can also be registered as C/2 or C/6.</p>
+
+  <h2>The multiplier still matters</h2>
+  <p>The low rate applies to a taxable value computed in the usual way, and the multiplier depends on the category. A D/10 building uses {moltiplicatore('D10')}; a C/2 store or C/6 stable uses {moltiplicatore('C2')}; a C/3 workshop {moltiplicatore('C3')}. At the same rendita, a C/2 barn therefore pays roughly two and a half times what a D/10 building pays.</p>
+  <ContentTable headers={['Rendita', `D/10 at ${al(RUR)}`, `C/2 at ${al(RUR)}`]} align={['r', 'r', 'r']} rows={rows} />
+
+  <h2>Zero in thousands of comuni</h2>
+  <p>Because the rate can only go down, comuni split into two camps: {n(full)} keep {al(RUR)} and {n(zero)} have removed the tax on farm buildings entirely, often in rural areas that want to support farming. The rest set something in between. Your comune’s choice is shown on the <a href={route('aliquote', lang)}>rates by comune</a> page, on the line for rural buildings.</p>
+
+  <h2>Farmhouse, holiday home, barn: three regimes on one deed</h2>
+  <p>A typical rural purchase in Tuscany or Umbria bundles a house, outbuildings and land. Each item has its own IMU treatment. The house is a dwelling: exempt only if it is your main residence and not in the luxury categories, otherwise taxed like a <a href={route('secondaCasa', lang)}>second home</a>. The outbuildings are rural business buildings only if they serve farming; otherwise they follow their category, typically as pertinenze of the house or as other buildings. The <a href={route('terreni', lang)}>land</a> pays on its land income unless the comune is a mountain or hill area or the owner is a registered farmer.</p>
+
+  <h2>When the farming stops</h2>
+  <p>If the farm activity ends, or the building is let for non-farm use, the rural rate no longer applies and the building pays at the rate for its category: the rate for other buildings, or for group D at no less than {al(P.limiti.D_min)} with a State share, as explained in the <a href={route('capannoni', lang)}>group D guide</a>. A farm building that is unfit for use and actually unused may instead have its taxable value halved under paragraph 747 (b), for the period the condition lasts.</p>
+
+  <h2>Paying the comune</h2>
+  <p>Farm building IMU goes entirely to the comune under tax code {P.f24.rur}, in two instalments on 16 June and 16 December. Each F24 line is rounded to the euro, so a very small barn may produce a payment of a few euros. Where the rate is zero, nothing is due, but the building keeps its rendita in the land registry: if its use changes, the tax returns at the rate of the new category.</p>
+  <h2>Who pays when the farm is run by someone else</h2>
+  <p>IMU is always owed by the owner or the holder of a right such as usufruct, not by the person farming. If you let your barns to a local farmer who uses them for his business, they keep their rural business status because they serve an agricultural activity, and you pay at the rural rate. If two siblings own the farm buildings in equal shares, each pays half: on a D/10 with {$(R)} of rendita at {al(RUR)} that is {$(shared.imposta)} each, a sum small enough that the rounding of each F24 line to the euro becomes visible.</p>
+
+  <h2>Rural buildings and the cadastral record</h2>
+  <p>The rendita of a farm building, like any building, is on the visura catastale. Old outbuildings that were never registered in the urban cadastre are a known problem in rural Italy: a building that should be registered with a rendita is still a building for IMU under paragraph 741 (a), even if the registration is missing, and regularising it means filing with the land registry through a technician. Before buying a rural property, ask the notary or surveyor to check that every outbuilding appears on the cadastral map and in the urban register with a category and rendita.</p>
+
+</Guide>

@@ -1,0 +1,46 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import ConfrontoComuni from '../../components/calc/ConfrontoComuni';
+import MiniSim from '../../components/calc/MiniSim';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const R = 900;
+const y = (code: string) => calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(comune(code)!).altri }).imposta;
+const regions = [
+  ['Tuscany', 'Lucca', 'E715', 'Siena', 'I726'],
+  ['Liguria', 'Lerici', 'E542', 'Portofino', 'G913'],
+  ['Campania', 'Sorrento', 'I862', 'Capri', 'B696'],
+  ['Lombardy', 'Como', 'C933', 'Bellagio', 'M335'],
+  ['Sicily', 'Taormina', 'L042', 'Cefalù', 'C421'],
+] as const;
+const rows = regions.map(([reg, a, ca, b, cb]) => [reg, `${a} ${al(ratesOf(comune(ca)!).altri)}`, `${b} ${al(ratesOf(comune(cb)!).altri)}`, $(Math.abs(y(ca) - y(cb)))]);
+const faqs = [
+  { q: 'Does it matter which comune I buy a holiday home in?', a: `For IMU, yes. Each comune sets its own rate between zero and ${al(P.limiti.altri_max)} (${al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} with an old surcharge). On a ${$(R)} rendita, Lerici and Portofino, two Ligurian towns a short drive apart, differ by ${$(Math.abs(y('E542') - y('G913')))} a year for the same flat. Over twenty years of ownership that adds up.` },
+  { q: 'Is the cadastral income the same for identical homes in two towns?', a: 'Not necessarily. The rendita depends on the census zone, category and class assigned by the land registry, often decades ago, so two similar flats can carry very different figures. Compare with each property’s real rendita, taken from the visura or the estate agent’s documents, before drawing conclusions.' },
+  { q: 'Can I compare land or a warehouse between two comuni?', a: `The comparison covers homes, shops, offices, garages and group D buildings. For a group D building the State always keeps its ${al(P.limiti.D_quota_stato)} share, so comuni differ only on the part above it. Farmland and building plots follow other rates, which the rates by comune page lists for every town.` },
+];
+---
+<ToolPage lang={lang} id="confronto" title="IMU Comparison Between Comuni 2026: Same Home, Two Rates"
+  description="IMU comparison for 2026 between two Italian comuni: same rendita and category, official schedule rates and the yearly difference, with popular areas."
+  h1="Compare IMU between two Italian comuni"
+  intro="Choose two comuni, the type of property and its cadastral income to see what you would pay in each and the difference every year."
+  resume={`If you are choosing where to buy in Italy, IMU is one of the running costs that varies from town to town. For the same property, the only thing that changes the tax is the rate the comune has written in its schedule. Law 160 of 2019 sets a base of ${al(P.aliquote_base.altri)} for second homes and lets comuni go up to ${al(P.limiti.altri_max)}, or ${al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} where an old TASI surcharge survives, or down to zero. The comparison above uses the ${P.year} schedules, or the 2025 ones where a comune has not yet published its new schedule, and the same engine as the main calculator. A flat with ${$(R)} of cadastral income pays ${$(y('E542'))} a year in Lerici and ${$(y('G913'))} in Portofino. Use it before an offer, with the rendita of the actual property, to see what each option will cost you every June and December.`}
+  faqs={faqs} related={['home', 'aliquote', 'esteri', 'secondaCasa', 'compravendita', 'rendita']} sources={src(lang, 'mef_prospetti', 'legge160', 'mef_ricerca')}>
+  <ConfrontoComuni slot="tool" client:load lang={lang} a="E715" b="I726" />
+  <h2>Neighbouring towns, different rates</h2>
+  <p>Pairs of comuni in areas where many homes are owned from abroad, with the yearly IMU difference on a flat with {$(R)} of rendita held as a second home.</p>
+  <ContentTable headers={['Region', 'First comune', 'Second comune', 'Yearly difference']} align={['l', 'l', 'l', 'r']} rows={rows} />
+  <MiniSim client:visible kind="confronto" lang={lang} href={route('aliquote', lang)} opts={{ a1: ratesOf(comune('C933')!).altri, a2: ratesOf(comune('M335')!).altri, n1: 'Como', n2: 'Bellagio' }} />
+  <h2>What the comparison leaves out</h2>
+  <p>It isolates the effect of the rate. Two other things change the bill. The first is the rendita itself, which the land registry sets by zone and class: an old townhouse in a historic centre can have a lower rendita than a small new flat on the edge of town. The second is targeted rates: many comuni charge less on homes let at agreed rent (canone concordato) or lent to relatives, and some charge more on homes left empty. When you have picked a property, open its comune in the <a href={route('home', lang)}>IMU calculator</a>, which lists those targeted rates under the result.</p>
+  <h2>Other local costs to compare</h2>
+  <p>IMU is not the only yearly cost tied to the comune. The waste tax (TARI) is set by each comune under its own regulation and billed separately; this site does not calculate it, so ask the comune’s tax office (ufficio tributi) how it is charged on a home you would use only part of the year. Building land, farmland and rural buildings follow other IMU rates, which the <a href={route('aliquote', lang)}>rates by comune</a> page lists for every town.</p>
+</ToolPage>

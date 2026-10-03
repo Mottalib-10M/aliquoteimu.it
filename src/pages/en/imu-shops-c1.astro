@@ -1,0 +1,67 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, moltiplicatore } from '../../lib/engine/imu';
+import { conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatDecimal } from '../../lib/format';
+import { src } from '../../lib/sources';
+import { mesiTrasferimento } from '../../lib/engine/imu';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti, B = P.aliquote_base;
+const R = 1800;
+const x = calcolaImu({ categoria: 'C1', rendita: R, aliquota: L.altri_max });
+const flat = calcolaImu({ categoria: 'A3', rendita: R, aliquota: L.altri_max });
+const tot = conProspetto.length;
+const diffFiles = import.meta.glob<{ default: Record<string, { d: Array<[string, number, string]>; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const conC1 = Object.values(diffFiles).reduce((s, f) => s + Object.values(f.default).filter((v) => v.d.some((d) => d[0] === 'altri' && /C\/1 /.test(d[2]))).length, 0);
+const rates = [0, B.altri, 0.96, L.altri_max, L.altri_max + L.maggiorazione_ex_tasi].map((a) => [al(a), $(calcolaImu({ categoria: 'C1', rendita: R, aliquota: a }).imposta), $(calcolaImu({ categoria: 'C1', rendita: R, aliquota: a }).acconto)]);
+const t = mesiTrasferimento('2026-09-16');
+const xb = calcolaImu({ categoria: 'C1', rendita: R, aliquota: L.altri_max, mesi: t.acquirente, periodo: 'fine' });
+const xc = calcolaImu({ categoria: 'C1', rendita: R, aliquota: L.altri_max, aliquotaAcconto: B.altri });
+const faqs = [
+  { q: 'I own a shop unit in Italy let to a café: can the tenant pay the IMU?', a: `Legally no: IMU is owed by the owner or usufructuary, never by the tenant (paragraph 743 of Law 160/2019). You can factor it into the rent, but the comune will only ever chase you. On ${$(R)} of rendita at ${al(L.altri_max)} the bill is ${$(x.imposta)} a year, paid under tax code ${P.f24.altri}.` },
+  { q: 'Why is IMU on my Italian shop lower than on my flat with the same rendita?', a: `Shops in category C/1 use a multiplier of ${moltiplicatore('C1')}, against ${moltiplicatore('A3')} for homes (paragraph 745 f). At ${$(R)} of rendita and ${al(L.altri_max)}, the shop pays ${$(x.imposta)} and the flat ${$(flat.imposta)}. Shops usually carry higher rendite per square metre, so the gap is smaller in practice.` },
+  { q: 'Does the agreed-rent reduction apply to a shop?', a: 'No. The 75 % rule for canone concordato in paragraph 760 covers dwellings let under Law 431/1998, the residential tenancy law. Commercial leases are outside it. Some comuni, however, set a lower rate for shops let under a registered contract or used for a business, which you can find in their rate schedule.' },
+];
+---
+<Guide lang={lang} id="negozi" title={`IMU on Shops (C/1) in Italy 2026: Rates and Reductions`}
+  description={`IMU on shops in Italy (category C/1) for 2026: rendita × ${formatDecimal(1 + P.base.rivalutazione_rendita, 2, lang)} × ${moltiplicatore('C1')}, rates up to ${al(L.altri_max)}, lower rates some comuni set for let or owner-run shops, F24 code ${P.f24.altri}.`}
+  h1="IMU on shops in Italy: what owners of C/1 units pay in 2026"
+  intro="A ground-floor shop in an Italian town is a popular investment for foreign buyers. Its IMU follows a multiplier of its own and, very often, a rate of its own."
+  resume={`Shops and boutiques registered in cadastral category C/1 pay IMU as “other buildings”, with the lowest multiplier in the whole system: the rendita on the visura is increased by 5 % and multiplied by ${moltiplicatore('C1')}, compared with ${moltiplicatore('A3')} for a flat (paragraph 745 of Law 160/2019). A shop with ${$(R)} of rendita has a taxable value of ${$(x.base)}; at the ${al(L.altri_max)} rate most comuni use for other buildings it pays ${$(x.imposta)} a year, in two instalments of ${$(x.acconto)}, under F24 tax code ${P.f24.altri}. The owner pays, whether the shop is empty, let or used by the owner. What makes shops interesting is the rate schedules: ${n(conC1)} of the ${n(tot)} comuni we read set specific rates that apply to C/1 units, for example when the shop is let under a registered lease, run by its owner, located in the historic centre or recognised as a historic workshop. A targeted rate can cut the bill by a quarter or more.`}
+  faqs={faqs} related={['home', 'uffici', 'capannoni', 'locati', 'aliquote', 'esteri', 'f24']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="negozi" lang={lang} href={route('home', lang)} />
+  <h2>What counts as C/1</h2>
+  <p>Category C/1 (negozi e botteghe) covers shops and small commercial premises open to the public, typically at street level with a shop window. A workshop for a craft is C/3, with a multiplier of {moltiplicatore('C3')}; a large shopping centre or supermarket is usually in group D. Your visura catastale states the category; the deed of purchase repeats it.</p>
+
+  <h2>The same shop at different rates</h2>
+  <p>The comune decides the rate between zero and {al(L.altri_max)}, or up to {al(L.altri_max + L.maggiorazione_ex_tasi)} in comuni that kept the old TASI surcharge. The table shows the IMU on a {$(R)} rendita shop across that range.</p>
+  <ContentTable headers={['Rate', 'IMU per year', 'Each instalment']} align={['r', 'r', 'r']} rows={rates} />
+
+  <h2>Targeted rates for shops</h2>
+  <p>Italian comuni use the rate schedule to steer the use of commercial space. Four conditions recur. A lower rate for shops let or lent under a registered contract, to discourage empty units. A lower rate for shops used directly by the owner for a business. Special treatment in the historic centre, where many towns fight closures. And reduced rates for historic or artisan workshops (botteghe storiche). Rome and Florence go further and target specific trades by business code, such as newsagents or bookshops. The calculator lists your comune’s targeted rates under the result; check each condition before applying one.</p>
+
+  <h2>Empty shop, let shop, owner-run shop</h2>
+  <p>An empty shop pays the ordinary rate, often the maximum. A let shop pays on the owner, at the lower rate for let property if the comune has one. The agreed-rent reduction of paragraph 760 does not apply: it is limited to dwellings let under the residential tenancy law. An owner who runs a business from the shop pays like any owner, but many schedules give owner-occupied business premises their own rate.</p>
+
+  <h2>Converting a shop into a home</h2>
+  <p>In many historic centres closed shops are being turned into flats. Re-registering the unit from C/1 to a residential category changes the multiplier from {moltiplicatore('C1')} to {moltiplicatore('A3')} and usually lowers the rendita. Changes of rendita caused by building works take effect from completion or first use (paragraph 745). While the renovation runs, if it qualifies as restoration or structural renovation, the unit is taxed on its land value, as explained in the <a href={route('aree', lang)}>building land guide</a>.</p>
+
+  <h2>Paying from abroad</h2>
+  <p>Shop IMU goes to the comune only, under code {P.f24.altri}, the same code as second homes and offices; there is no State share, which exists only for group D. Pay on 16 June with last year’s rate and on 16 December with the {P.year} rate. Owners without an Italian account usually pay by bank transfer to the comune’s treasury; the <a href={route('esteri', lang)}>non-residents guide</a> explains the references to quote.</p>
+  <h2>Buying a shop during the year</h2>
+  <p>Months follow the rule in paragraph 761: a month counts for whoever held the property for more than half its days, and the day of the deed counts for the buyer. Buy on 16 September and September is yours, since you hold it for 15 of its 30 days, a tie that the law gives to the buyer. You then owe {t.acquirente} months, {$(xb.imposta)} at {al(L.altri_max)}, all of it in the December instalment because you held nothing in the first half of the year. The seller owes the other {t.venditore} months.</p>
+
+  <h2>When the comune changes the rate</h2>
+  <p>The June instalment always uses last year’s rate and the December balance this year’s. If a comune moved shops from {al(B.altri)} to {al(L.altri_max)}, the owner of a {$(R)} rendita shop pays {$(xc.acconto)} in June and {$(xc.saldo)} in December: same total as a full year at the new rate, but a larger second instalment. Several hundred comuni changed their rate for other buildings between 2025 and {P.year}, so the December figure deserves a check every year.</p>
+
+  <h2>Checklist for foreign owners of Italian shops</h2>
+  <p>Keep a copy of the visura with the C/1 category and the rendita. Find your comune’s schedule and read the conditions of any shop rate, especially the requirement of a registered lease. Note the comune’s cadastral code, which goes on every payment. Diary 16 June and 16 December. And keep each receipt: comuni can assess up to 31 December of the fifth year after the payment was due.</p>
+
+</Guide>

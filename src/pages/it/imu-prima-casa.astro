@@ -1,0 +1,73 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route, CITTA } from '../../i18n/routes';
+import { cityName } from '../../i18n/nav';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { distribuzione, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const AB = P.aliquote_base, M = P.base.moltiplicatori;
+const R = 700;
+const comeSeconda = calcolaImu({ categoria: 'A3', rendita: R, aliquota: P.limiti.altri_max });
+const lussoEx = calcolaImu({ categoria: 'A8', rendita: 2200, aliquota: AB.ap, uso: 'ap' });
+const apTop = distribuzione('ap')[0];
+const valore = CITTA.slice(0, 8).map((c) => { const k = comune(c.code)!; const a = ratesOf(k).altri; return [cityName(c.id, lang), al(a), $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: a }).imposta)]; });
+const categorie = [['A/2 civile', 'esente'], ['A/3 economica', 'esente'], ['A/4 popolare', 'esente'], ['A/7 villino', 'esente'], ['A/11 alloggio tipico', 'esente'], ['A/1 signorile', `${al(AB.ap)} con detrazione`], ['A/8 villa', `${al(AB.ap)} con detrazione`], ['A/9 castello, palazzo', `${al(AB.ap)} con detrazione`]];
+const faqs = [
+  { q: 'Ho la residenza in una casa ma vivo in un’altra: quale è esente?', a: 'Nessuna delle due, se i requisiti non coincidono. L’articolo 1, comma 741, lettera b), della legge 160/2019 chiede che nello stesso immobile ci siano insieme la residenza anagrafica e la dimora abituale. Una residenza solo formale non basta, e il comune può contestarla con un avviso di accertamento entro il quinto anno successivo a quello del versamento.' },
+  { q: 'Il garage sotto casa paga l’IMU se la casa è la mia prima casa?', a: `No, purché sia accatastato C/6 e sia l’unico box che abbini all’abitazione: la legge esenta una pertinenza per ciascuna categoria C/2, C/6 e C/7. Un secondo box paga come altro fabbricato, sulla sua rendita × 1,05 × ${M.C6}, con l’aliquota che il comune applica agli altri fabbricati.` },
+  { q: 'Gli italiani iscritti all’AIRE hanno la prima casa esente?', a: 'No. Dal 2020 l’abitazione posseduta in Italia dai cittadini iscritti all’AIRE non è più assimilata all’abitazione principale, come precisa il Dipartimento delle Finanze. Resta la riduzione a metà dell’imposta per chi riceve una pensione maturata in convenzione internazionale con l’Italia, su una sola abitazione non locata né data in comodato (legge 178/2020, comma 48).' },
+  { q: 'Devo presentare qualcosa al comune per avere l’esenzione sulla prima casa?', a: 'Di regola no: il comune conosce la residenza dall’anagrafe e l’esenzione si applica senza domanda. La dichiarazione IMU, da presentare entro il 30 giugno dell’anno successivo, serve quando il comune non può conoscere da solo la situazione, per esempio per alcune assimilazioni previste dal comma 741, lettera c).' },
+];
+---
+<Guide lang={lang} id="primaCasa" title="IMU prima casa 2026: esenzione, requisiti e pertinenze"
+  description={`IMU prima casa 2026: quando l’abitazione principale è esente, residenza e dimora, una pertinenza per categoria, eccezione A/1, A/8, A/9 con aliquota ${al(AB.ap)}.`}
+  h1="IMU prima casa nel 2026: quando l’abitazione principale non paga"
+  intro="La casa in cui vivi e hai la residenza è esente dall’IMU, con poche eccezioni. Contano tre cose: la categoria catastale, la residenza e la dimora effettiva."
+  resume={`L’abitazione principale non paga l’IMU dal 2020: l’articolo 1, comma 740, della legge 160/2019 la esclude dal presupposto dell’imposta, insieme alle sue pertinenze. L’esenzione vale per le categorie catastali da A/2 a A/7 e per l’A/11; le sole abitazioni principali che pagano sono quelle accatastate A/1, A/8 e A/9, con un’aliquota di base dello ${al(AB.ap)} e una detrazione di ${$(P.detrazione_ap)}. Per avere diritto all’esenzione servono insieme la residenza anagrafica e la dimora abituale nello stesso immobile. Le pertinenze esenti sono al massimo una per ciascuna categoria C/2 (cantina, soffitta), C/6 (box, posto auto) e C/7 (tettoia). Quanto vale l’esenzione si vede facendo il conto opposto: un appartamento A/3 con ${$(R)} di rendita, se non fosse la tua prima casa, pagherebbe ${$(comeSeconda.imposta)} l’anno all’aliquota dell’${al(P.limiti.altri_max)}. Se la casa è di lusso, l’IMU di una villa A/8 con ${$(2200)} di rendita all’aliquota di base è ${$(lussoEx.imposta)} dopo la detrazione.`}
+  faqs={faqs} related={['home', 'lusso', 'pertinenze', 'coniugi', 'separazione', 'anziani', 'esteri', 'secondaCasa', 'esenzioni']} sources={src(lang, 'legge160', 'corte209', 'legge178', 'mef_versamenti')}>
+  <MiniSim client:visible kind="primaCasa" lang={lang} href={route('home', lang)} />
+  <h2>Residenza e dimora: i due requisiti insieme</h2>
+  <p>La legge definisce abitazione principale l’unità immobiliare, iscritta o iscrivibile in catasto come unica unità, nella quale il possessore dimora abitualmente e risiede anagraficamente. La residenza è un dato dell’anagrafe; la dimora abituale è un fatto, cioè il luogo in cui si vive davvero. Il comune verifica il secondo requisito con gli strumenti che ha: consumi di energia e acqua, contratti, segnalazioni. Una casa con la residenza ma senza nessuno che ci abiti non è abitazione principale, e paga come un altro fabbricato.</p>
+  <p>La formula originaria chiedeva che anche il nucleo familiare vivesse nello stesso immobile. La Corte costituzionale, con la sentenza n. 209 del 13 ottobre 2022, ha dichiarato illegittima questa parte: oggi conta la situazione del singolo possessore. Le conseguenze per le coppie che vivono in due case diverse sono spiegate nella guida sui <a href={route('coniugi', lang)}>coniugi con residenze diverse</a>.</p>
+
+  <h2>Le categorie catastali esenti e quelle che pagano</h2>
+  <p>L’esenzione dipende dalla categoria che compare nella visura, non dalla superficie o dal pregio percepito. Un attico di centocinquanta metri quadrati accatastato A/2 è esente; un villino A/7 anche. Pagano solo le tre categorie che il catasto riserva alle abitazioni signorili, alle ville e ai castelli o palazzi di pregio storico.</p>
+  <ContentTable headers={['Categoria della prima casa', 'IMU']} align={['l', 'r']} rows={categorie} />
+  <p>Per le tre categorie di lusso il comune può portare l’aliquota fino allo {al(P.limiti.ap_max)} o abbassarla fino a zero; nella maggior parte dei prospetti che abbiamo letto vale {al(apTop.aliquota)} ({n(apTop.n)} comuni su {n(conProspetto.length)}). Il calcolo completo, con la detrazione, è nella guida sull’<a href={route('lusso', lang)}>abitazione di lusso</a>.</p>
+
+  <h2>Quanto vale l’esenzione nella tua città</h2>
+  <p>Il risparmio dell’abitazione principale non è uguale ovunque: è pari all’IMU che la stessa casa pagherebbe come seconda casa, e quindi dipende dall’aliquota degli altri fabbricati del comune. Per un appartamento A/3 con {$(R)} di rendita:</p>
+  <ContentTable headers={['Città', 'Aliquota altri fabbricati', 'IMU evitata ogni anno']} align={['l', 'r', 'r']} rows={valore} />
+  <p>È per questo che una residenza trasferita solo sulla carta è un rischio concreto: l’imposta evitata è di centinaia di euro l’anno e il comune può recuperarla per cinque anni, con sanzioni e interessi.</p>
+
+  <h2>Le pertinenze che seguono la casa</h2>
+  <p>Cantina, box e tettoia condividono il trattamento dell’abitazione se ne sono pertinenza, ma con un tetto: una sola unità per ciascuna categoria C/2, C/6 e C/7, anche quando è iscritta in catasto insieme alla casa. Chi ha un box e un posto auto scoperto, entrambi C/6, deve sceglierne uno come pertinenza: l’altro paga con l’aliquota degli altri fabbricati. Conviene indicare come pertinenza quello con la rendita più alta. La guida sulle <a href={route('pertinenze', lang)}>pertinenze</a> mostra i casi tipici.</p>
+
+  <h2>Le case considerate abitazione principale per legge</h2>
+  <p>Il comma 741, lettera c), estende l’esenzione ad alcune situazioni in cui la residenza non coincide con la proprietà classica. Sono assimilate per legge, senza bisogno di una delibera:</p>
+  <ul>
+    <li>gli alloggi delle cooperative edilizie a proprietà indivisa assegnati ai soci come abitazione principale, e quelli destinati a studenti universitari soci anche senza residenza;</li>
+    <li>gli alloggi sociali definiti dal decreto del 22 aprile 2008, adibiti ad abitazione principale;</li>
+    <li>la casa familiare assegnata dal giudice al genitore affidatario dei figli, trattata nella guida sulla <a href={route('separazione', lang)}>separazione</a>;</li>
+    <li>un solo immobile, non affittato, del personale in servizio permanente delle Forze armate, delle Forze di polizia, dei Vigili del fuoco e della carriera prefettizia, anche senza residenza.</li>
+  </ul>
+  <p>A queste si aggiunge un’assimilazione facoltativa, decisa dal singolo comune: la casa dell’anziano o del disabile ricoverato in modo permanente in un istituto, purché non affittata. La trovi indicata nel prospetto del comune e spiegata nella guida sugli <a href={route('anziani', lang)}>anziani ricoverati</a>.</p>
+
+  <h2>Chi non ha più l’esenzione</h2>
+  <p>Fino al 2019 era considerata abitazione principale una casa posseduta in Italia dai pensionati iscritti all’AIRE. Con la nuova IMU questa assimilazione è stata eliminata, come ricorda il Dipartimento delle Finanze: chi vive all’estero paga sulla casa italiana come su una seconda casa. Rimane una riduzione a metà per i titolari di una pensione maturata in regime di convenzione internazionale con l’Italia, su una sola abitazione non affittata né data in comodato. I dettagli sono nella guida per i <a href={route('esteri', lang)}>residenti all’estero</a>.</p>
+
+  <h2>Trasloco in corso d’anno</h2>
+  <p>Se cambi abitazione principale durante il 2026, ciascuna casa è esente per i mesi in cui è stata la tua prima casa e paga per gli altri. Per il mese del trasloco vale la regola generale del comma 761: un mese conta per intero se la situazione è durata più della metà dei suoi giorni. Chi compra la nuova casa a marzo e vende la vecchia a giugno può quindi trovarsi a pagare l’IMU su una delle due per pochi mesi: il calcolatore lo gestisce con il campo dei mesi di possesso nelle opzioni avanzate, e la guida sulla <a href={route('compravendita', lang)}>compravendita</a> spiega come si contano.</p>
+
+  <h2>Cosa controllare nella visura</h2>
+  <p>Prima di dare per scontata l’esenzione, guarda tre righe della visura catastale: la categoria, perché una vecchia classificazione A/1 non aggiornata fa pagare l’IMU; il numero di unità, perché due appartamenti uniti di fatto ma non fusi in catasto restano due immobili e solo uno è prima casa; le pertinenze, perché la legge ne esenta una sola per categoria e la visura dice se il box è un C/6 o un C/2. Se la visura non corrisponde allo stato reale dell’immobile, l’aggiornamento catastale va chiesto all’Agenzia delle Entrate, tramite un tecnico abilitato.</p>
+</Guide>

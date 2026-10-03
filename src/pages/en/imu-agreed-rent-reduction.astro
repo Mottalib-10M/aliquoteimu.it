@@ -1,0 +1,68 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const QQ = formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang);
+const HALF = formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const Q = P.riduzioni.canone_concordato_imposta;
+const QP = formatPercent(Q, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+const conc: Array<{ nome: string; cap: boolean; r: number; altri: number }> = [];
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) {
+  const c = byCode.get(code); const h = v.d.find((d) => /art\. 2, comma 3, della Legge n\.431\/1998/.test(d[2]));
+  if (c && h) conc.push({ nome: c.name, cap: c.cap, r: h[1], altri: ratesOf(c).altri });
+}
+const R = 700;
+const free = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const agreed = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, canoneConcordato: true });
+const pick = ['Firenze', 'Bologna', 'Genova', 'Pisa', 'Venezia', 'Bari', 'Milano', 'Lucca', 'Livorno', 'Ancona'];
+const rows = pick.map((nm) => conc.find((h) => h.nome === nm)).filter((h): h is NonNullable<typeof h> => !!h).map((h) => [h.nome, al(h.altri), al(h.r), $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: h.altri }).imposta), $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: h.r, canoneConcordato: true }).imposta)]);
+const faqs = [
+  { q: 'Can a foreign owner let at canone concordato and get the IMU reduction?', a: `Yes. The reduction in paragraph 760 of Law 160/2019 depends on the lease, not on the owner’s nationality or residence. A flat with ${$(R)} of cadastral income at ${al(MAX)} pays ${$(agreed.imposta)} instead of ${$(free.imposta)} once let under a registered agreed rent contract. You will usually need a local agent or tenants’ association to set the rent within the local bands.` },
+  { q: 'Is canone concordato the same as a short-term holiday let?', a: 'No. Canone concordato is a long residential lease under Law 431 of 1998, normally three years plus two, with a rent capped by a local agreement. Holiday and short lets are outside that law and do not give the IMU reduction; the flat pays the comune’s rate for other buildings, or a specific rate some comuni set for homes used for tourist accommodation.' },
+  { q: 'Does my tenant pay part of the IMU?', a: 'No. IMU is owed by the owner or the holder of a usufruct. A lease clause shifting it onto the tenant does not change who the comune pursues. Tenants normally pay the waste tax, TARI, which is a different local charge.' },
+];
+---
+<Guide lang={lang} id="concordato" title={`IMU Agreed Rent 2026: Canone Concordato Pays ${QP}`}
+  description={`IMU on a flat let at canone concordato in Italy: the tax is cut to ${QP} by law, ${formatNumber(conc.length, 0, 'en')} comuni add a lower rate, how the two combine, and the lease that qualifies.`}
+  h1="IMU on a flat let at agreed rent (canone concordato)"
+  intro="Italy rewards landlords who accept a capped rent: the IMU is cut by a quarter by law, and many comuni lower the rate as well."
+  resume={`If you let an Italian home under a canone concordato lease, the regulated-rent contract created by Law 431 of 1998, you pay ${QP} of the normal IMU. Paragraph 760 of Law 160/2019 says so in one line: the tax, worked out with the rate the comune sets for rented homes, is reduced to ${QQ}. On an A/3 flat with ${$(R)} of cadastral income at ${al(MAX)}, the yearly bill drops from ${$(free.imposta)} to ${$(agreed.imposta)}. The saving often goes further, because ${n(conc.length)} comuni have a dedicated line for agreed rent leases in their official rate schedule, usually well below the second home rate. When they do, the legal ${QQ} applies on top of that lower rate. In exchange the rent must stay within bands fixed by local agreements between landlord and tenant associations, and the lease runs for at least three years plus two. The owner, never the tenant, pays.`}
+  faqs={faqs} related={['home', 'locati', 'esteri', 'secondaCasa', 'comodato', 'aliquote', 'confronto', 'f24']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti')}>
+  <MiniSim client:visible kind="concordato" lang={lang} href={route('home', lang)} />
+  <h2>The lease behind the discount</h2>
+  <p>Italian residential leases come in two main families. The free market lease (canone libero) lasts four years plus four and the rent is whatever landlord and tenant agree. The agreed rent lease (canone concordato, article 2, paragraph 3 of Law 431/1998) lasts three years plus two and the rent must fall within the ranges written into the territorial agreement (accordo territoriale) of the comune, negotiated by local landlord and tenant associations. The ranges depend on the area of town, the size and the condition of the flat.</p>
+  <p>The same law also allows short transitional leases and leases to university students that refer to the local agreements. Comuni often mention them separately in their rate schedules. If your lease is one of those, ask the comune’s tax office how it treats it before claiming the reduction.</p>
+
+  <h2>How the comune’s rate and the {QQ} stack</h2>
+  <p>The notes that the Department of Finance attaches to every rate schedule state that for the cases of paragraph 760 the legal reduction is applied to the rate the comune set for that case. So you start from the comune’s agreed rent rate, if it has one, and pay three quarters of the result. A comune rate of {al(0.76)} becomes an effective {al(0.76 * Q)}; a rate of {al(0.4)} becomes {al(0.4 * Q)}.</p>
+  <ContentTable caption={`A/3 flat with ${$(R)} rendita: free market lease against agreed rent`} headers={['Comune', 'Second home rate', 'Agreed rent rate', 'IMU, free lease', 'IMU, agreed rent']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Is it worth the lower rent?</h2>
+  <p>The IMU saving alone rarely makes up for a rent well below the market, but it is one of several advantages. The agreed rent lease also changes how rental income is taxed, under rules that belong to income tax rather than IMU and that you should check with an adviser. In university cities, where many comuni set very low rates for agreed rent and student leases, the gap in IMU between letting freely and letting at agreed rent can reach several hundred euros a year on an ordinary flat.</p>
+  <p>The comparison only makes sense on your own figures. In the <a href={route('home', lang)}>calculator</a>, choose “home let at agreed rent”; if the comune has a specific rate it appears under the result with a button to apply it.</p>
+
+  <h2>Paperwork a landlord abroad should plan for</h2>
+  <p>The lease must be registered with the Agenzia delle Entrate: the notes of each rate schedule specify that only registered leases count. The rent must match the local agreement; leases signed without the help of an association usually need a certificate of compliance from one of the signatory organisations. Some comuni ask landlords to notify the lease to the tax office, or to report it on the <a href={route('dichiarazione', lang)}>IMU return</a> by 30 June of the following year, before granting their lower rate. A local agent or tax adviser (commercialista, CAF) can handle these steps.</p>
+
+  <h2>Finding the local agreement and the rent band</h2>
+  <p>Each comune, or group of comuni, has its own accordo territoriale, usually published on the comune’s website or by the signatory associations. It divides the town into zones and sets, for each zone, a minimum and maximum rent per square metre, adjusted for features such as a lift, a garage, heating, the floor or furnishing. Your rent must sit inside the band for your flat. Agreements are renewed every few years, so check the version in force when you sign: a lease that does not match the current agreement can lose the agreed rent status, and with it the IMU reduction and the comune’s lower rate. In large university towns the agreement often has specific clauses for student lets.</p>
+
+  <h2>Paying the reduced tax</h2>
+  <p>Nothing changes in the timetable: a first instalment by 16 June using last year’s rate, the balance by 16 December, tax code {P.f24.altri} and the comune’s cadastral code on the F24 form or the bank transfer. The {QQ} applies to both instalments. If the lease starts or ends during the year, the months under the agreed rent lease are reduced and the others are not, each month going to whichever situation lasted more than half of it.</p>
+
+  <h2>Agreed rent against other options</h2>
+  <p>An empty flat kept for your own holidays pays the full rate, and some comuni charge empty homes more. Letting at market rent pays the full rate too, unless the comune has a special line for it. Lending the flat free to a child halves the taxable value, but only for owners resident in the same comune: see the <a href={route('comodato', lang)}>free loan guide</a>. For an owner living abroad, agreed rent is one of the few ways to cut the IMU on a property that is not a main home. The <a href={route('locati', lang)}>rented property guide</a> compares every kind of lease.</p>
+</Guide>

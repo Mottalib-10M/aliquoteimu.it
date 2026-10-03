@@ -1,0 +1,18 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import LegalIdentity from '../../components/LegalIdentity.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, contactPageSchema } from '../../lib/seo';
+import { CONTACT_EMAIL } from '../../data/site-config';
+const lang = 'en';
+---
+<PageLayout title="Contact AliquoteIMU.it: Corrections and Questions" description="Contact AliquoteIMU.it: how to report a wrong rate or a calculator problem, what to include in your message, what we can and cannot answer, and how to embed the IMU calculator." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Contact', path: route('contact', lang) }]), contactPageSchema({ name: 'Contact', description: 'Contact AliquoteIMU.it', path: route('contact', lang), lang })]} breadcrumbs={[{ label: 'Contact' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Contact</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <p>Write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, in English or Italian. To report a rate that differs from the comune’s schedule, give the comune, the category and if possible the link to the schedule on the Department of Finance website. For a result that looks wrong, paste the calculator’s share link: it carries the values you entered.</p>
+    <p>We cannot answer individual tax questions: the comune’s tax office (ufficio tributi), a CAF or a commercialista can.</p>
+    <p>Want the calculator on your website? The code is on the <a href={route('widget', lang)}>widget page</a>.</p>
+    <h2>Publisher</h2>
+    <LegalIdentity lang="en" />
+  </div>
+</PageLayout>

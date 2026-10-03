@@ -1,0 +1,66 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, moltiplicatore } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import { mesiTrasferimento } from '../../lib/engine/imu';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti;
+const R = 1600;
+const x = calcolaImu({ categoria: 'A10', rendita: R, aliquota: L.altri_max });
+const abit = calcolaImu({ categoria: 'A2', rendita: R, aliquota: L.altri_max });
+const tot = conProspetto.length;
+const diffFiles = import.meta.glob<{ default: Record<string, { d: Array<[string, number, string]>; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const conA10 = Object.values(diffFiles).reduce((s, f) => s + Object.values(f.default).filter((v) => v.d.some((d) => d[0] === 'altri' && /A\/10/.test(d[2]))).length, 0);
+const venezia = comune('L736')!;
+const cat = [['A10', 'Ufficio o studio privato A/10'], ['A2', 'Abitazione civile A/2 usata come studio'], ['C1', 'Negozio C/1'], ['D5', 'Banca o assicurazione D/5']] as const;
+const catRows = cat.map(([c, d]) => { const y = calcolaImu({ categoria: c, rendita: R, aliquota: L.altri_max }); return [d, String(moltiplicatore(c)), $(y.base), $(y.imposta)]; });
+const t = mesiTrasferimento('2026-04-15');
+const acq = calcolaImu({ categoria: 'A10', rendita: R, aliquota: L.altri_max, mesi: t.acquirente, periodo: 'fine' });
+const faqs = [
+  { q: 'Lo studio professionale in un appartamento accatastato A/2 paga come ufficio?', a: `No. L’IMU segue la categoria catastale, non l’uso: un appartamento A/2 adibito a studio resta un’abitazione e usa il moltiplicatore ${moltiplicatore('A2')}. Con ${$(R)} di rendita all’${al(L.altri_max)} paga ${$(abit.imposta)}, contro ${$(x.imposta)} di un vero A/10 con la stessa rendita. Solo una variazione catastale cambia la categoria.` },
+  { q: `Che IMU paga un ufficio con ${$(R)} di rendita?`, a: `Con l’aliquota dell’${al(L.altri_max)} la base è ${$(x.base)} (rendita aumentata del 5 % e moltiplicata per ${moltiplicatore('A10')}) e l’IMU annua è ${$(x.imposta)}, divisa in acconto di giugno e saldo di dicembre con il codice tributo ${P.f24.altri}. Se il comune ha un’aliquota specifica per gli uffici, l’importo cambia di conseguenza.` },
+  { q: 'Ho l’ufficio in affitto: posso chiedere al proprietario di non farmi pagare l’IMU?', a: 'L’IMU non è mai a carico dell’inquilino: la paga il proprietario o l’usufruttuario (comma 743 della legge 160 del 2019). Se il contratto di locazione mette l’imposta a tuo carico, è un accordo economico tra privati che non vincola il comune, il quale chiederà comunque il pagamento al proprietario.' },
+];
+---
+<Guide lang={lang} id="uffici" title={`IMU uffici A/10 2026: base, aliquote e studi professionali`}
+  description={`IMU uffici e studi privati A/10 2026: moltiplicatore ${moltiplicatore('A10')} invece di ${moltiplicatore('A2')}, aliquota del comune fino all’${al(L.altri_max)}, aliquote mirate per gli uffici e codice ${P.f24.altri}.`}
+  h1="IMU sugli uffici A/10: studi professionali, sedi d’impresa e appartamenti usati come studio"
+  intro="La categoria A/10 è quella degli uffici e degli studi privati. Fa parte del gruppo A ma per l’IMU ha regole sue, a partire dal moltiplicatore."
+  resume={`Gli uffici e gli studi privati accatastati in categoria A/10 pagano l’IMU come «altri fabbricati», ma con un moltiplicatore dimezzato rispetto alle altre unità del gruppo A: ${moltiplicatore('A10')} invece di ${moltiplicatore('A2')}, lo stesso di banche e assicurazioni in D/5 (comma 745 della legge 160 del 2019). La rendita della visura si aumenta del 5 % e si moltiplica per ${moltiplicatore('A10')}: un ufficio con ${$(R)} di rendita ha una base di ${$(x.base)} e, con l’aliquota dell’${al(L.altri_max)}, paga ${$(x.imposta)} l’anno, in due rate da ${$(x.acconto)}, con il codice tributo ${P.f24.altri}. L’imposta è sempre del proprietario, anche se l’ufficio è affittato a uno studio o a un’azienda. Conta la categoria catastale, non l’uso: un appartamento A/2 adibito a studio professionale resta un’abitazione e paga sul moltiplicatore pieno. Nei prospetti, ${n(conA10)} comuni su ${n(tot)} hanno previsto aliquote particolari che coinvolgono gli A/10, per esempio per gli immobili utilizzati direttamente da un’impresa o per le start-up.`}
+  faqs={faqs} related={['home', 'negozi', 'capannoni', 'locati', 'coefficienti', 'aliquote', 'f24']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="uffici" lang={lang} href={route('home', lang)} />
+  <h2>Il moltiplicatore {moltiplicatore('A10')}: perché un ufficio paga meno di una casa</h2>
+  <p>Il comma 745 esclude espressamente la categoria A/10 dal moltiplicatore {moltiplicatore('A2')} del gruppo A e le assegna {moltiplicatore('A10')}, alla lettera d. A parità di rendita, un ufficio ha quindi una base imponibile pari alla metà di quella di un’abitazione. Nella realtà le rendite degli uffici sono spesso più alte di quelle delle case vicine, per cui la differenza effettiva si riduce. La tabella mette a confronto, con la stessa rendita e la stessa aliquota, le principali categorie usate per attività economiche.</p>
+  <ContentTable caption={`Rendita di ${$(R)} e aliquota dell’${al(L.altri_max)}`} headers={['Immobile', 'Moltiplicatore', 'Base imponibile', 'IMU annua']} align={['l', 'r', 'r', 'r']} rows={catRows} />
+
+  <h2>Studio in casa: la categoria decide</h2>
+  <p>Molti professionisti lavorano in un appartamento rimasto accatastato come abitazione. Per l’IMU questo appartamento è un’abitazione a tutti gli effetti: moltiplicatore {moltiplicatore('A2')}, aliquota degli altri fabbricati se non è la residenza del proprietario. Il passaggio in A/10 richiede una variazione catastale con la procedura Docfa, presentata da un tecnico, e ha effetti anche su altre imposte. Conviene fare il conto su entrambe le categorie prima di decidere, tenendo presente che dopo la variazione cambia anche la rendita.</p>
+
+  <h2>Le aliquote dei comuni per gli uffici</h2>
+  <p>La legge non prevede un’aliquota propria per gli A/10: si applica quella degli altri fabbricati. I comuni però possono creare fattispecie dedicate nel prospetto, e {n(conA10)} lo hanno fatto per categorie che includono gli uffici. Le condizioni tipiche riguardano chi usa l’immobile: un’impresa che lo utilizza direttamente, un’impresa costituita da pochi mesi, un ente del terzo settore. Genova riduce l’aliquota per uffici e laboratori di start-up innovative attive nella ricerca, Roma per gli immobili A/10, B e C di proprietà di ONLUS da loro utilizzati. Venezia applica agli immobili A/10, B e C un’aliquota diversa da quella ordinaria degli altri fabbricati, che nel suo prospetto è {al(ratesOf(venezia).altri)}.</p>
+
+  <h2>Ufficio affittato, vuoto o usato dal titolare</h2>
+  <p>L’imposta segue il proprietario in tutti i casi. Se l’ufficio è vuoto paga l’aliquota ordinaria; se è affittato, quella eventualmente prevista per gli immobili locati; se il proprietario ci esercita la sua attività, quella per gli immobili utilizzati direttamente, se il comune la prevede. La riduzione del canone concordato non riguarda gli uffici: il comma 760 la limita alle abitazioni locate secondo la legge 431 del 1998. Per gli uffici concessi in leasing paga l’utilizzatore, dalla stipula del contratto (comma 743).</p>
+
+  <h2>Uffici pubblici e del gruppo B</h2>
+  <p>Gli immobili del gruppo B, che comprende tra l’altro uffici pubblici, scuole e ospedali senza fine di lucro, hanno il moltiplicatore {moltiplicatore('B')}. Gli immobili posseduti dallo Stato, dai comuni e, sul proprio territorio, da regioni, province ed enti del servizio sanitario nazionale sono esenti se destinati esclusivamente ai compiti istituzionali (comma 759, lettera a). Un ufficio privato affittato a un ente pubblico, invece, resta un A/10 di proprietà privata e paga regolarmente.</p>
+
+  <h2>Pagamento</h2>
+  <p>Gli uffici si versano con il codice tributo {P.f24.altri}, indicando il codice catastale del comune. Non c’è quota statale, che riguarda solo il gruppo D. Chi possiede uffici in comuni diversi compila un rigo per ciascun comune. L’acconto del 16 giugno usa l’aliquota dell’anno precedente, il saldo del 16 dicembre quella del 2026.</p>
+  <h2>Esempio: ufficio acquistato ad aprile</h2>
+  <p>Chi compra un ufficio con {$(R)} di rendita con rogito il 15 aprile {P.year} lo possiede per 16 giorni su 30 di quel mese: aprile è suo, perché il giorno del trasferimento va all’acquirente (comma 761). Deve quindi l’IMU per {t.acquirente} mesi, {$(acq.imposta)} all’{al(L.altri_max)}, mentre il venditore paga i restanti {t.venditore}. L’acconto di giugno copre i mesi posseduti nel primo semestre, il saldo di dicembre il resto: il calcolatore li separa indicando i mesi e il periodo «fino a dicembre».</p>
+
+  <h2>Che cosa controllare nella visura</h2>
+  <p>La visura di un ufficio riporta categoria, classe, consistenza in vani e rendita. La categoria deve essere A/10: se compare ancora una categoria abitativa, l’IMU va pagata su quella finché la variazione non risulta in catasto. Se due unità sono state fuse in un unico studio senza aggiornare il catasto, ciascuna conserva la propria rendita e va indicata separatamente. La rendita si usa così come è scritta, senza aggiungere da sé il 5 %, che entra nel calcolo una sola volta.</p>
+
+</Guide>

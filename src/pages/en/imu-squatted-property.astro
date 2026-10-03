@@ -1,0 +1,56 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const props = [['Flat A/3', 'A3', 650], ['Holiday villa A/7', 'A7', 1300], ['Shop C/1', 'C1', 2000], ['Office A/10', 'A10', 1600]] as const;
+const rows = props.map(([l, c, r]) => { const y = calcolaImu({ categoria: c, rendita: r, aliquota: MAX }); return [l, $(r), $(y.imposta), $(y.imposta / 12)]; });
+const R = 650;
+const year = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const sinceMarch = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, mesi: 2, periodo: 'inizio' });
+const faqs = [
+  { q: 'Squatters moved into my Italian holiday home while I was abroad. Do I still owe IMU?', a: `Not for the period the home is occupied and you cannot use or dispose of it, provided you have filed a criminal complaint (denuncia) with the Italian authorities or criminal proceedings have started. That is the exemption of paragraph 759 g-bis of Law 160/2019. On a flat with ${$(R)} of rendita at ${al(MAX)}, a full year is worth ${$(year.imposta)}.` },
+  { q: 'Can I file the complaint from outside Italy?', a: 'A complaint can be filed with the Italian police or Carabinieri, or through a lawyer acting for you; Italian consulates can advise on the options from abroad. What matters for IMU is that a complaint for the offences named in the law exists, or that criminal proceedings for the occupation have begun. Keep a copy: you will need it for the comune.' },
+  { q: 'Is a tenant who stopped paying rent the same as a squatter for IMU?', a: 'No. A tenant who stops paying or stays after the lease ends had a right to be there, and the remedy is normally an eviction through the civil courts. The IMU exemption targets occupation without any title, linked to the criminal offences of trespass into a dwelling (article 614) and invasion of land or buildings (article 633). During a rent dispute the owner keeps paying IMU.' },
+];
+---
+<Guide lang={lang} id="occupati" title={`IMU on Squatted Property 2026: Exempt After a Complaint`}
+  description={`IMU on a home or shop in Italy occupied by squatters: exempt while occupied once a criminal complaint is filed, how to tell the comune, and after eviction.`}
+  h1="IMU when your Italian property is occupied by squatters"
+  intro="Coming back to find strangers living in your Italian property is every absentee owner’s fear. The law at least spares you the IMU while you cannot get it back."
+  resume={`If your Italian property is occupied illegally, so that you can neither use it nor dispose of it, you do not owe IMU for the period of the occupation, provided a complaint has been filed with the judicial authorities for trespass into a dwelling (article 614, second paragraph, of the criminal code) or for invasion of land or buildings (article 633), or a complaint or criminal proceedings have been brought for the illegal occupation. The exemption is in paragraph 759 g-bis of Law 160/2019 and covers any property, not only homes. You must tell the comune that you meet the conditions, using the IMU return form, and tell it again when the occupation ends. On a flat with ${$(R)} of cadastral income at ${al(MAX)}, the exemption is worth ${$(year.imposta)} over a full year; with the complaint filed on 1 March, you would pay only for January and February, ${$(sinceMarch.imposta)}. Owners who live abroad and visit rarely are the most exposed, which makes the paperwork worth knowing in advance.`}
+  faqs={faqs} related={['home', 'esteri', 'esenzioni', 'inagibili', 'dichiarazione', 'rimborso', 'secondaCasa', 'locati']} sources={src(lang, 'legge160', 'mef_versamenti', 'legge296')}>
+  <MiniSim client:visible kind="occupati" lang={lang} href={route('home', lang)} />
+  <h2>The two conditions</h2>
+  <p>The first condition is practical: the property must be neither usable nor available to you. You cannot live in it, let it or sell it with vacant possession because someone occupies it without any right. The second is formal: a complaint must have been filed with the judicial authorities for one of the two offences named in the law, or a complaint or criminal proceedings must exist for the illegal occupation. Without a complaint there is no exemption, however obvious the occupation may be. The date of the complaint marks the start of the exempt period.</p>
+
+  <h2>What it saves, by type of property</h2>
+  <p>The exemption is total for the months concerned: no IMU to the comune and none to the State. The table shows what a full year of occupation saves on typical properties at the most common rate.</p>
+  <ContentTable caption={`IMU at ${al(MAX)}, one owner`} headers={['Property', 'Rendita', 'IMU per year', 'Per month of occupation']} align={['l', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Filing the complaint</h2>
+  <p>In Italy a criminal complaint (denuncia or querela) is filed with the Polizia di Stato, the Carabinieri or the public prosecutor’s office, in person or through a lawyer. Owners living abroad usually instruct an Italian lawyer, who can also start the steps to recover the property. Ask for a copy of the complaint with its filing date: it is the evidence the comune will expect, and it fixes the date from which the exemption runs.</p>
+
+  <h2>Telling the comune</h2>
+  <p>The law requires you to inform the comune that you meet the conditions, using the IMU return form provided for by paragraph 768-bis, and to file a similar return when the right to the exemption ends. The return is filed online, directly or through an intermediary such as a CAF or a commercialista. If you simply stop paying without filing it, the comune sees missing payments and may send an assessment, which you would then have to contest. Our <a href={route('dichiarazione', lang)}>IMU return guide</a> covers the form and the deadline of 30 June of the following year.</p>
+
+  <h2>Instalments during an occupation</h2>
+  <p>The June instalment covers January to June and the December balance the rest of the year. If the occupation starts in the first half of the year, the June payment is already lower; if it starts in the second half, you pay June in full and the exemption shows up entirely in the December balance. The <a href={route('home', lang)}>calculator</a> lets you enter the months of ownership that remain taxable and gives each instalment.</p>
+
+  <h2>Squatters, tenants and guests</h2>
+  <p>The exemption is not meant for every unwanted occupant. A tenant in arrears, a former tenant who will not leave, or a relative who stays on after an informal arrangement had some title to be there; recovering the property then usually goes through the civil courts, and IMU remains due as for a let or empty home. Check with your lawyer which situation you are in before applying the exemption.</p>
+
+  <h2>Preventing the problem when you are away</h2>
+  <p>Absentee owners are the usual victims, and a few habits make a difference for both the property and the paperwork. Ask a neighbour, a caretaker or a local agent to check the property regularly and to tell you at once if something changes: the sooner the complaint is filed, the sooner the exemption starts and the stronger your position in recovering the home. Keep your Italian tax code, the cadastral details from the visura and a copy of your title deed accessible from abroad, since the police, your lawyer and the comune will all ask for them. Utility contracts in your name are also evidence of possession and use before the occupation.</p>
+
+  <h2>After the property is freed</h2>
+  <p>IMU becomes due again from the month the occupation ends, at the comune’s rate for the property’s situation. Squatted homes are often left damaged; if the property cannot be used until repairs are done, the relief for <a href={route('inagibili', lang)}>unfit buildings</a> may apply, with a technician’s report. If you paid IMU for months when the property was already occupied and the complaint filed, you can ask the comune for a refund within five years of the payment (Law 296/2006, paragraph 164): see the <a href={route('rimborso', lang)}>refund guide</a>.</p>
+</Guide>

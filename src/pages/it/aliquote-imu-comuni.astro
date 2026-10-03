@@ -1,0 +1,46 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import AliquoteComune from '../../components/calc/AliquoteComune';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { COUNTS, N_IMU, conProspetto, distribuzione } from '../../lib/stats';
+import { REGIONI, COMUNI, ratesOf } from '../../lib/comuni';
+import { formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const n = (v: number) => formatNumber(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const perReg = REGIONI.map((reg) => {
+  const all = COMUNI.filter((c) => c.reg === reg);
+  const p26 = all.filter((c) => c.st === 'P26').length, p25 = all.filter((c) => c.st === 'P25').length;
+  const withP = all.filter((c) => c.st === 'P26' || c.st === 'P25');
+  const media = withP.length ? withP.reduce((a, c) => a + ratesOf(c).altri, 0) / withP.length : 0;
+  return { reg, tot: all.length, p26, p25, media, non: all.filter((c) => ['ILIA', 'IMIS', 'IMI'].includes(c.st)).length };
+});
+const rows = perReg.map((r) => [r.reg.split('/')[0], n(r.tot), n(r.p26), n(r.p25), r.non ? 'no IMU' : al(Math.round(r.media * 1000) / 1000)]);
+const top = distribuzione('ap')[0];
+const faqs = [
+  { q: 'Come trovo le aliquote IMU del mio comune senza leggere la delibera?', a: `Scrivi il nome del comune nel campo qui sopra: ti mostriamo le sei aliquote del prospetto in vigore, quelle dell’anno precedente usate per l’acconto e le eventuali aliquote differenziate. I dati vengono dai prospetti pubblicati dal Dipartimento delle Finanze, letti il ${P.retrieved_at} per ${n(COUNTS.P26 + COUNTS.P25)} comuni.` },
+  { q: 'Che differenza c’è tra delibera e prospetto delle aliquote?', a: 'La delibera è l’atto del consiglio comunale; il prospetto è la tabella standard, generata dall’applicazione del Portale del federalismo fiscale, che ne fa parte integrante. Dal 2025 una delibera senza prospetto non produce effetti, e in caso di contrasto con il regolamento comunale prevale il prospetto (commi 757 e 764 della legge 160 del 2019).' },
+  { q: 'Perché per il mio comune vedo ancora le aliquote 2025?', a: `Perché il comune non ha ancora pubblicato il prospetto 2026: i comuni devono inserirlo entro il 14 ottobre e il Dipartimento lo pubblica entro il 28 ottobre. Fino ad allora valgono le aliquote dell’anno precedente, che restano valide anche per il saldo se il prospetto non arriva in tempo. Oggi sono ${n(COUNTS.P25)} comuni in questa situazione.` },
+];
+---
+<ToolPage lang={lang} id="aliquote" title="Aliquote IMU 2026 per comune: prospetti ufficiali MEF"
+  description={`Aliquote IMU 2026 di ${n(COUNTS.P26 + COUNTS.P25)} comuni dai prospetti del Dipartimento delle Finanze: seconda casa, abitazione di lusso, gruppo D, terreni, aree e aliquote agevolate.`}
+  h1="Aliquote IMU 2026 per comune"
+  intro="Cerca un comune e leggi tutte le aliquote del suo prospetto: quella in vigore, quella dell’anno scorso usata per l’acconto, le aliquote agevolate e le esenzioni decise dal consiglio comunale."
+  resume={`Ogni comune italiano soggetto all’IMU deve approvare ogni anno un prospetto delle aliquote, una tabella standard che il Dipartimento delle Finanze pubblica sul proprio sito e che prevale sul regolamento comunale. Abbiamo scaricato e letto tutti i prospetti 2025 e 2026 disponibili al ${P.retrieved_at}: ${n(COUNTS.P26)} comuni hanno già pubblicato quello del 2026, ${n(COUNTS.P25)} sono ancora fermi al 2025 e ${n(COUNTS.B)} non hanno un prospetto conforme, per cui applicano le aliquote di base della legge 160 del 2019. Per ciascun comune trovi le sei fattispecie principali: altri fabbricati, abitazione principale di lusso, gruppo D, aree fabbricabili, terreni agricoli e fabbricati rurali strumentali. Sotto compaiono le aliquote differenziate, con il testo del prospetto: canone concordato, comodato, negozi, alberghi. In Friuli Venezia Giulia e in Trentino-Alto Adige, ${n(COUNTS.ILIA + COUNTS.IMIS + COUNTS.IMI)} comuni, l’IMU non si applica.`}
+  faqs={faqs} related={['home', 'confronto', 'aliquoteBase', 'acconto', 'saldo', 'novita', 'regimi']} sources={src(lang, 'mef_prospetti', 'mef_ricerca', 'legge160', 'istat')}>
+  <AliquoteComune slot="tool" client:load lang={lang} />
+  <h2>Cosa c’è nel prospetto di un comune</h2>
+  <p>Il prospetto riporta per prima cosa le fattispecie di base previste dalla legge: l’aliquota dell’abitazione principale di lusso, la scelta sull’assimilazione della casa dell’anziano ricoverato, i fabbricati rurali strumentali, il gruppo D, i terreni agricoli, le aree fabbricabili e gli altri fabbricati. Poi, se il comune ha deciso di differenziare, le fattispecie aggiuntive scelte da un elenco chiuso fissato dal ministero: per tipo di contratto, per categoria catastale, per zona del territorio, per requisiti di chi usa l’immobile. Infine le esenzioni che il regolamento comunale prevede, per esempio per gli immobili dati in comodato al comune o agli enti del terzo settore.</p>
+  <p>Il testo delle aliquote differenziate lo riportiamo così come compare nel prospetto, anche nella versione inglese del sito: è il testo che fa fede. L’aliquota più diffusa per l’abitazione principale di lusso è lo {al(top.aliquota)}, scelto da {n(top.n)} comuni su {n(conProspetto.length)}.</p>
+  <h2>Copertura per regione</h2>
+  <p>Comuni per regione secondo l’elenco ISTAT, comuni con prospetto 2026 e con prospetto 2025, e media semplice dell’aliquota degli altri fabbricati tra i comuni con prospetto.</p>
+  <ContentTable headers={['Regione', 'Comuni', 'Prospetto 2026', 'Prospetto 2025', 'Media altri fabbricati']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+  <h2>Quanto sono aggiornati questi dati</h2>
+  <p>I prospetti sono stati letti il {P.retrieved_at} dagli archivi regionali del Dipartimento delle Finanze. Il termine per l’inserimento dei prospetti 2026 scade il 14 ottobre e la pubblicazione il 28 ottobre: aggiorneremo l’elenco dopo quella data, quando si saprà quali comuni restano sulle aliquote del 2025 anche per il saldo. Su {n(N_IMU)} comuni soggetti all’IMU la copertura è del {formatPercent((COUNTS.P26 + COUNTS.P25) / N_IMU, 1, lang)}. Prima di pagare puoi sempre aprire il prospetto originale dal link al sito del Dipartimento; per il calcolo completo con acconto, saldo e righe F24 usa il <a href={route('home', lang)}>calcolo IMU</a>.</p>
+  <h2>Come leggiamo i prospetti</h2>
+  <p>Ogni prospetto è un PDF generato dall’applicazione ministeriale con una struttura fissa. Uno script estrae le aliquote delle fattispecie di base, che hanno sempre la stessa forma, e le aliquote differenziate con le loro condizioni; abbina ogni prospetto al codice catastale del comune e tiene il più recente. Le aliquote estratte sono state controllate contro i limiti di legge: nessuna supera l’{al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} e nessuna aliquota del gruppo D scende sotto lo {al(P.limiti.D_min)}. Il metodo completo è nella pagina <a href={route('method', lang)}>metodologia</a>.</p>
+</ToolPage>

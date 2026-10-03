@@ -1,0 +1,33 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('F839')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const R = 700;
+const flat = calcolaImu({ categoria: 'A4', rendita: R, aliquota: r.altri });
+const half = calcolaImu({ categoria: 'A4', rendita: R, aliquota: r.altri, quota: 50 });
+const agreed = calcolaImu({ categoria: 'A4', rendita: R, aliquota: r.altri, canoneConcordato: true });
+const faqs = [
+  { q: 'My siblings and I inherited a flat in Naples: who pays the IMU?', a: `Each co-owner pays his or her own share with a separate payment; there is no joint bill. At Naples’ ${al(r.altri)} rate, a flat with ${$(R)} of cadastral income costs ${$(flat.imposta)} a year in total, so a 50 % owner pays ${$(half.imposta)}. A sibling who lives there as a registered resident pays nothing on his or her share.` },
+  { q: 'Does Naples give any IMU discount for letting a flat?', a: `The comune’s schedule has no targeted rates, so every let flat starts from ${al(r.altri)}. The only discount is the national one for agreed-rent leases (canone concordato), which cuts the tax to 75 %: ${$(agreed.imposta)} instead of ${$(flat.imposta)} on a ${$(R)} rendita.` },
+  { q: 'When must IMU on a Naples property be paid in 2026?', a: `By Tuesday 16 June 2026 for the first instalment and by Wednesday 16 December 2026 for the balance, or the whole year by 16 June. Naples has not published a ${P.year} schedule as of ${P.retrieved_at}, so both instalments are worked out at ${al(r.altri)} for a second home unless a new schedule arrives by 28 October.` },
+];
+---
+<CityPage lang={lang} city="napoli" rendita={R} title={`IMU Naples 2026: One Rate of ${al(r.altri)} and Calculator`}
+  description={`IMU in Naples for 2026: one ${al(r.altri)} rate on second homes, shops, offices, land and group D, luxury main homes at ${al(r.ap)}. Calculator for owners.`}
+  h1="IMU in Naples in 2026: rates and calculator"
+  intro="Naples is the simplest big city for IMU: one rate for almost every kind of property and no targeted discounts in its schedule."
+  resume={`Naples applies ${al(r.altri)} to every building that is not a main home, from the inherited family flat to a shop in the centro storico, and the same rate to group D buildings, building plots and farmland. Luxury main homes pay ${al(r.ap)} and rural farm buildings ${al(r.rur)}. The schedule in force, resolution no. ${c.delibera} of ${c.data}, is still the 2025 one as of ${P.retrieved_at}; unless the comune publishes a ${P.year} schedule by 28 October, it applies to the December balance too. A flat in category A/4 with ${$(R)} of cadastral income pays ${$(flat.imposta)} a year, ${$(flat.acconto)} in June and the same in December. When a flat is owned by heirs living elsewhere in Italy or abroad, each of them pays only on his or her share, with a separate payment, and the national reliefs for free loans, agreed-rent leases and pensioners abroad still apply.`}
+  faqs={faqs} related={['home', 'esteri', 'eredita', 'concordato', 'aliquote', 'confronto', 'secondaCasa']}>
+  <h2>One rate, many owners</h2>
+  <p>Because Naples has no targeted rates, the only thing that changes the tax between two flats is the cadastral income and the category multiplier. A shop (C/1) with the same rendita as a flat pays about a third as much, because its multiplier is {P.base.moltiplicatori.C1} instead of {P.base.moltiplicatori.A}. Co-owners split the yearly amount in proportion to their shares, each with an independent obligation (paragraph 743).</p>
+  <h2>National reliefs still apply</h2>
+  <p>A flat lent free to a child or parent who lives there, under a registered contract, has its taxable value halved if the owner meets the conditions of paragraph 747. Pensioners living abroad with a pension earned under a social security agreement with Italy pay half on one unlet dwelling. The <a href={route('esteri', lang)}>non-resident guide</a> lists the conditions.</p>
+  <h2>Elderly owners in care</h2>
+  <p>Naples treats the home of an elderly or disabled owner who has moved permanently into a care home as a main home, as long as it is not let. In that case it pays no IMU, whoever looks after it.</p>
+</CityPage>

@@ -1,0 +1,78 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { ratesOf } from '../../lib/comuni';
+import { distribuzione, quanti, media, capoluoghi, cambiati, conProspetto, COUNTS, N_IMU, percent } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => (v < 0 ? 'esenti' : formatAliquota(v, lang));
+const n = (v: number) => formatNumber(v, 0, lang);
+const AB = P.aliquote_base, L = P.limiti;
+const tot = conProspetto.length;
+const MAXM = L.altri_max + L.maggiorazione_ex_tasi;
+const legge = [
+  ['Abitazione principale A/1, A/8, A/9', al(AB.ap), `da 0 a ${al(L.ap_max)}`, 'comma 748'],
+  ['Fabbricati rurali strumentali', al(AB.rur), `da 0 a ${al(AB.rur)}`, 'comma 750'],
+  ['Terreni agricoli', al(AB.ter), `da 0 a ${al(L.altri_max)}`, 'comma 752'],
+  ['Gruppo D (escluso D/10)', al(AB.D), `da ${al(L.D_min)} a ${al(L.altri_max)}`, 'comma 753'],
+  ['Altri fabbricati e aree fabbricabili', al(AB.altri), `da 0 a ${al(L.altri_max)}`, 'comma 754'],
+  ['Maggiorazione ex TASI (solo comuni che la applicavano)', `fino a +${al(L.maggiorazione_ex_tasi)}`, `massimo ${al(MAXM)}`, 'comma 755'],
+];
+const fatt = [['altri', 'Altri fabbricati'], ['ap', 'Abitazione di lusso'], ['D', 'Gruppo D'], ['aree', 'Aree fabbricabili'], ['ter', 'Terreni agricoli'], ['rur', 'Rurali strumentali']] as const;
+const distRows = fatt.map(([f, l]) => { const d = distribuzione(f).slice(0, 3); return [l, ...d.map((x) => `${al(x.aliquota)} (${n(x.n)})`)]; });
+const at = (f: 'altri' | 'ap' | 'D' | 'aree' | 'ter' | 'rur', v: number) => quanti(f, (x) => x === v);
+const altriMax = at('altri', L.altri_max), altriBase = at('altri', AB.altri), altriSotto = quanti('altri', (x) => x < AB.altri), altriZero = at('altri', 0), altriMagg = quanti('altri', (x) => x > L.altri_max);
+const apMax = quanti('ap', (x) => x >= L.ap_max), apBase = at('ap', AB.ap), apSotto = quanti('ap', (x) => x < AB.ap);
+const terEs = quanti('ter', (x) => x < 0), rurZero = at('rur', 0);
+const capRows = capoluoghi.map((c) => { const r = ratesOf(c); return [`${c.name} (${c.prov})`, al(r.altri), al(r.ap), al(r.D), al(r.ter), c.st === 'P26' ? '2026' : '2025']; });
+const camb = cambiati('altri');
+const su = camb.filter((c) => c.rates!.altri > c.prev!.altri).length;
+const R = 800;
+const casaMax = calcolaImu({ categoria: 'A2', rendita: R, aliquota: L.altri_max }).imposta, casaBase = calcolaImu({ categoria: 'A2', rendita: R, aliquota: AB.altri }).imposta;
+const faqs = [
+  { q: 'Qual è l’aliquota IMU più diffusa nel 2026?', a: `Per gli altri fabbricati, cioè seconde case, immobili affittati, negozi e uffici, è l’${al(L.altri_max)}: la applicano ${n(altriMax)} comuni sui ${n(tot)} con un prospetto, il ${formatPercent(percent(altriMax, tot), 0, lang)}. Per l’abitazione principale di lusso prevale lo ${al(L.ap_max)}. I dati vengono dai prospetti pubblicati sul sito del Dipartimento delle Finanze.` },
+  { q: `Un comune può applicare un’aliquota IMU superiore all’${al(L.altri_max)}?`, a: `Sì, fino all’${al(MAXM)}, ma solo se nel 2015 applicava la maggiorazione TASI e l’ha confermata fino al 2019 (comma 755). Da allora può soltanto ridurla. Nei prospetti letti sono ${n(altriMagg)} i comuni sopra il massimo ordinario per gli altri fabbricati, tra cui Roma, Milano e Verona.` },
+  { q: 'Quanti comuni hanno azzerato l’IMU sulle seconde case?', a: `Pochi: ${n(altriZero)} prospetti indicano un’aliquota zero per gli altri fabbricati, che la legge consente (comma 754). Molto più comune è l’azzeramento per i fabbricati rurali strumentali, deciso da ${n(rurZero)} comuni, e l’esenzione dei terreni nei comuni montani, che riguarda ${n(terEs)} prospetti.` },
+  { q: 'Le aliquote 2026 sono già definitive?', a: `Non per tutti i comuni. ${n(COUNTS.P26)} hanno pubblicato il prospetto 2026; per gli altri ${n(COUNTS.P25)} vale quello 2025 finché non ne pubblicano uno nuovo. Il termine è il 28 ottobre 2026, con inserimento entro il 14 ottobre: dopo quella data, chi non ha pubblicato mantiene le aliquote dell’anno precedente anche per il saldo (comma 767).` },
+];
+---
+<Guide lang={lang} id="aliquoteBase" title="Aliquote IMU 2026: base di legge e scelte dei comuni"
+  description={`Aliquote IMU 2026: base e limiti della legge 160/2019 e aliquote reali di ${n(tot)} comuni, dalla più diffusa (${al(L.altri_max)}) ai capoluoghi, con le variazioni sul 2025.`}
+  h1="Le aliquote IMU 2026 in Italia: cosa dice la legge e cosa fanno i comuni"
+  intro="La legge fissa un’aliquota di base e una forbice; dentro quella forbice ogni comune sceglie. Qui trovi entrambe le cose, con i numeri di tutti i prospetti."
+  resume={`Le aliquote IMU 2026 sono decise da ciascun comune entro i limiti della legge 160 del 2019. Per gli altri fabbricati, la categoria che comprende seconde case, immobili affittati, negozi e uffici, l’aliquota di base è lo ${al(AB.altri)} e il comune può portarla da zero all’${al(L.altri_max)}, o all’${al(MAXM)} se manteneva la vecchia maggiorazione TASI. Abbiamo letto i prospetti di ${n(tot)} comuni sui ${n(N_IMU)} soggetti all’IMU: ${n(altriMax)} applicano l’aliquota massima ordinaria, ${n(altriBase)} sono rimasti alla base e ${n(altriSotto)} sono scesi sotto. Su una casa con ${$(R)} di rendita la scelta pesa: ${$(casaMax)} l’anno all’${al(L.altri_max)} contro ${$(casaBase)} all’aliquota di base. Per l’abitazione principale di lusso la base è lo ${al(AB.ap)}, per i terreni lo ${al(AB.ter)}, per il gruppo D lo ${al(AB.D)} con una quota fissa allo Stato. Tra il 2025 e il 2026, ${n(camb.length)} comuni hanno cambiato l’aliquota degli altri fabbricati.`}
+  faqs={faqs} related={['home', 'aliquote', 'confronto', 'secondaCasa', 'lusso', 'capannoni', 'terreni', 'novita', 'saldo']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_ricerca', 'istat')}>
+  <MiniSim client:visible kind="aliquoteBase" lang={lang} href={route('aliquote', lang)} />
+  <h2>Le aliquote di base e i margini dei comuni</h2>
+  <p>I commi da 748 a 755 della legge di bilancio 2020 stabiliscono, per ogni fattispecie, un valore di partenza e i limiti entro cui il consiglio comunale può muoversi. Se un comune non ha mai approvato un prospetto conforme, si applicano direttamente le aliquote di base: è il caso di {n(COUNTS.B)} comuni nel nostro archivio.</p>
+  <ContentTable headers={['Fattispecie', 'Aliquota di base', 'Margine del comune', 'Riferimento']} align={['l', 'r', 'l', 'l']} rows={legge} />
+  <p>Dal 2025 il comune può differenziare le aliquote solo per le fattispecie elencate nel decreto ministeriale previsto dal comma 756, e deve farlo con il prospetto generato sul Portale del federalismo fiscale. In caso di contrasto tra prospetto e regolamento comunale prevale il prospetto (comma 764).</p>
+
+  <h2>Le scelte dei comuni, fattispecie per fattispecie</h2>
+  <p>La tabella riporta, per ogni fattispecie, le tre aliquote più frequenti nei {n(tot)} prospetti in vigore, con il numero di comuni che le applicano. Per i terreni, «esenti» indica i comuni che il prospetto classifica come montani o di collina ai sensi della circolare del 1993.</p>
+  <ContentTable headers={['Fattispecie', '1ª più diffusa', '2ª', '3ª']} align={['l', 'r', 'r', 'r']} rows={distRows} />
+  <p>L’aliquota media degli altri fabbricati, calcolata sui comuni con prospetto, è {al(Math.round(media('altri') * 1000) / 1000)}: più vicina al massimo che alla base. Per l’abitazione principale di lusso, {n(apMax)} comuni applicano lo {al(L.ap_max)} o più, {n(apBase)} restano allo {al(AB.ap)} e {n(apSotto)} scendono sotto: le ville e i castelli abitati dal proprietario sono pochi, e i comuni li trattano in modo molto vario.</p>
+
+  <h2>Seconde case e immobili affittati: il massimo è la norma</h2>
+  <p>La fattispecie «altri fabbricati» è quella che porta più gettito, e i comuni la usano di conseguenza. L’{al(L.altri_max)} è applicato da {n(altriMax)} comuni, il {formatPercent(percent(altriMax, tot), 0, lang)} di quelli con prospetto. Restano all’aliquota di base dello {al(AB.altri)} in {n(altriBase)}, e {n(altriSotto)} scelgono un’aliquota generale più bassa della base.</p>
+  <p>Molti prospetti affiancano all’aliquota generale aliquote ridotte per situazioni precise: case affittate a canone concordato, comodati a parenti, alloggi locati a studenti, botteghe storiche. Altri alzano l’aliquota per le abitazioni tenute a disposizione. Queste aliquote differenziate non compaiono nella tabella perché valgono solo a certe condizioni; la <a href={route('aliquote', lang)}>ricerca per comune</a> le mostra tutte, con il testo del prospetto.</p>
+
+  <h2>Le aliquote dei capoluoghi</h2>
+  <p>Le città capoluogo di provincia applicano quasi tutte il massimo sugli altri fabbricati, e una parte consistente supera l’{al(L.altri_max)} grazie alla maggiorazione. La colonna «prospetto» indica se l’aliquota viene già dal prospetto 2026 o se è ancora quella 2025. Trieste, Udine, Trento, Bolzano e gli altri capoluoghi del Friuli Venezia Giulia e del Trentino-Alto Adige non compaiono perché lì l’IMU non si applica.</p>
+  <ContentTable headers={['Capoluogo', 'Altri fabbricati', 'Ab. di lusso', 'Gruppo D', 'Terreni', 'Prospetto']} align={['l', 'r', 'r', 'r', 'r', 'r']} rows={capRows} />
+
+  <h2>Cosa è cambiato rispetto al 2025</h2>
+  <p>Dei comuni che hanno pubblicato un prospetto 2026 e ne avevano uno per il 2025, {n(camb.length)} hanno modificato l’aliquota degli altri fabbricati: {n(su)} l’hanno aumentata e {n(camb.length - su)} l’hanno ridotta. Per i contribuenti di questi comuni l’acconto di giugno, calcolato con l’aliquota dell’anno precedente, e il saldo di dicembre non coincidono: il saldo recupera la differenza. La guida sulle <a href={route('novita', lang)}>novità IMU 2026</a> spiega il conguaglio.</p>
+
+  <h2>Terreni, rurali e gruppo D</h2>
+  <p>Per i terreni agricoli il dato dominante è l’esenzione: {n(terEs)} prospetti indicano i terreni come esenti perché il comune ricade nelle aree montane o di collina. Altri comuni sono parzialmente delimitati, e lì l’esenzione vale solo per una parte del territorio. Dove si paga, l’aliquota più frequente è il massimo dell’{al(L.altri_max)}. I fabbricati rurali strumentali hanno un tetto basso, {al(AB.rur)}, e {n(rurZero)} comuni li hanno azzerati. Nel gruppo D, dove lo Stato incassa comunque lo {al(L.D_quota_stato)}, il comune può solo scegliere quanto aggiungere, fino all’{al(L.altri_max)} o oltre con la maggiorazione.</p>
+
+  <h2>Come leggere questi numeri</h2>
+  <p>Le statistiche contano i comuni, non i contribuenti: un piccolo comune alpino pesa quanto Roma. Riguardano l’aliquota generale di ogni fattispecie, non le aliquote differenziate. E fotografano i prospetti pubblicati al 3 ottobre 2026: fino al 28 ottobre altri comuni possono pubblicare il prospetto 2026 e cambiare il quadro. Per il calcolo della tua imposta conta sempre l’aliquota del tuo comune, che il <a href={route('home', lang)}>calcolatore IMU</a> legge direttamente dal prospetto, e il <a href={route('confronto', lang)}>confronto tra comuni</a> mette fianco a fianco due città sulla stessa casa.</p>
+</Guide>

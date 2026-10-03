@@ -1,0 +1,42 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import RavvedimentoCalc from '../../components/calc/RavvedimentoCalc';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { ravvedimento } from '../../lib/engine/imu';
+import { formatMoney, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const RV = P.ravvedimento;
+const $ = (v: number) => formatMoney(v, 2, lang);
+const pc = (v: number, d = 2) => formatPercent(v, d, lang);
+const I = 1000;
+const casi = [[5, '2026-06-21'], [14, '2026-06-30'], [25, '2026-07-11'], [60, '2026-08-15'], [120, '2026-10-14'], [400, '2027-07-21']] as const;
+const rows = casi.map(([g, d]) => { const r = ravvedimento({ imposta: I, scadenza: P.scadenze.acconto, pagamento: d }); return [String(r.giorni), pc(r.sanzionePct, 3), $(r.sanzione)]; });
+const piena = RV.sanzione_base, meta = RV.sanzione_base * RV.riduzione_entro_90_giorni;
+const faqs = [
+  { q: 'Ho dimenticato l’acconto IMU di giugno: quanto pago se verso a luglio?', a: `Se versi entro 30 giorni dalla scadenza, la sanzione è un decimo del ${pc(meta, 1)}, cioè l’${pc(meta * RV.frazioni.entro_30, 2)} dell’imposta: su ${formatMoney(I, 0, lang)} di acconto sono ${$(I * meta * RV.frazioni.entro_30)}, più gli interessi al tasso legale per i giorni di ritardo. Entro 14 giorni costa ancora meno, perché la sanzione scende di un quindicesimo al giorno.` },
+  { q: 'Come si compila l’F24 per il ravvedimento dell’IMU?', a: `Si usa la sezione «IMU e altri tributi locali» con lo stesso codice tributo della rata non pagata (per esempio ${P.f24.altri} per una seconda casa), il codice catastale del comune e l’anno di riferimento. L’importo è la somma di imposta, sanzione ridotta e interessi; si barra la casella «Ravv.» e quella di acconto o saldo.` },
+  { q: 'Posso fare il ravvedimento se il comune mi ha già mandato un avviso?', a: 'No. Il ravvedimento è possibile solo finché la violazione non è stata constatata e non sono iniziati controlli di cui hai avuto formale conoscenza (art. 13 del D.Lgs. 472/1997). Dopo un avviso di accertamento si applicano le sanzioni dell’atto, con le riduzioni previste se paghi entro i termini indicati.' },
+];
+---
+<ToolPage lang={lang} id="ravvedimento" title="Ravvedimento operoso IMU 2026: sanzione ridotta e F24"
+  description={`Ravvedimento operoso IMU 2026: sanzione del ${pc(piena, 0)} ridotta a 1/10, 1/9, 1/8 o 1/7 secondo il ritardo, 1/15 al giorno nei primi 15 giorni e righe F24.`}
+  h1="Ravvedimento operoso IMU: quanto costa pagare in ritardo"
+  intro="Inserisci l’imposta non versata, la rata saltata e il giorno in cui paghi: il calcolo applica la riduzione corretta della sanzione."
+  resume={`Chi non paga l’IMU entro il 16 giugno o il 16 dicembre rischia una sanzione del ${pc(piena, 0)} dell’importo non versato, ridotta alla metà, il ${pc(meta, 1)}, se il ritardo non supera 90 giorni (art. 13 del D.Lgs. 471/1997, nella versione in vigore per le violazioni dal 1° settembre 2024). Prima che il comune se ne accorga si può rimediare con il ravvedimento operoso dell’art. 13 del D.Lgs. 472/1997, che riduce ancora la sanzione: a un decimo entro 30 giorni, a un nono entro 90 giorni, a un ottavo entro il termine della dichiarazione dell’anno, cioè il 30 giugno dell’anno successivo, a un settimo oltre. Entro 15 giorni la sanzione del ${pc(meta, 1)} scende inoltre di un quindicesimo per ogni giorno di ritardo. Su un acconto di ${formatMoney(I, 0, lang)} pagato con 25 giorni di ritardo la sanzione è ${$(ravvedimento({ imposta: I, scadenza: P.scadenze.acconto, pagamento: '2026-07-11' }).sanzione)}. A imposta e sanzione si aggiungono gli interessi al tasso legale, giorno per giorno.`}
+  faqs={faqs} related={['home', 'acconto', 'saldo', 'scadenze', 'f24', 'dichiarazione', 'rimborso']} sources={src(lang, 'dlgs471', 'dlgs472', 'legge160', 'legge296', 'codici_tributo')}>
+  <RavvedimentoCalc slot="tool" client:load lang={lang} />
+  <h2>Le fasce di riduzione</h2>
+  <p>Sanzione da ravvedimento su un acconto IMU di {formatMoney(I, 0, lang)} scaduto il 16 giugno 2026, secondo il giorno del pagamento. Gli interessi si sommano a parte.</p>
+  <ContentTable headers={['Giorni di ritardo', 'Sanzione sull’imposta', 'Sanzione']} align={['r', 'r', 'r']} rows={rows} />
+  <h2>Gli interessi al tasso legale</h2>
+  <p>Gli interessi maturano giorno per giorno dalla scadenza al pagamento, al tasso di interesse legale fissato ogni anno con decreto del Ministero dell’economia. Il calcolatore li calcola se inserisci il tasso; lo lasciamo vuoto di proposito, perché non pubblichiamo un valore che non abbiamo verificato sulla fonte. Se il ritardo passa da un anno all’altro, gli interessi si calcolano con il tasso di ciascun anno per i giorni corrispondenti.</p>
+  <h2>Come si paga</h2>
+  <p>Nel modello F24 il ravvedimento dell’IMU non ha codici propri per sanzioni e interessi: si sommano all’imposta sul codice tributo della rata (per esempio {P.f24.altri} per gli altri fabbricati, {P.f24.ap} per l’abitazione di lusso), indicando il codice catastale del comune, l’anno d’imposta e barrando la casella del ravvedimento. I codici {P.f24.interessi_accertamento} e {P.f24.sanzioni_accertamento} servono invece per pagare interessi e sanzioni richiesti con un avviso di accertamento. Ogni rigo si arrotonda all’euro.</p>
+  <h2>Quando il ravvedimento non è più possibile</h2>
+  <p>Il ravvedimento è precluso quando la violazione è già stata constatata o sono iniziati controlli di cui il contribuente ha avuto formale conoscenza. Il comune ha tempo fino al 31 dicembre del quinto anno successivo per notificare l’accertamento di un versamento omesso (legge 296 del 2006, comma 161). Più si aspetta, più la frazione cresce: dopo il 30 giugno dell’anno successivo la sanzione ridotta è un settimo del {pc(piena, 0)}, ancora molto meno della sanzione piena.</p>
+  <h2>Il ravvedimento parziale non vale per l’IMU</h2>
+  <p>L’art. 13-bis del D.Lgs. 472/1997 consente di ravvedere a rate un versamento frazionato, ma il suo comma 2 lo limita ai tributi amministrati dall’Agenzia delle entrate: l’IMU, che è un tributo comunale, ne resta fuori. Per l’IMU conviene quindi versare in un’unica volta imposta, sanzione ridotta e interessi della rata che regolarizzi. Se hai già pagato l’imposta in ritardo senza sanzione e interessi, regolarizza la differenza al più presto: per il comune il versamento resta incompleto finché non è completo di tutte e tre le voci. In caso di dubbio, l’ufficio tributi del comune può indicarti come applica la regola.</p>
+</ToolPage>

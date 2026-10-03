@@ -1,0 +1,41 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import AliquoteComune from '../../components/calc/AliquoteComune';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { COUNTS, N_IMU, distribuzione, quanti } from '../../lib/stats';
+import { comune, ratesOf } from '../../lib/comuni';
+import { formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const n = (v: number) => formatNumber(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const dist = distribuzione('altri').slice(0, 8);
+const rows = dist.map((d) => [al(d.aliquota), n(d.n)]);
+const towns = [['Lucca', 'E715'], ['Siena', 'I726'], ['Como', 'C933'], ['Taormina', 'L042'], ['Positano', 'G932'], ['Orvieto', 'G148'], ['Sorrento', 'I862'], ['Bellagio', 'M335']] as const;
+const townRows = towns.map(([nm, code]) => { const c = comune(code); return c ? [nm, c.prov, c.rates ? al(ratesOf(c).altri) : 'n/a', c.st === 'P26' ? '2026' : c.st === 'P25' ? '2025' : 'base'] : [nm, '', 'n/a', '']; });
+const faqs = [
+  { q: 'Where are Italian IMU rates published?', a: `Every comune files a rate schedule (prospetto delle aliquote) with the Department of Finance, which publishes it on finanze.gov.it; it prevails over the comune’s own regulations. We read the ${n(COUNTS.P26 + COUNTS.P25)} schedules available on ${P.retrieved_at} and show them here in English, with a link to the original.` },
+  { q: 'Why is my comune still showing 2025 rates?', a: `Because it has not yet published a ${P.year} schedule. Comuni must upload it by 14 October and it is published by 28 October; until then the previous year’s rates apply, and they keep applying to the December balance if nothing is published in time (paragraph 767). ${n(COUNTS.P25)} comuni are in that situation today.` },
+  { q: 'What does “altri fabbricati” mean in the rate schedule?', a: `“Other buildings”: every building that is not a main home, not a rural farm building and not in cadastral group D. Holiday homes, rented flats, empty houses, shops, offices, garages and cellars that are not pertinenze of a main home all fall here. It is the rate most foreign owners pay; the national base is ${al(P.aliquote_base.altri)}.` },
+];
+---
+<ToolPage lang={lang} id="aliquote" title="IMU Rates by Comune 2026: Official Italian Schedules"
+  description={`IMU rates for ${n(COUNTS.P26 + COUNTS.P25)} Italian comuni from the Department of Finance schedules: second homes, luxury main homes, group D, land, building plots and targeted rates.`}
+  h1="IMU rates by comune for 2026"
+  intro="Search any Italian comune and read every rate in its official schedule: the rate in force, last year’s rate used for the June instalment, the targeted rates and the exemptions the town council chose."
+  resume={`Italian property tax is set town by town. Each of the ${n(N_IMU)} comuni that levy IMU must approve a yearly rate schedule, a standard table that the Department of Finance publishes and that overrides the comune’s own regulations. We downloaded and parsed every 2025 and ${P.year} schedule available on ${P.retrieved_at}: ${n(COUNTS.P26)} comuni have published their ${P.year} schedule, ${n(COUNTS.P25)} are still on 2025 and ${n(COUNTS.B)} have no valid schedule, so the statutory base rates of Law 160/2019 apply there. For each comune you get the six main categories: other buildings (second homes, rentals, shops), luxury main homes, group D, building land, farmland and rural farm buildings. Below them are the targeted rates, quoted in the Italian wording of the schedule, which is the text that counts. Friuli Venezia Giulia and Trentino-Alto Adige, ${n(COUNTS.ILIA + COUNTS.IMIS + COUNTS.IMI)} comuni, do not levy IMU at all.`}
+  faqs={faqs} related={['home', 'confronto', 'esteri', 'secondaCasa', 'aliquoteBase', 'regimi']} sources={src(lang, 'mef_prospetti', 'mef_ricerca', 'legge160', 'istat')}>
+  <AliquoteComune slot="tool" client:load lang={lang} />
+  <h2>How common each second home rate is</h2>
+  <p>The legal range for “other buildings” runs from zero to {al(P.limiti.altri_max)}, or {al(P.limiti.altri_max + P.limiti.maggiorazione_ex_tasi)} with the old TASI surcharge. In practice most comuni cluster at a handful of values. {n(quanti('altri', (v) => v >= P.limiti.altri_max))} comuni charge {al(P.limiti.altri_max)} or more on second homes; {n(quanti('altri', (v) => v < P.aliquote_base.altri))} charge less than the {al(P.aliquote_base.altri)} base.</p>
+  <ContentTable headers={['Second home rate', 'Number of comuni']} align={['r', 'r']} rows={rows} />
+  <h2>Towns popular with foreign buyers</h2>
+  <p>A few comuni where many homes belong to owners living abroad. The rate shown is the one for other buildings in the schedule in force; open the tool above on the town to see its targeted rates.</p>
+  <ContentTable headers={['Comune', 'Province', 'Second home rate', 'Schedule']} align={['l', 'l', 'r', 'r']} rows={townRows} />
+  <h2>Reading an Italian rate schedule</h2>
+  <p>The schedule first lists the categories fixed by law, then any targeted rates the comune chose from a closed list set by the Ministry: by type of lease (canone concordato under Law 431/1998, student lets, free loans to relatives), by cadastral category, by area of town, or by who uses the property. A last section lists the exemptions in the comune’s regulations. We keep the Italian text of the targeted rates because a translation could change their legal meaning; the main categories are translated.</p>
+  <h2>How fresh the data is</h2>
+  <p>The schedules were read on {P.retrieved_at} from the Department of Finance’s regional archives. The {P.year} deadlines are 14 October for upload and 28 October for publication, and we will refresh the data after that date. Coverage is {formatPercent((COUNTS.P26 + COUNTS.P25) / N_IMU, 1, lang)} of comuni that levy IMU. For the full calculation with both instalments and the F24 lines, use the <a href={route('home', lang)}>IMU calculator</a>; the parsing method is described on the <a href={route('method', lang)}>methodology</a> page.</p>
+</ToolPage>

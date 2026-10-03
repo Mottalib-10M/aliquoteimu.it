@@ -1,0 +1,77 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, formatDecimal } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const QQ = formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang);
+const HALF = formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+type Hit = { nome: string; r: number; altri: number };
+const scan = (re: RegExp) => { const out: Hit[] = []; for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) { const c = byCode.get(code); const h = v.d.find((d) => re.test(d[2])); if (c && h) out.push({ nome: c.name, r: h[1], altri: ratesOf(c).altri }); } return out; };
+const libero = scan(/canone libero/);
+const dispo = scan(/Abitazione a disposizione/);
+const turist = scan(/struttura turistico-ricettiva/);
+const studenti = scan(/studenti/);
+const piu = (h: Hit[]) => h.filter((x) => x.r > x.altri).length, meno = (h: Hit[]) => h.filter((x) => x.r < x.altri).length;
+const R = 800, K = 9600;
+const x = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const cc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, canoneConcordato: true });
+const tipi = [
+  ['Canone libero (4+4)', al(MAX), $(x.imposta), formatPercent(x.imposta / K, 1, lang)],
+  ['Canone concordato (3+2)', al(MAX * P.riduzioni.canone_concordato_imposta), $(cc.imposta), formatPercent(cc.imposta / K, 1, lang)],
+  ['Affitto breve o turistico', al(MAX), $(x.imposta), formatPercent(x.imposta / K, 1, lang)],
+  ['Casa sfitta, a disposizione', al(MAX), $(x.imposta), 'nessun canone'],
+];
+const milano = libero.find((h) => h.nome === 'Milano');
+const esempiLib = libero.filter((h) => h.r < h.altri).sort((a, b) => a.r - b.r).slice(0, 8).map((h) => [h.nome, al(h.altri), al(h.r), $(calcolaImu({ categoria: 'A2', rendita: R, aliquota: h.r }).imposta)]);
+const faqs = [
+  { q: 'Chi paga l’IMU di una casa in affitto, proprietario o inquilino?', a: `Il proprietario, o l’usufruttuario. L’inquilino non è soggetto passivo dell’IMU (comma 743 della legge 160/2019) e una clausola del contratto non lo rende tale verso il comune. Per una casa A/2 con ${$(R)} di rendita all’${al(MAX)} il proprietario versa ${$(x.imposta)} l’anno; l’inquilino paga invece la TARI sui rifiuti.` },
+  { q: 'Una casa affittata a canone libero paga più IMU di una sfitta?', a: `Per legge no: entrambe sono «altri fabbricati» e pagano la stessa aliquota. Sono i comuni a distinguere. Nei prospetti letti, ${n(libero.length)} comuni hanno una riga per il canone libero, quasi sempre più bassa dell’ordinaria, e ${n(dispo.length)} ne hanno una per le case a disposizione, più alta in ${n(piu(dispo))} casi.` },
+  { q: 'Gli affitti brevi su piattaforma cambiano l’IMU?', a: `No, se la casa resta un’abitazione: si paga l’aliquota degli altri fabbricati o quella che alcuni comuni fissano per le abitazioni destinate a strutture turistico-ricettive. Le abbiamo trovate in ${n(turist.length)} prospetti, più alte dell’ordinaria in ${n(piu(turist))} comuni e più basse in ${n(meno(turist))}.` },
+  { q: 'Quanta parte dell’affitto se ne va in IMU?', a: `Dipende da rendita e canone. Con ${$(R)} di rendita, un affitto di ${$(K)} l’anno e l’aliquota dell’${al(MAX)}, l’IMU assorbe il ${formatPercent(x.imposta / K, 1, lang)} del canone, circa ${formatDecimal(x.imposta / (K / 12), 1, lang)} mensilità. A canone concordato la quota scende perché l’imposta si paga al ${QQ}.` },
+];
+---
+<Guide lang={lang} id="locati" title={`IMU casa in affitto 2026: chi paga e quali aliquote`}
+  description={`IMU 2026 sugli immobili affittati: paga il proprietario, aliquote comunali per canone libero, concordato, studenti e affitti brevi, quota del canone assorbita.`}
+  h1="IMU sugli immobili affittati: canone libero, concordato, studenti e affitti brevi"
+  intro="Affittare una casa non la rende esente dall’IMU: cambia l’aliquota, a volte, e cambia quanto pesa l’imposta sul reddito che produce."
+  resume={`Un immobile affittato paga l’IMU come qualsiasi immobile diverso dall’abitazione principale, e la paga il proprietario: l’inquilino non è mai tenuto al versamento. La legge 160/2019 prevede un solo trattamento speciale per le case in affitto, la riduzione al ${QQ} per il canone concordato del comma 760. Tutto il resto lo decidono i comuni nei loro prospetti delle aliquote, che possono distinguere tra case locate a canone libero, a canone concordato, a studenti, destinate ad affitti turistici o tenute sfitte. Per un appartamento A/2 con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, l’IMU è ${$(x.imposta)} l’anno: con un canone di ${$(K)} se ne va in imposta il ${formatPercent(x.imposta / K, 1, lang)} dell’affitto. Nei prospetti che abbiamo letto, ${n(libero.length)} comuni hanno un’aliquota dedicata al canone libero, ${n(studenti.length)} una per gli affitti a studenti, ${n(dispo.length)} una per le abitazioni a disposizione e ${n(turist.length)} una per gli usi turistici.`}
+  faqs={faqs} related={['home', 'concordato', 'secondaCasa', 'comodato', 'aliquote', 'confronto', 'esteri', 'acconto']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_agevolazioni', 'mef_versamenti')}>
+  <MiniSim client:visible kind="locati" lang={lang} href={route('home', lang)} />
+  <h2>Proprietario, usufruttuario, inquilino</h2>
+  <p>Il comma 743 elenca i soggetti passivi: il proprietario e il titolare di usufrutto, uso, abitazione, enfiteusi o superficie. Il conduttore non c’è. Questo vale anche quando il contratto prevede che l’inquilino rimborsi l’IMU al proprietario: l’accordo vale tra le parti, ma il comune chiederà sempre l’imposta al proprietario. Unica eccezione è il leasing immobiliare, in cui paga il locatario finanziario per tutta la durata del contratto.</p>
+
+  <h2>Le formule di affitto a confronto</h2>
+  <p>Sulla stessa casa, il tipo di contratto sposta l’imposta solo in due modi: con la riduzione di legge del canone concordato e con le aliquote che il comune può differenziare. La tabella usa l’aliquota massima ordinaria e un canone annuo di {$(K)}, per mostrare quanto pesa l’IMU sul reddito lordo dell’affitto.</p>
+  <ContentTable caption={`Appartamento A/2, rendita ${$(R)}, canone ${$(K)} l’anno, comune senza aliquote differenziate`} headers={['Situazione', 'Aliquota effettiva', 'IMU annua', 'Quota del canone']} align={['l', 'r', 'r', 'r']} rows={tipi} />
+
+  <h2>Quando il comune premia chi affitta</h2>
+  <p>Molti comuni usano l’IMU per spingere i proprietari ad affittare. Nei prospetti compaiono aliquote ridotte per le abitazioni locate a canone libero a chi ci risiede, per gli affitti a studenti universitari, per le case concesse ai servizi di accoglienza. Le righe per il canone libero sono più basse dell’aliquota ordinaria in {n(meno(libero))} comuni su {n(libero.length)}{milano ? `; a Milano, per esempio, la casa affittata a canone libero paga ${al(milano.r)} invece di ${al(milano.altri)}` : ''}. Quelle per gli studenti lo sono in {n(meno(studenti))} comuni su {n(studenti.length)}, soprattutto nelle città universitarie toscane ed emiliane.</p>
+  <ContentTable caption={`Comuni con aliquota ridotta per il canone libero: A/2 con ${$(R)} di rendita`} headers={['Comune', 'Ordinaria', 'Canone libero', 'IMU affittata']} align={['l', 'r', 'r', 'r']} rows={esempiLib} />
+
+  <h2>Le case vuote</h2>
+  <p>L’altra faccia della medaglia sono le abitazioni «a disposizione», cioè non locate e non concesse in comodato. {n(dispo.length)} comuni hanno una riga dedicata e in {n(piu(dispo))} la tassano più dell’aliquota ordinaria, spesso al massimo. Chi tiene una casa sfitta in attesa di venderla, o la usa solo d’estate, deve quindi guardare proprio questa voce del prospetto, che il calcolatore mostra sotto il risultato.</p>
+
+  <h2>Affitti brevi e case vacanza</h2>
+  <p>La locazione per meno di trenta giorni, gestita direttamente o tramite piattaforma, non cambia la categoria catastale della casa. Ai fini IMU resta un’abitazione diversa dalla principale. Una parte dei comuni, {n(turist.length)} nei prospetti letti, ha introdotto una voce per le abitazioni destinate a strutture turistico-ricettive, talvolta con il codice ATECO dell’attività (bed and breakfast, case per vacanze): l’aliquota è più alta dell’ordinaria in {n(piu(turist))} casi e più bassa in {n(meno(turist))}, a seconda che il comune voglia frenare o sostenere il turismo diffuso.</p>
+
+  <h2>Contratto registrato e mesi di locazione</h2>
+  <p>Le precisazioni del prospetto ministeriale sono chiare: per contratti di locazione si intendono soltanto quelli registrati. Un affitto in nero non dà diritto ad alcuna aliquota agevolata, oltre a esporre il proprietario ad altre conseguenze. Quando il contratto inizia o finisce in corso d’anno, l’imposta si divide per mesi: quelli con l’affitto registrato seguono l’aliquota della casa locata, gli altri quella della casa a disposizione, con la regola del comma 761 per il mese a cavallo.</p>
+
+  <h2>Comproprietari e affitto condiviso</h2>
+  <p>Quando la casa affittata appartiene a più persone, per esempio a fratelli che l’hanno ereditata, ognuno versa l’IMU sulla propria quota con un proprio F24, anche se il canone lo incassa uno solo per tutti. Il comune può chiedere a ciascuno soltanto la sua parte. Il comma 777 consente ai comuni di stabilire, con regolamento, che il versamento fatto da un contitolare valga anche per gli altri: prima di pagare con un unico modello conviene verificare che il proprio comune lo abbia previsto. In mancanza, il comune può non riconoscere il versamento cumulativo e chiedere a ciascun contitolare la propria quota, con il rischio di avvisi separati. La guida sull’<a href={route('eredita', lang)}>immobile ereditato</a> descrive il primo anno dopo una successione.</p>
+
+  <h2>Pagamento</h2>
+  <p>Si versa con codice tributo {P.f24.altri} e il codice catastale del comune, in due rate: entro il 16 giugno con l’aliquota dell’anno precedente, entro il 16 dicembre a conguaglio. Se il comune ha introdotto quest’anno un’aliquota agevolata per il tuo tipo di contratto, il risparmio arriva tutto con il <a href={route('saldo', lang)}>saldo</a>. Per un proprietario residente all’estero valgono le stesse aliquote, e il pagamento può avvenire con bonifico verso la tesoreria comunale, come spiega la guida per i <a href={route('esteri', lang)}>residenti all’estero</a>.</p>
+</Guide>

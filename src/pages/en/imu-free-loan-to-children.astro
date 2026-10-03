@@ -1,0 +1,75 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const QQ = formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang);
+const HALF = formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const RID = formatPercent(1 - P.riduzioni.comodato_base, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+let found = 0, cheaper = 0;
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) {
+  const h = v.d.find((d) => /Comodato d'uso gratuito/i.test(d[2])); const c = byCode.get(code);
+  if (h && c) { found++; if (h[1] < ratesOf(c).altri) cheaper++; }
+}
+const R = 650;
+const full = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const lent = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, riduzione: 'comodato' });
+const lux = calcolaImu({ categoria: 'A1', rendita: 1800, aliquota: MAX, riduzione: 'comodato' });
+const scen = [
+  ['Parent owns only the lent flat, lives in the same comune', 'yes', $(lent.imposta)],
+  ['Parent owns the lent flat and own main home, same comune', 'yes', $(lent.imposta)],
+  ['Parent also owns a holiday home', 'no', $(full.imposta)],
+  ['Parent lives in another comune', 'no', $(full.imposta)],
+  ['Loan to a brother, niece or grandchild', 'no', $(full.imposta)],
+  ['Contract never registered', 'no', $(full.imposta)],
+];
+const faqs = [
+  { q: 'I live in London and let my son use my flat in Milan for free. Do I get the IMU reduction?', a: `No. The comune where the flat is located must also be where you, the lender, are resident and actually live. An owner living abroad cannot meet that condition, so the flat pays like any second home: ${$(full.imposta)} a year on a ${$(R)} rendita at ${al(MAX)}. Some comuni have their own lower rate for homes lent to relatives, which the calculator shows when it exists.` },
+  { q: 'Does the free loan reduction apply to luxury homes?', a: `No. Homes in categories A/1, A/8 and A/9 are excluded by paragraph 747 c of Law 160/2019 even when every other condition is met. A signorile flat with a ${$(1800)} rendita lent to a daughter pays the full ${$(lux.imposta)} at ${al(MAX)}, with no halving of the taxable value.` },
+  { q: 'Is a verbal free loan enough for the IMU discount?', a: 'A loan agreed orally is valid under Italian civil law, but for IMU it must be registered with the Agenzia delle Entrate. Registration gives the agreement a certain date that the comune can check. Until the agreement is registered, the legal condition is not met and the home is taxed on its full value.' },
+];
+---
+<Guide lang={lang} id="comodato" title={`IMU Free Loan to Children 2026: Half the Taxable Value`}
+  description={`IMU on a home lent free to a son, daughter or parent: value cut by ${RID}, registered contract, one home only, same comune, and why owners abroad rarely qualify.`}
+  h1="IMU on a home lent free to your child or parent"
+  intro="Italian law halves the IMU base when you let a son, daughter, mother or father live rent-free in your property. The conditions are strict, and most owners living abroad do not meet them."
+  resume={`If you let your child or parent live in an Italian property you own, without charging rent, you may pay IMU on only half the taxable value. Italians call this arrangement comodato d’uso gratuito, a free loan for use. The rule is in paragraph 747 c of Law 160/2019 and every condition must hold at once: the borrower is your child or parent and makes the home his or her registered and actual residence; the loan agreement is registered with the Agenzia delle Entrate; you own no other dwelling in Italy, or only your own main home; you are resident and live in the same comune; the home is not classed A/1, A/8 or A/9. On an A/3 flat with ${$(R)} of cadastral income at ${al(MAX)}, IMU falls from ${$(full.imposta)} to ${$(lent.imposta)} a year. The comune may also set its own rate for lent homes: ${n(found)} rate schedules have one, ${n(cheaper)} of them below the ordinary second home rate.`}
+  faqs={faqs} related={['home', 'esteri', 'secondaCasa', 'concordato', 'primaCasa', 'aliquote', 'dichiarazione', 'f24']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti')}>
+  <MiniSim client:visible kind="comodato" lang={lang} href={route('home', lang)} />
+  <h2>What “comodato” means</h2>
+  <p>A comodato is a contract under the Italian civil code by which one person hands over a property to another to use for free, with the obligation to give it back. It is the standard way Italian families formalise letting a grown-up child live in a parent’s flat. No rent changes hands, which is why it creates no rental income for the owner. For IMU, the comodato matters only when it is between parents and children and the family situation fits the narrow profile the law describes.</p>
+
+  <h2>Who qualifies, case by case</h2>
+  <p>The condition that trips most people is the lender’s residence. The owner must live, with registered residence, in the same comune as the lent property. A retired couple in Turin lending a flat in Turin to their daughter qualifies; the same couple lending a flat in Milan does not. Owners living outside Italy are therefore almost always excluded, however close the family tie.</p>
+  <ContentTable caption={`A/3 flat with ${$(R)} rendita at ${al(MAX)}`} headers={['Situation', 'Reduction', 'IMU per year']} align={['l', 'l', 'r']} rows={scen} />
+
+  <h2>How much the reduction is worth</h2>
+  <p>The discount cuts the taxable value, not the rate. The cadastral income is revalued by 5 % and multiplied by the category coefficient as usual, then halved before the comune’s rate is applied. The tax due is therefore exactly half what the same home would pay as an ordinary second home, and the saving grows with the rendita. For a flat at {$(R)} of rendita the yearly saving is {$(full.imposta - lent.imposta)}, paid in two instalments in June and December.</p>
+
+  <h2>Comune rates on top of the legal discount</h2>
+  <p>Comuni can create a specific rate for homes lent to relatives in their rate schedule, the prospetto delle aliquote filed with the Department of Finance. The schedule notes that for the cases of paragraph 747 the legal reduction is applied to the rate the comune set for that case, so both reliefs add up. Read the wording carefully, though. Some entries cover “ipotesi diverse” from the legal case, meaning loans that do not meet the conditions, for example to grandchildren or by owners with two homes; there the comune’s lower rate applies to the full value. Our calculator lists every such entry for the comune you choose.</p>
+
+  <h2>Registering the agreement</h2>
+  <p>Registration is done with the Agenzia delle Entrate, either for a written contract or for a verbal one, and involves registration taxes set by the Agenzia. Families usually ask a local CAF, a tax adviser or an estate agent to handle it. Keep the registration receipt: it is the document that proves the date from which the arrangement counts. Without it the comune treats the flat as an ordinary second home, and paying more than due earlier is not a mistake you can reclaim, since the legal condition was not met then.</p>
+
+  <h2>Telling the comune</h2>
+  <p>The comune cannot see from its registry that you own nothing else in Italy or that the loan is registered. Paragraph 768-bis provides the IMU return (dichiarazione) for reporting changes that affect the tax, by 30 June of the following year. The official instructions to the form say when it is required; check them, or ask the comune’s tax office, rather than assume the reduction will be recognised automatically. Our <a href={route('dichiarazione', lang)}>guide to the IMU return</a> explains the form and the deadline.</p>
+
+  <h2>When a death changes the picture</h2>
+  <p>If the child living in the home dies, the reduction continues for his or her spouse, provided the spouse keeps living there as a main home together with minor children. Once the children come of age, or the spouse moves out, the halving stops and the property is taxed at its full value from the following month.</p>
+
+  <h2>Better options for owners abroad</h2>
+  <p>If you live outside Italy and a relative lives in your flat, look first at the comune’s schedule: a specific rate for loans to relatives may cut the bill even without the legal discount. If you receive a pension earned under an international agreement with Italy, the <a href={route('esteri', lang)}>pensioners abroad relief</a> halves the tax on one home, but only if it is neither let nor lent. And if you charge a rent, the <a href={route('concordato', lang)}>agreed rent regime</a> brings the tax down to {QQ}. The <a href={route('home', lang)}>main calculator</a> lets you try each option on the same property.</p>
+</Guide>

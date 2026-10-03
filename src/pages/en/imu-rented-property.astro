@@ -1,0 +1,71 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const QQ = formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang);
+const HALF = formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+type Hit = { nome: string; r: number; altri: number };
+const scan = (re: RegExp) => { const out: Hit[] = []; for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) { const c = byCode.get(code); const h = v.d.find((d) => re.test(d[2])); if (c && h) out.push({ nome: c.name, r: h[1], altri: ratesOf(c).altri }); } return out; };
+const tourist = scan(/struttura turistico-ricettiva/);
+const empty = scan(/Abitazione a disposizione/);
+const market = scan(/canone libero/);
+const higher = (h: Hit[]) => h.filter((x) => x.r > x.altri).length, lower = (h: Hit[]) => h.filter((x) => x.r < x.altri).length;
+const R = 900;
+const yearly = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const rents = [6000, 9000, 12000, 18000, 24000].map((k) => [$(k), $(yearly.imposta), formatPercent(yearly.imposta / k, 1, lang), formatPercent(calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, canoneConcordato: true }).imposta / k, 1, lang)]);
+const holiday = tourist.filter((h) => h.r !== h.altri).slice(0, 8).map((h) => [h.nome, al(h.altri), al(h.r), h.r > h.altri ? 'higher' : 'lower']);
+const faqs = [
+  { q: 'I rent out my Italian flat on Airbnb. What IMU rate do I pay?', a: `The flat stays a dwelling for IMU, so you pay the comune’s rate for other buildings, ${al(MAX)} in most comuni, or the specific rate some comuni set for homes used as tourist accommodation. We found such a line in ${n(tourist.length)} rate schedules: higher than the ordinary rate in ${n(higher(tourist))}, lower in ${n(lower(tourist))}.` },
+  { q: 'Can I deduct IMU from my Italian rental income?', a: 'For a private landlord, IMU is a tax on owning the property and is paid separately from the tax on the rent, whether under the flat-rate cedolare secca or ordinary income tax. Whether and how property costs reduce taxable rent is an income tax question; ask an Italian tax adviser, since it depends on the regime you chose.' },
+  { q: 'My tenant left in May. How is the year’s IMU split?', a: 'IMU is always the owner’s, so the question is only which rate applies month by month. If your comune taxes empty homes differently from let ones, the months with a registered lease follow the rented-home rate and the others the empty-home rate. A month goes to the situation that lasted more than half of it.' },
+];
+---
+<Guide lang={lang} id="locati" title={`IMU on Rented Property 2026: Long Lets and Holiday Lets`}
+  description={`IMU on an Italian property you let: the owner pays, comune rates for market rent, agreed rent and holiday lets, and how much of your rent goes in tax.`}
+  h1="IMU on rented property in Italy: what landlords pay"
+  intro="Letting a flat in Italy does not exempt it from IMU. The owner pays every year, and the comune’s schedule decides whether a let home pays more or less than an empty one."
+  resume={`If you own a flat or house in Italy and let it, you, not the tenant, pay IMU on it every June and December. Law 160/2019 treats a let home exactly like a second home, with one exception: under a regulated canone concordato lease the tax is cut to ${QQ}. Everything else is up to each comune, which can set different rates in its official rate schedule for homes let at market rent, let to students, used for holiday lets or left empty. On a flat with ${$(R)} of cadastral income, at the ${al(MAX)} rate most comuni apply, IMU is ${$(yearly.imposta)} a year. Among the schedules we read, ${n(market.length)} comuni have a line for market-rent leases, almost always below the ordinary rate, ${n(empty.length)} have one for empty homes and ${n(tourist.length)} one for tourist use. Paying IMU from abroad follows the same rules as for any owner.`}
+  faqs={faqs} related={['home', 'concordato', 'esteri', 'secondaCasa', 'aliquote', 'confronto', 'saldo', 'f24']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_agevolazioni')}>
+  <MiniSim client:visible kind="locati" lang={lang} href={route('home', lang)} />
+  <h2>The owner pays, whatever the lease says</h2>
+  <p>Paragraph 743 of Law 160/2019 names who owes IMU: the owner and the holders of real rights such as usufruct. A tenant is not on that list. A clause asking the tenant to refund the IMU binds the two of you privately, but the comune will always chase the owner. The one case where the occupier pays is property leasing (locazione finanziaria), where the lessee is liable from the signature of the contract.</p>
+
+  <h2>How much of the rent goes in IMU</h2>
+  <p>IMU does not depend on the rent you charge. It is fixed by the cadastral income and the comune’s rate, so the cheaper the rent, the bigger the share the tax takes. On older flats in city centres, where cadastral values are often low compared with market rents, it can be a small slice; on a new flat let cheaply in a small town it can be much larger.</p>
+  <ContentTable caption={`Flat with ${$(R)} rendita at ${al(MAX)}: IMU as a share of the yearly rent`} headers={['Yearly rent', 'IMU', 'Share, market rent', 'Share, agreed rent']} align={['r', 'r', 'r', 'r']} rows={rents} />
+
+  <h2>Long lets at market rent</h2>
+  <p>A standard four-plus-four lease (canone libero) gives no reduction under national law. Some comuni nonetheless charge a lower rate for homes let this way, to bring empty flats back onto the market. In {n(lower(market))} of the {n(market.length)} schedules with such a line, the rate is below the ordinary one; the conditions often require the tenant to make it a main home. The <a href={route('concordato', lang)}>agreed rent guide</a> explains the regulated lease that brings the national {QQ} reduction.</p>
+
+  <h2>Holiday lets and short stays</h2>
+  <p>Letting by the night or the week, directly or through a platform, does not change the cadastral category of a home. For IMU it remains a dwelling other than a main home. A growing number of comuni add a line for homes used as tourist accommodation, sometimes tied to an activity code such as bed and breakfast or holiday homes. Some charge them more, to protect housing for residents; others charge them less, to support small tourism.</p>
+  <ContentTable caption="Comuni with a specific rate for homes used for tourist accommodation" headers={['Comune', 'Ordinary rate', 'Tourist use rate', 'Compared']} align={['l', 'r', 'r', 'l']} rows={holiday} />
+
+  <h2>Student lets in university towns</h2>
+  <p>Cities with large universities often give landlords who let to students a rate well below the second home rate, provided the lease follows the student contract of Law 431/1998, which refers to the local rent agreement. Florence, Pisa, Lucca and Bologna are among the comuni whose schedules carry such a line. The lower rate is the comune’s choice; it is not the national {QQ} reduction, which is reserved for canone concordato leases, and the two should not be confused when you check your figures.</p>
+
+  <h2>Co-owners letting together</h2>
+  <p>When a flat belongs to several people, for example siblings who inherited it, each co-owner pays IMU on his or her share, with a separate payment, even if one of them collects the rent for all. The comune can pursue each co-owner only for his or her own share. Some comuni allow, through their regulations, one co-owner to pay for the others; check before relying on a single payment. The <a href={route('eredita', lang)}>inherited property guide</a> covers the first year after a death.</p>
+
+  <h2>Empty homes</h2>
+  <p>Comuni can also single out homes that are neither let nor lent (abitazioni a disposizione). Of the {n(empty.length)} schedules with such a line, {n(higher(empty))} tax empty homes more than the ordinary rate. If you keep a flat for occasional stays, this is the line to look for in your comune’s schedule; the <a href={route('aliquote', lang)}>rates by comune</a> page lists them all.</p>
+
+  <h2>Leases must be registered</h2>
+  <p>The notes to every rate schedule state that only registered leases count as leases. Any reduced rate for let homes requires a lease registered with the Agenzia delle Entrate; an unregistered let is treated as an empty home for IMU, besides the other risks it carries. When a lease starts or ends during the year, the tax is split by month, each month following the situation that lasted more than half of it.</p>
+
+  <h2>Paying from abroad</h2>
+  <p>Landlords living outside Italy pay like everyone else: tax code {P.f24.altri} and the comune’s cadastral code, a first instalment by 16 June at last year’s rate and the balance by 16 December. Without an Italian bank account, a bank transfer to the comune’s treasury with the right references does the job. The <a href={route('esteri', lang)}>non-residents guide</a> lists what to quote, and the <a href={route('home', lang)}>calculator</a> gives the amounts for each instalment.</p>
+</Guide>

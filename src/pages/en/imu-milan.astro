@@ -1,0 +1,35 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('F205')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const CC = diffRate('F205', /art\. 2, comma 3/)!, LIB = diffRate('F205', /canone libero/)!;
+const R = 1100;
+const empty = calcolaImu({ categoria: 'A3', rendita: R, aliquota: r.altri });
+const market = calcolaImu({ categoria: 'A3', rendita: R, aliquota: LIB });
+const agreed = calcolaImu({ categoria: 'A3', rendita: R, aliquota: CC, canoneConcordato: true });
+const faqs = [
+  { q: 'Is IMU lower in Milan if I rent my flat out?', a: `Yes. Milan’s 2026 schedule charges ${al(r.altri)} on a flat kept empty, ${al(LIB)} on one let at market rent and ${al(CC)} on one let at agreed rent (canone concordato), which then gets the national 25 % cut. On ${$(R)} of rendita: ${$(empty.imposta)} empty, ${$(market.imposta)} let at market rent, ${$(agreed.imposta)} at agreed rent. The lease must be registered.` },
+  { q: 'Do short-term holiday lets count as “locazione” for Milan’s lower rate?', a: `The schedule’s market-rent rate refers to registered leases (locazione a canone libero). Whether a given short-term arrangement qualifies is for the comune to judge, so ask Milan’s tax office before applying ${al(LIB)}; if in doubt, ${al(r.altri)} is the rate that cannot be challenged.` },
+  { q: 'What rate does a luxury main home pay in Milan?', a: `${al(r.ap)}: the ${al(P.limiti.ap_max)} maximum for main homes in categories A/1, A/8 and A/9 plus the old TASI surcharge Milan kept. The €${P.detrazione_ap} deduction is then subtracted. It only concerns people registered as resident in the flat; for an owner living abroad the same flat pays ${al(r.altri)}.` },
+];
+---
+<CityPage lang={lang} city="milano" rendita={R} title={`IMU Milan 2026: Rates for Empty and Rented Flats`}
+  description={`IMU in Milan for 2026: ${al(r.altri)} on empty flats, ${al(LIB)} if let at market rent, ${al(CC)} at agreed rent, ${al(r.ap)} on luxury homes. Official 2026 city rates.`}
+  h1="IMU in Milan in 2026: rates and calculator"
+  intro="Milan has already published its 2026 rates, and the figure you pay depends on whether your flat is empty, let at market rent or let at the agreed rent."
+  resume={`Milan is one of the three cities on this site, with Turin and Genoa, whose ${P.year} rate schedule is already published, approved by resolution no. ${c.delibera} of ${c.data}, and it makes a clear choice: the less a flat is used, the more it pays. A home kept empty or used only by its owner on visits pays ${al(r.altri)}, the maximum including the old TASI surcharge. Let at market rent under a registered lease, it pays ${al(LIB)}. Let at the agreed rent set by the local agreement under Law 431 of 1998, it pays ${al(CC)}, and the national rule then cuts that tax to 75 %. For a flat in category A/3 with ${$(R)} of cadastral income, that is ${$(empty.imposta)}, ${$(market.imposta)} or ${$(agreed.imposta)} a year. The ${P.year} rates are identical to 2025, so the June and December instalments are equal. Luxury main homes (A/1, A/8, A/9) pay ${al(r.ap)}.`}
+  faqs={faqs} related={['home', 'esteri', 'locati', 'concordato', 'aliquote', 'confronto', 'secondaCasa']}>
+  <h2>Empty, let, or let at agreed rent</h2>
+  <p>For an owner living abroad, the choice between keeping the flat for visits and letting it has a direct IMU effect in Milan. The gap between the empty-flat rate and the agreed-rent outcome is {$(empty.imposta - agreed.imposta)} a year on a {$(R)} rendita. Agreed-rent leases follow a standard contract and a rent band set for each area of the city; a local landlords’ or tenants’ association can draft one.</p>
+  <h2>Shops and offices</h2>
+  <p>Shops and workshops used for a business under a registered lease pay a reduced rate set in the schedule; offices in category A/10 follow the ordinary rate for other buildings unless they meet one of the targeted conditions listed under the calculator. Group D buildings such as hotels pay {al(r.D)}, with {al(P.limiti.D_quota_stato)} going to the State.</p>
+  <h2>If the flat was your main home</h2>
+  <p>Many foreign buyers first live in Milan, then move away and keep the flat. From the month you transfer your residence abroad, the flat stops being a main home and starts paying {al(r.altri)}. If it became unfit for use while it was your main home, Milan’s schedule sets a zero rate. The <a href={route('compravendita', lang)}>months rule</a> decides which month counts, and the <a href={route('esteri', lang)}>non-resident guide</a> covers paying from abroad.</p>
+</CityPage>

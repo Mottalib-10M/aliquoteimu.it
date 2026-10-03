@@ -1,0 +1,35 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('L736')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const NONRES = diffRate('L736', /A10, B, C$/)!, CC = diffRate('L736', /art\. 2, comma 3/)!;
+const R = 900;
+const flat = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const agreed = calcolaImu({ categoria: 'A2', rendita: R, aliquota: CC, canoneConcordato: true });
+const pens = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri, pensionatoEstero: true });
+const faqs = [
+  { q: 'What IMU will I pay on an apartment in Venice I visit a few weeks a year?', a: `Venice taxes homes that are not a main residence at ${al(r.altri)}. A flat in category A/2 with ${$(R)} of cadastral income pays ${$(flat.imposta)} a year, whether it is in the centro storico, on the Lido or in Mestre. Shops, offices and garages pay ${al(NONRES)} instead.` },
+  { q: 'Does letting my Venice flat at agreed rent reduce IMU?', a: `Yes: the schedule sets ${al(CC)} for agreed-rent, transitional and student leases, and the national rule cuts agreed-rent tax to 75 %. On ${$(R)} of rendita: ${$(agreed.imposta)} a year instead of ${$(flat.imposta)}. The lease must be registered and follow the local agreement on rents for the area.` },
+  { q: 'Do Venetian islands such as the Lido have different IMU rates?', a: `No. The Lido, Murano, Burano and Mestre all belong to the comune of Venice and share its schedule: ${al(r.altri)} on homes that are not a main residence and ${al(NONRES)} on shops and offices. What differs is the cadastral income of each property, which can vary widely between the historic centre and the mainland.` },
+];
+---
+<CityPage lang={lang} city="venezia" rendita={R} title={`IMU Venice 2026: Second Home Rate and Calculator`}
+  description={`IMU in Venice for 2026: ${al(r.altri)} on second homes, ${al(NONRES)} on shops and offices, ${al(CC)} at agreed rent, ${al(r.ap)} on luxury main homes. Calculator.`}
+  h1="IMU in Venice in 2026: rates and calculator"
+  intro="Venice taxes homes kept as second homes more than shops and offices, the opposite of what many owners expect."
+  resume={`In Venice, homes that are not their owner’s main residence pay ${al(r.altri)}, above the ordinary ceiling of ${al(P.limiti.altri_max)} thanks to part of the old TASI surcharge, while offices, shops, garages and other buildings in categories A/10, B and C pay ${al(NONRES)}. The schedule in force, resolution no. ${c.delibera} of ${c.data}, is still the 2025 one as of ${P.retrieved_at}. A flat in category A/2 with ${$(R)} of cadastral income held as a second home pays ${$(flat.imposta)} a year, in June and December. The comune covers the historic centre, the islands, the Lido and the mainland with Mestre, all at the same rates. Homes let at agreed rent, under transitional or student leases, or lent to first-degree relatives pay ${al(CC)}; agreed-rent leases then get the national cut to 75 %. Luxury main homes pay ${al(r.ap)}, and rural farm buildings pay nothing. Pensioners abroad who meet the national conditions pay half: ${$(pens.imposta)} on the same flat.`}
+  faqs={faqs} related={['home', 'esteri', 'secondaCasa', 'concordato', 'comodato', 'aliquote', 'confronto']}>
+  <h2>One comune, many places</h2>
+  <p>The comune of Venice includes the lagoon islands such as Murano, Burano and the Lido as well as Mestre on the mainland, so a flat anywhere in that area uses cadastral code {c.code} and the same rates. The cadastral income, on the other hand, varies a lot between a palazzo apartment in the centro storico and a modern flat in Mestre, and it is the rendita that drives most of the difference in what you pay.</p>
+  <h2>Homes versus commercial premises</h2>
+  <p>Venice’s schedule gives non-residential buildings their own category at {al(NONRES)}. Combined with the lower multipliers for offices and shops, a shop with the same rendita as a flat pays about a third of the IMU. A garage that is not a pertinenza of a main home also falls in the non-residential group.</p>
+  <h2>Paying and planning</h2>
+  <p>The rates have not changed between the 2025 and the expected 2026 schedule as of today; if Venice publishes new rates by 28 October, the December balance will correct the June instalment. The <a href={route('saldo', lang)}>December balance guide</a> explains the adjustment, and the <a href={route('esteri', lang)}>non-resident guide</a> covers payments from abroad.</p>
+</CityPage>

@@ -1,0 +1,75 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max, AP = P.aliquote_base.ap;
+const RID = formatPercent(1 - P.riduzioni.storico_base, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+const centro: string[] = [];
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) {
+  const c = byCode.get(code); if (c && v.d.some((d) => /centro storico/i.test(d[2]))) centro.push(c.name);
+}
+const R = 1800;
+const norm = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const vinc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, riduzione: 'storico' });
+const casi = [
+  ['Palazzo A/9 abitazione principale', 'A9', 4000, AP, 'ap'],
+  ['Villa A/8 seconda casa', 'A8', 3500, MAX, 'altro'],
+  ['Appartamento A/2 in edificio vincolato', 'A2', 1800, MAX, 'altro'],
+  ['Negozio C/1 al piano terra', 'C1', 2500, MAX, 'altro'],
+  ['Ufficio A/10 in palazzo storico', 'A10', 2200, MAX, 'altro'],
+] as const;
+const rows = casi.map(([l, c, r, a, u]) => { const x = calcolaImu({ categoria: c, rendita: r, aliquota: a, uso: u }); const y = calcolaImu({ categoria: c, rendita: r, aliquota: a, uso: u, riduzione: 'storico' }); return [l, $(r), al(a), $(x.imposta), $(y.imposta)]; });
+const faqs = [
+  { q: 'Una casa nel centro storico ha diritto alla riduzione IMU per immobili storici?', a: `No, se non è vincolata. Il comma 747, lettera a, richiama i beni dell’articolo 10 del Codice dei beni culturali: conta la dichiarazione di interesse storico o artistico, non la zona. Alcuni comuni hanno aliquote proprie per il centro storico, ma è un’altra cosa: le abbiamo trovate in ${n(centro.length)} prospetti, quasi sempre per negozi e botteghe.` },
+  { q: 'Quanto si risparmia di IMU su un appartamento vincolato?', a: `La base imponibile si dimezza, quindi si dimezza l’imposta. Su un A/2 con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, si pagano ${$(vinc.imposta)} invece di ${$(norm.imposta)}: ${$(norm.imposta - vinc.imposta)} in meno ogni anno, in ciascuna delle due rate la metà.` },
+  { q: 'Il castello in cui vivo paga l’IMU anche se è vincolato?', a: `Sì. Le abitazioni principali in categoria A/9 pagano sempre, con l’aliquota per l’abitazione di lusso e la detrazione di ${$(P.detrazione_ap)}. Il vincolo dimezza la base imponibile prima dell’aliquota, e la detrazione si toglie dopo: per un A/9 con ${$(4000)} di rendita all’aliquota base dello ${al(AP)} l’IMU scende a ${$(calcolaImu({ categoria: 'A9', rendita: 4000, aliquota: AP, uso: 'ap', riduzione: 'storico' }).imposta)}.` },
+];
+---
+<Guide lang={lang} id="storici" title={`IMU immobili storici 2026: base dimezzata per i vincolati`}
+  description={`IMU 2026 su immobili storici vincolati: base ridotta del ${RID} per i beni dell’art. 10 del Codice dei beni culturali, esempi e differenza con il centro storico.`}
+  h1="IMU sugli immobili di interesse storico o artistico"
+  intro="Palazzi, ville e appartamenti in edifici vincolati dallo Stato pagano l’IMU su metà della base imponibile, qualunque sia il loro uso."
+  resume={`Gli immobili riconosciuti di interesse storico o artistico ai sensi dell’articolo 10 del Codice dei beni culturali e del paesaggio (decreto legislativo 42 del 2004) pagano l’IMU su una base imponibile ridotta del ${RID}. La regola è nel comma 747, lettera a, della legge 160/2019 e, a differenza di quella per gli inagibili, non dipende dallo stato dell’edificio né dal suo utilizzo: vale per la seconda casa, per l’immobile affittato, per il negozio e anche per l’abitazione principale di lusso. Per un appartamento A/2 con ${$(R)} di rendita in un palazzo vincolato, all’aliquota dell’${al(MAX)}, l’IMU passa da ${$(norm.imposta)} a ${$(vinc.imposta)} l’anno. Conta il vincolo, non l’età dell’edificio né la sua posizione: una casa antica in centro senza dichiarazione di interesse culturale paga per intero. Le aliquote che alcuni comuni riservano al centro storico, presenti in ${n(centro.length)} prospetti, sono un’agevolazione diversa e non si confondono con quella di legge.`}
+  faqs={faqs} related={['home', 'inagibili', 'lusso', 'secondaCasa', 'negozi', 'rendita', 'esenzioni', 'aliquote']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti')}>
+  <MiniSim client:visible kind="storici" lang={lang} href={route('home', lang)} />
+  <h2>Quali immobili rientrano</h2>
+  <p>La riduzione riguarda i fabbricati che sono beni culturali secondo l’articolo 10 del decreto legislativo 42 del 2004. Per gli immobili dei privati significa, in sostanza, quelli per cui il Ministero della Cultura ha emesso la dichiarazione dell’interesse culturale, il cosiddetto vincolo, al termine del procedimento di verifica o di dichiarazione previsto dal Codice. L’edificio può essere un palazzo nobiliare, una villa con parco, una torre, un casale di pregio, ma anche un comune condominio che fa parte di un complesso vincolato.</p>
+  <p>Non basta che la costruzione sia antica, che compaia in una guida turistica o che si trovi in una zona di pregio paesaggistico. Il vincolo paesaggistico, che riguarda il territorio, è diverso da quello sui beni culturali, che riguarda l’edificio. Per l’IMU conta solo il secondo.</p>
+
+  <h2>Come verificare il vincolo</h2>
+  <p>Il proprietario di un bene vincolato riceve la notifica del provvedimento, che viene trascritto nei registri immobiliari e passa di proprietario in proprietario con l’immobile. Chi ha comprato o ereditato una casa e non sa se è vincolata può guardare il rogito, dove il notaio di solito lo segnala, o rivolgersi alla Soprintendenza competente per territorio. Senza un provvedimento di vincolo la riduzione non si applica, anche se l’edificio avrebbe tutte le caratteristiche per ottenerlo.</p>
+
+  <h2>Il risparmio, categoria per categoria</h2>
+  <p>La metà si toglie dalla base imponibile, prima dell’aliquota. Il resto del calcolo non cambia: rivalutazione del {formatPercent(P.base.rivalutazione_rendita, 0, lang)}, moltiplicatore della categoria, aliquota del comune, quota e mesi. Per l’abitazione principale di lusso la detrazione si sottrae alla fine, sull’imposta già dimezzata.</p>
+  <ContentTable caption="Un solo proprietario, tutto l’anno" headers={['Immobile', 'Rendita', 'Aliquota', 'IMU senza vincolo', 'IMU con vincolo']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Centro storico: un’altra agevolazione</h2>
+  <p>Molti comuni hanno voci del prospetto legate al centro storico. Le abbiamo trovate in {n(centro.length)} prospetti, tra cui {centro.slice(0, 5).join(', ')}. Riguardano soprattutto negozi e botteghe artigiane, per contrastare la chiusura delle attività nei quartieri antichi, e talvolta le abitazioni locate. Sono scelte del comune, valgono solo dove il comune le prevede e si applicano all’aliquota, non alla base. Un immobile vincolato in centro storico può avere entrambe: la base dimezzata per legge e l’aliquota ridotta del comune, se ne rispetta le condizioni.</p>
+
+  <h2>Vincolato e inagibile</h2>
+  <p>Gli edifici storici sono spesso anche in cattivo stato. Il comma 747 elenca la riduzione per i beni storici e quella per i fabbricati inagibili come due casi distinti. Il nostro calcolatore ne applica una sola; prima di applicarle entrambe allo stesso immobile è prudente chiedere all’ufficio tributi del comune come le tratta, conservando la perizia di <a href={route('inagibili', lang)}>inagibilità</a> e il provvedimento di vincolo.</p>
+
+  <h2>Comprare un immobile vincolato</h2>
+  <p>La vendita di un bene culturale va denunciata al Ministero della Cultura, che può esercitare la prelazione e acquistarlo alle stesse condizioni: per questo il rogito di un immobile vincolato richiede qualche settimana in più. Ai fini dell’IMU l’anno dell’acquisto si divide come sempre per mesi: il venditore paga i mesi fino al rogito, l’acquirente quelli successivi, entrambi con la base dimezzata. Il giorno del rogito conta per l’acquirente, che si prende il mese se lo ha posseduto per almeno metà dei giorni. La guida sulla <a href={route('compravendita', lang)}>compravendita</a> mostra il conteggio.</p>
+
+  <h2>Alberghi, negozi e uffici in palazzi storici</h2>
+  <p>La riduzione non distingue tra abitazioni e immobili produttivi. Un albergo in un palazzo vincolato, accatastato nel gruppo D, paga su metà della base calcolata con il moltiplicatore {P.base.moltiplicatori.D}, e la quota destinata allo Stato si riduce nella stessa proporzione. Lo stesso vale per il negozio al piano terra di un edificio storico o per lo studio professionale in un palazzo nobiliare. Per queste attività il risparmio è spesso il più consistente, perché le rendite sono alte e le aliquote quasi sempre al massimo.</p>
+
+  <h2>Dichiarazione e controlli</h2>
+  <p>Il vincolo non risulta dalla banca dati catastale con cui il comune calcola l’imposta attesa. Per questo, quando l’immobile vincolato viene acquistato o la riduzione si applica per la prima volta, è opportuno indicarlo nella <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> entro il 30 giugno dell’anno successivo, secondo le istruzioni ministeriali del modello. Così il comune sa perché il versamento è dimezzato e non emette un avviso di accertamento per la differenza.</p>
+
+  <h2>Pagamento</h2>
+  <p>Il versamento segue le regole ordinarie, con il codice tributo della fattispecie: {P.f24.altri} per seconde case, negozi e uffici, {P.f24.ap} per l’abitazione principale di lusso, {P.f24.D_stato} e {P.f24.D_comune} per gli immobili del gruppo D come gli alberghi storici. Acconto entro il 16 giugno con l’aliquota dell’anno precedente, saldo entro il 16 dicembre. Il calcolatore principale applica la riduzione con l’opzione «immobile storico» nelle opzioni avanzate.</p>
+</Guide>

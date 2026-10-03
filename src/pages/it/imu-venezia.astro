@@ -1,0 +1,35 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('L736')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const NONRES = diffRate('L736', /A10, B, C$/)!, COM = diffRate('L736', /Comodato d'uso gratuito/)!, CC = diffRate('L736', /art\. 2, comma 3/)!;
+const R = 900;
+const casa = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const ufficio = calcolaImu({ categoria: 'A10', rendita: R, aliquota: NONRES });
+const conc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: CC, canoneConcordato: true });
+const lusso = calcolaImu({ categoria: 'A8', rendita: 3000, aliquota: r.ap, uso: 'ap' });
+const faqs = [
+  { q: `Perché a Venezia la seconda casa paga l’${al(r.altri)} e il negozio l’${al(NONRES)}?`, a: `Perché il prospetto separa le abitazioni dagli immobili non residenziali: gli altri fabbricati pagano l’${al(r.altri)}, ma uffici A/10, immobili del gruppo B e del gruppo C, compresi negozi e box, hanno una fattispecie propria all’${al(NONRES)}. Con ${$(R)} di rendita una seconda casa A/2 paga ${$(casa.imposta)}.` },
+  { q: 'Una casa a Venezia data in comodato al figlio quanto paga?', a: `Se il comodato rispetta il comma 747 (contratto registrato, comodante residente a Venezia con al massimo un’altra abitazione) la base si dimezza. Altrimenti il prospetto offre lo ${al(COM)} alle case A/2, A/3, A/4, A/5 e A/7 date in comodato a parenti di primo grado che ci abitano: con ${$(R)} di rendita fa ${$(calcolaImu({ categoria: 'A2', rendita: R, aliquota: COM }).imposta)}.` },
+  { q: 'L’abitazione principale di lusso a Venezia paga di più che altrove?', a: `Sì: lo ${al(r.ap)} supera il massimo ordinario dello ${al(P.limiti.ap_max)} grazie alla maggiorazione ex TASI. Una casa A/8 con 3 000 euro di rendita, abitazione principale, paga ${$(lusso.imposta)} dopo la detrazione di ${$(P.detrazione_ap)}. La detrazione si riduce in proporzione ai mesi e alla quota di chi vi abita.` },
+];
+---
+<CityPage lang={lang} city="venezia" rendita={R} title={`IMU Venezia 2026: aliquote, seconda casa e affitti`}
+  description={`IMU Venezia 2026: case a disposizione all’${al(r.altri)}, uffici e negozi all’${al(NONRES)}, comodato e canone concordato allo ${al(CC)}, lusso allo ${al(r.ap)}. Calcolo.`}
+  h1="IMU a Venezia nel 2026: aliquote e calcolo"
+  intro="Venezia tassa le abitazioni a disposizione più degli immobili commerciali, e riduce l’aliquota per chi affitta a canone concordato o presta la casa a un figlio."
+  resume={`A Venezia gli altri fabbricati pagano l’${al(r.altri)}, un valore che supera il massimo ordinario dell’${al(P.limiti.altri_max)} grazie a parte della maggiorazione ex TASI, ma il prospetto in vigore, approvato con delibera n. ${c.delibera} del ${c.data} e ancora quello del 2025 al ${P.retrieved_at}, riserva l’${al(NONRES)} a uffici, negozi, box e immobili dei gruppi B e C. In pratica sono le abitazioni non principali a pagare di più: un appartamento A/2 con ${$(R)} di rendita paga ${$(casa.imposta)} l’anno, un ufficio con la stessa rendita ${$(ufficio.imposta)} perché anche il moltiplicatore è più basso. Le case date in comodato a parenti di primo grado e quelle affittate a canone concordato, transitorio o a studenti scendono allo ${al(CC)}; il canone concordato paga poi il 75 %, cioè ${$(conc.imposta)}. L’abitazione principale di lusso paga lo ${al(r.ap)}; i fabbricati rurali strumentali sono esenti.`}
+  faqs={faqs} related={['home', 'secondaCasa', 'concordato', 'comodato', 'aliquote', 'confronto', 'lusso']}>
+  <h2>Abitazioni contro immobili commerciali</h2>
+  <p>Nel prospetto di Venezia la fattispecie con l’aliquota più alta è l’abitazione tenuta a disposizione. Le categorie A/10, B e C, dai negozi ai magazzini, hanno una fattispecie propria all’{al(NONRES)}. Box e cantine che non sono pertinenze dell’abitazione principale rientrano quindi tra gli immobili non residenziali.</p>
+  <h2>Comodato e affitti regolati</h2>
+  <p>Le abitazioni A/2, A/3, A/4, A/5 e A/7 date in comodato gratuito a parenti fino al primo grado, al di fuori dell’ipotesi di legge del comma 747, pagano lo {al(COM)}; la stessa aliquota vale per le case affittate a canone concordato, con contratti transitori o a studenti. Il canone concordato aggiunge la riduzione al 75 %: per una casa da {$(R)} di rendita la differenza con l’abitazione vuota è di {$(casa.imposta - conc.imposta)} l’anno.</p>
+  <h2>Terraferma e centro storico</h2>
+  <p>Il comune di Venezia comprende il centro storico, le isole e la terraferma con Mestre: il prospetto non distingue per zona, quindi la stessa aliquota vale ovunque. Cambia invece la rendita catastale, che in centro storico è spesso diversa da quella di un appartamento simile in terraferma. Nel modello F24 il codice ente è sempre {c.code}.</p>
+</CityPage>

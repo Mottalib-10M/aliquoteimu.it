@@ -1,0 +1,79 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { ratesOf, comune } from '../../lib/comuni';
+import { distribuzione, quanti, capoluoghi, cambiati, conProspetto, COUNTS, N_IMU, percent } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => (v < 0 ? 'exempt' : formatAliquota(v, lang));
+const n = (v: number) => formatNumber(v, 0, lang);
+const AB = P.aliquote_base, L = P.limiti;
+const tot = conProspetto.length;
+const MAXM = L.altri_max + L.maggiorazione_ex_tasi;
+const law = [
+  ['Second homes, rentals, shops, offices (altri fabbricati)', al(AB.altri), `0 to ${al(L.altri_max)}`],
+  ['Building land (aree fabbricabili)', al(AB.altri), `0 to ${al(L.altri_max)}`],
+  ['Luxury main home A/1, A/8, A/9', al(AB.ap), `0 to ${al(L.ap_max)}`],
+  ['Agricultural land', al(AB.ter), `0 to ${al(L.altri_max)}`],
+  ['Group D (hotels, warehouses), not D/10', al(AB.D), `${al(L.D_min)} to ${al(L.altri_max)}`],
+  ['Rural farm buildings', al(AB.rur), `0 to ${al(AB.rur)}`],
+  ['Old TASI surcharge, where kept', `up to +${al(L.maggiorazione_ex_tasi)}`, `max ${al(MAXM)}`],
+];
+const dist = distribuzione('altri').slice(0, 8).map((d) => [al(d.aliquota), n(d.n), formatPercent(percent(d.n, tot), 1, lang)]);
+const altriMax = quanti('altri', (x) => x === L.altri_max), altriSotto = quanti('altri', (x) => x < AB.altri), altriMagg = quanti('altri', (x) => x > L.altri_max);
+const top = capoluoghi.slice(0, 14).map((c) => [`${c.name} (${c.prov})`, al(ratesOf(c).altri), c.st === 'P26' ? '2026' : '2025']);
+const low = capoluoghi.slice(-8).reverse().map((c) => [`${c.name} (${c.prov})`, al(ratesOf(c).altri), c.st === 'P26' ? '2026' : '2025']);
+const R = 900;
+const tourist = [['Taormina', 'L042'], ['Positano', 'G932'], ['Capri', 'B696'], ['Lucca', 'E715'], ['Bellagio', 'M335'], ['Cortina d’Ampezzo', 'A266'], ['Ostuni', 'G187']] as const;
+const tRows = tourist.filter(([, c]) => comune(c)).map(([name, c]) => { const k = comune(c)!; const a = ratesOf(k).altri; return [name, al(a), k.st === 'P26' ? '2026' : k.st === 'P25' ? '2025' : 'base', $(calcolaImu({ categoria: 'A2', rendita: R, aliquota: a }).imposta)]; });
+const camb = cambiati('altri');
+const faqs = [
+  { q: 'What IMU rate will I pay on a holiday home in Italy?', a: `Whatever rate your comune sets for “altri fabbricati”. The national base is ${al(AB.altri)} and the most common choice is the ${al(L.altri_max)} maximum, used by ${n(altriMax)} of the ${n(tot)} comuni whose schedule we read. A few charge up to ${al(MAXM)}, others much less, so look up your own comune before budgeting.` },
+  { q: 'Are IMU rates higher for foreigners or non-residents?', a: 'No. Rates depend on the property and its use, never on the owner’s nationality or residence. The difference for non-residents is that their Italian home cannot be a main home, so it always pays the second home rate, unless they qualify for the half-rate relief for pensioners living abroad on one dwelling.' },
+  { q: 'Where are the official IMU rates published?', a: `On the Department of Finance website, which publishes each comune’s rate schedule (prospetto delle aliquote). The schedule prevails over the comune’s own regulations if they disagree. Schedules for 2026 must be filed by 14 October and published by 28 October 2026; until then the 2025 schedule of a comune stays in force.` },
+];
+---
+<Guide lang={lang} id="aliquoteBase" title="IMU Rates 2026: Legal Limits and What Comuni Charge"
+  description={`IMU rates for 2026: base rates and limits in Law 160/2019 and the real rates of ${n(tot)} comuni, from the common ${al(L.altri_max)} to capitals and tourist towns.`}
+  h1="IMU rates in 2026: the national rules and the comuni’s choices"
+  intro="Italy has one IMU law but thousands of IMU rates. This page sets out both: the limits in the law and the rates comuni actually apply."
+  resume={`Each Italian comune sets its own IMU rates within limits fixed by Law 160 of 2019. For “altri fabbricati”, the class that covers holiday homes, empty or rented flats, shops and offices, the base rate is ${al(AB.altri)} and a comune may go from zero up to ${al(L.altri_max)}, or to ${al(MAXM)} if it kept an old surcharge. We read the published rate schedules of ${n(tot)} of the ${n(N_IMU)} comuni that levy IMU. ${n(altriMax)} of them charge ${al(L.altri_max)} on second homes, ${n(altriSotto)} charge less than the base rate, and ${n(altriMagg)} go above the ordinary maximum, including Rome and Milan. On a flat with ${$(R)} of cadastral income the range is wide: ${$(calcolaImu({ categoria: 'A2', rendita: R, aliquota: L.altri_max }).imposta)} a year at ${al(L.altri_max)}, ${$(calcolaImu({ categoria: 'A2', rendita: R, aliquota: AB.altri }).imposta)} at the base rate. For a foreign buyer, the comune’s rate is the one number worth checking before signing.`}
+  faqs={faqs} related={['home', 'aliquote', 'confronto', 'secondaCasa', 'esteri', 'novita', 'lusso', 'terreni']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_ricerca', 'istat')}>
+  <MiniSim client:visible kind="aliquoteBase" lang={lang} href={route('aliquote', lang)} />
+  <h2>The limits written in the law</h2>
+  <p>Paragraphs 748 to 755 of Law 160 of 2019 give every class of property a base rate and a band. A comune that has never filed a valid schedule applies the base rates as they are, which is the case for {n(COUNTS.B)} comuni.</p>
+  <ContentTable headers={['Property class', 'Base rate', 'Comune may set']} align={['l', 'r', 'l']} rows={law} />
+  <p>Main homes outside the luxury categories pay nothing at all, so they have no rate. Since 2025 a comune can only differentiate within the situations listed in a ministerial decree, using the standard schedule generated on the Department of Finance portal.</p>
+
+  <h2>What comuni actually charge on second homes</h2>
+  <p>The second home rate is the one that matters to most foreign owners. Here are the eight most frequent general rates in the {n(tot)} schedules in force, with the number and share of comuni applying each.</p>
+  <ContentTable headers={['Rate', 'Comuni', 'Share']} align={['r', 'r', 'r']} rows={dist} />
+  <p>The picture is lopsided: the legal maximum is the norm, the base rate a minority choice.</p>
+
+  <h2>Tourist towns</h2>
+  <p>Rates and the IMU on a flat with {$(R)} of rendita in a few towns popular with foreign buyers:</p>
+  <ContentTable headers={['Comune', 'Second home rate', 'Schedule', 'IMU per year']} align={['l', 'r', 'r', 'r']} rows={tRows} />
+
+  <h2>Provincial capitals: highest and lowest</h2>
+  <p>Almost every provincial capital charges the maximum on second homes, and many add the old surcharge. These are the capitals at the top and the bottom of the range; the Italian version of this page lists them all.</p>
+  <ContentTable headers={['Highest', 'Rate', 'Schedule']} align={['l', 'r', 'r']} rows={top} />
+  <ContentTable headers={['Lowest', 'Rate', 'Schedule']} align={['l', 'r', 'r']} rows={low} />
+  <p>Capitals in Friuli Venezia Giulia and Trentino-Alto Adige, such as Trieste, Udine, Trento and Bolzano, do not appear: IMU does not apply there.</p>
+
+  <h2>Targeted rates in the schedules</h2>
+  <p>Next to the general rate, many schedules contain lower or higher rates for precise situations: homes let at agreed rent (canone concordato), homes lent free to relatives, flats let to students, historic shops, or a higher rate for homes kept empty. They apply only if you meet the exact conditions, which are written in Italian administrative language. The <a href={route('aliquote', lang)}>rates by comune</a> page lists them for each comune with the original wording, and the <a href={route('home', lang)}>calculator</a> lets you apply one with a click.</p>
+
+  <h2>Rates that changed in 2026</h2>
+  <p>Among comuni with both a 2025 and a 2026 schedule, {n(camb.length)} changed their second home rate. If yours is one of them, the June instalment (at last year’s rate) and the December balance (at this year’s) will differ. The <a href={route('novita', lang)}>2026 changes guide</a> shows how the catch-up works.</p>
+
+  <h2>Luxury homes and land</h2>
+  <p>For the rare owner whose Italian residence is classed A/1, A/8 or A/9, the main home rate applies, with a base of {al(AB.ap)}, a cap of {al(L.ap_max)} and a deduction of {$(P.detrazione_ap)}. Farmland is exempt in {n(quanti('ter', (v) => v < 0))} comuni whose schedules list it as mountain or hill land; where it is taxed, the comune’s rate applies to the reddito dominicale raised by {formatPercent(P.base.rivalutazione_dominicale, 0, lang)} and multiplied by {P.base.moltiplicatore_terreni}. Building plots follow the second home rate in most schedules.</p>
+  <h2>Reading these figures carefully</h2>
+  <p>The statistics count comuni, not owners: a hamlet of two hundred people weighs as much as Rome. They describe general rates, not the targeted ones. And they reflect the schedules published on 3 October 2026; more comuni may publish their 2026 schedule by the 28 October deadline. Your own bill depends only on your comune, its rate for your type of property and your rendita, which the calculator combines for you. To compare two towns before buying, use the <a href={route('confronto', lang)}>comparison tool</a>.</p>
+</Guide>

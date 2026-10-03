@@ -1,0 +1,38 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('H501')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const BOT = diffRate('H501', /Bottega storica/)!;
+const R = 1000;
+const flat = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const pens = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri, pensionatoEstero: true });
+const garage = calcolaImu({ categoria: 'C6', rendita: 250, aliquota: r.altri });
+const elsewhere = calcolaImu({ categoria: 'A2', rendita: R, aliquota: P.limiti.altri_max });
+const faqs = [
+  { q: 'How much IMU will I pay on a flat in Rome I use for holidays?', a: `Rome taxes second homes at ${al(r.altri)}, the highest rate allowed in Italy. A flat with ${$(R)} of cadastral income pays ${$(flat.imposta)} a year, ${$(flat.acconto)} by 16 June and the rest by 16 December. A separate garage with ${$(250)} of rendita adds ${$(garage.imposta)}, because for a non-resident it is not the pertinenza of a main home.` },
+  { q: 'Which comune code do I use to pay IMU for a property in Rome?', a: `${c.code}, the cadastral code of Roma Capitale, whatever the district (municipio). On an F24, or in the reference of a bank transfer from abroad, combine it with tax code ${P.f24.altri} for a flat, shop or garage and with the tax year.` },
+  { q: 'Has Rome published its 2026 IMU rates?', a: `Not as of ${P.retrieved_at}: the schedule on the Department of Finance website is the 2025 one, resolution no. ${c.delibera} of ${c.data}. If Rome does not publish a 2026 schedule by 28 October 2026, the 2025 rates also apply to the December balance.` },
+];
+---
+<CityPage lang={lang} city="roma" rendita={R} title={`IMU Rome 2026: Second Home Rate ${al(r.altri)} and Calculator`}
+  description={`IMU in Rome for 2026: second homes and rentals at ${al(r.altri)}, luxury main homes at ${al(r.ap)}, lower rates for historic shops and non-profits. Calculator.`}
+  h1="IMU in Rome in 2026: rates and calculator"
+  intro="Rome charges the maximum rate allowed in Italy on second homes, which is what most foreign owners of a pied-à-terre in the capital pay."
+  resume={`If you own a flat in Rome and live elsewhere, IMU is a fixed yearly cost: the comune of Roma Capitale taxes every home that is not the owner’s main residence at ${al(r.altri)}. That is the ordinary maximum of ${al(P.limiti.altri_max)} plus a ${al(P.limiti.maggiorazione_ex_tasi)} surcharge inherited from the old TASI, which only comuni that applied it before 2020 may keep. A flat with ${$(R)} of cadastral income therefore pays ${$(flat.imposta)} a year, ${$(flat.imposta - elsewhere.imposta)} more than in a comune at the ordinary maximum. You pay it in two instalments, by 16 June and 16 December, or in one go in June. The schedule in force is still the 2025 one as of ${P.retrieved_at}. If you receive a foreign pension under a social security agreement with Italy and do not let the flat, the tax is halved to ${$(pens.imposta)}.`}
+  faqs={faqs} related={['home', 'esteri', 'secondaCasa', 'aliquote', 'confronto', 'locati', 'ravvedimento']}>
+  <h2>The surcharge that makes Rome expensive</h2>
+  <p>Law 160 of 2019 caps the ordinary rate at {al(P.limiti.altri_max)} but lets comuni that charged the TASI surcharge in 2015 and confirmed it until 2019 keep up to {al(P.limiti.maggiorazione_ex_tasi)} more (paragraph 755). Rome is one of them. The surcharge can only be reduced, never raised, so {al(r.altri)} is the ceiling for the capital.</p>
+  <h2>Letting your flat</h2>
+  <p>Rome’s schedule has no lower rate for homes let at market rent, short-term or long-term: they pay {al(r.altri)} like an empty flat. A flat let under an agreed-rent contract (canone concordato) keeps the national reduction, which cuts the tax to 75 %. The rental income itself is taxed separately, through the Italian tax return.</p>
+  <h2>Shops, historic workshops and non-profits</h2>
+  <p>Rome does differentiate for commercial premises: newsagents and historic or craft workshops (botteghe storiche) pay {al(BOT)} instead of {al(r.altri)}, as do premises used by non-profit bodies of the third sector. Social housing assigned by the former IACP has its own lower rate. If you own a shop in the centro storico let to a qualifying business, check the targeted rates under the calculator result.</p>
+  <h2>Paying from abroad</h2>
+  <p>Without an Italian bank account, you pay by bank transfer to the comune’s treasury account, quoting your codice fiscale, the comune code {c.code}, the tax code and the year. The <a href={route('esteri', lang)}>guide for non-residents</a> explains the details, and the <a href={route('ravvedimento', lang)}>late payment calculator</a> shows what a missed instalment costs.</p>
+</CityPage>

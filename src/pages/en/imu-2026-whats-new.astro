@@ -1,0 +1,61 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, ravvedimento } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { COUNTS, cambiati, N_IMU } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'en-GB');
+const RV = P.ravvedimento;
+const camb = cambiati('altri');
+const up = camb.filter((c) => c.rates!.altri > c.prev!.altri).length;
+const R = 1000;
+const ex = ['D593', 'M336', 'F931', 'G398', 'B677'].map((c) => comune(c)!);
+const rows = ex.map((c) => { const a = calcolaImu({ categoria: 'A3', rendita: R, aliquota: ratesAcconto(c).altri }).imposta, b = calcolaImu({ categoria: 'A3', rendita: R, aliquota: ratesOf(c).altri }).imposta; return [`${c.name} (${c.prov})`, al(ratesAcconto(c).altri), al(ratesOf(c).altri), $(a), $(b)]; });
+const r40 = ravvedimento({ imposta: 600, scadenza: P.scadenze.saldo, pagamento: '2027-01-25' });
+const faqs = [
+  { q: 'Has the IMU calculation changed for 2026?', a: `No. The cadastral income is still revalued by 5 % and multiplied by ${P.base.moltiplicatori.A} for homes, the national base and maximum rates are unchanged, and the payment dates are 16 June and 16 December as every year since 2020. What changed is the rate in ${n(camb.length)} comuni, which moved their second-home rate between 2025 and 2026.` },
+  { q: 'Is there a new penalty regime for late IMU in 2026?', a: `The penalty for late or missing payment is ${formatPercent(RV.sanzione_base, 0, lang)} for breaches since 1 September 2024 (Legislative Decree 87/2024). A consolidated penalties code, Legislative Decree 173/2024, has been enacted, but its article 102 makes it apply only from 1 January 2027, so 2026 delays follow the 1997 decrees as amended.` },
+  { q: 'Why do some comuni still show 2025 IMU rates in October 2026?', a: `Because they have not yet published a 2026 rate schedule. They have until ${d(P.scadenze.inserimento_prospetti)} to upload it and it counts if published by ${d(P.scadenze.pubblicazione_prospetti)}; otherwise the 2025 rates stay in force for the whole of 2026 (paragraph 767). On 3 October, ${n(COUNTS.P25)} comuni were in that situation.` },
+];
+---
+<Guide lang={lang} id="novita" title="IMU 2026 What’s New: Rate Schedules and Changed Rates"
+  description={`IMU 2026 what’s new for owners: same formula and dates, binding comune rate schedules, ${formatNumber(camb.length, 0, 'en')} comuni with new rates, the ${formatPercent(RV.sanzione_base, 0, 'en')} penalty, and a code from 2027.`}
+  h1="IMU in 2026: what actually changed"
+  intro="Headlines about “new IMU rules” appear every year. For 2026 the national rules are the same; what moved are local rates and the way comuni publish them."
+  resume={`If you owned Italian property in 2025, your 2026 IMU is calculated the same way: cadastral income revalued by 5 %, the multiplier for the category, the comune’s rate within the national limits of Law 160 of 2019, and payments by ${d(P.scadenze.acconto)} and ${d(P.scadenze.saldo)}. Three things are genuinely different. First, since 2025 the only document that sets a comune’s rates is the standard rate schedule (prospetto delle aliquote) produced on the Department of Finance’s portal; a resolution without it has no effect, and a comune that never filed a valid one applies the national base rates. Second, many comuni used the 2026 schedule, available to them from 12 November 2025, to change their rates: ${n(camb.length)} moved the rate on second homes, ${n(up)} of them upwards. Third, late payment now costs a ${formatPercent(RV.sanzione_base, 0, lang)} penalty before reductions, under the 2024 reform, while a new penalties code waits until 2027. The calculator reflects all three.`}
+  faqs={faqs} related={['home', 'aliquote', 'aliquoteBase', 'saldo', 'acconto', 'ravvedimento', 'confronto', 'esteri']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_ricerca', 'dlgs471', 'dlgs472')}>
+  <MiniSim client:visible kind="novita" lang={lang} href={route('home', lang)} />
+  <h2>The parts that stayed put</h2>
+  <p>Everything in the national framework carries over: the exemption for a main home outside categories A/1, A/8 and A/9, the {$(P.detrazione_ap)} deduction for luxury main homes, the halved taxable value for a registered free loan to a child or parent, for listed buildings and for buildings declared unfit, tax at {formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)} for homes let at agreed rent, half tax for qualifying pensioners abroad, and the multipliers by cadastral category. If an article promises a sweeping national reform of IMU for 2026, it is not describing the law.</p>
+
+  <h2>The rate schedule is now the law of each comune</h2>
+  <p>Paragraph 757 of Law 160 requires each comune to draft its rate resolution through an application on the national portal, which produces a standard schedule using only the categories allowed by ministerial decree. Since 2025 the schedule is binding: a resolution approved without it produces no effect, the schedule prevails over the comune’s regulations if they conflict (paragraph 764), and a comune without a valid schedule falls back to the national base rates (paragraph 767). In our data {n(COUNTS.B)} of the {n(N_IMU)} comuni that levy IMU are in that last group.</p>
+  <p>For owners abroad this is good news. The schedule looks the same everywhere in Italy, lists every rate, including the reduced ones for agreed-rent lets and the higher ones some comuni charge on empty homes, and states the resolution number and date. It is the document our calculator reads for each comune.</p>
+
+  <h2>How the 2026 schedules arrived</h2>
+  <p>A decree of 6 November 2025 updated the application, which opened to comuni on 12 November 2025. Many approved their 2026 rates in December, others later. The firm deadline to upload is {d(P.scadenze.inserimento_prospetti)}, and only schedules published by {d(P.scadenze.pubblicazione_prospetti)} count for the December balance. On {d(P.retrieved_at)}, {n(COUNTS.P26)} comuni had a published 2026 schedule and {n(COUNTS.P25)} were still on their 2025 one.</p>
+
+  <h2>Where the rates moved</h2>
+  <p>Comparing each comune’s 2025 and 2026 schedules, {n(camb.length)} changed their rate on “other buildings”, the category that covers holiday homes, rented flats, shops and offices. Most rises are small, a few tenths of a point, but some are not, and a handful of comuni cut their rate sharply. The yearly tax on the same A/3 flat with {$(R)} of cadastral income:</p>
+  <ContentTable headers={['Comune', '2025 rate', '2026 rate', 'IMU at 2025 rate', 'IMU at 2026 rate']} align={['l', 'r', 'r', 'r', 'r']} rows={rows} />
+  <p>Because the June instalment uses the old rate, owners in these comuni see the whole change in December. The <a href={route('saldo', lang)}>December payment guide</a> walks through the arithmetic.</p>
+
+  <h2>Penalties: 25 % since 2024, new code from 2027</h2>
+  <p>Legislative Decree 87 of 2024 set the penalty for late or missing payment at {formatPercent(RV.sanzione_base, 0, lang)} of the unpaid tax for breaches from 1 September 2024. Delays up to ninety days still halve it, and within fifteen days it drops to one fifteenth per day. Correcting the payment yourself through the ravvedimento cuts it further: a December balance of {$(600)} paid on 25 January 2027 carries a penalty of {$2(r40.sanzione)}, plus daily interest at the legal rate. Legislative Decree 173 of 2024 gathers all tax penalties into a single code, but article 102 delays its application to 1 January 2027; for 2026, the 1997 decrees as amended still apply. The <a href={route('ravvedimento', lang)}>late payment calculator</a> uses these rules.</p>
+
+  <h2>What this means for your December payment</h2>
+  <p>For most owners the practical consequence of 2026 is a single check in early November. By then the comune’s schedule for the year is either published or not. If it is, compare its rate for your type of property with the one used in June: the same rate means the December payment repeats the June one; a higher rate means a larger balance; a lower one may leave a credit. If it is not published, the 2025 rate stays and nothing changes. Owners who paid the whole year in June should make the same check, because a rate rise published before the end of October still has to be paid by 16 December.</p>
+
+  <h2>Checking your own comune</h2>
+  <p>The quickest check is the <a href={route('aliquote', lang)}>rates by comune</a> page: it says whether the comune’s schedule is for 2026 or still 2025, lists every rate, the targeted rates and the comune’s own exemptions, with the resolution number and date. The same documents are searchable on the Department of Finance website. If you are weighing two towns before buying, the <a href={route('confronto', lang)}>comune comparison</a> puts the same property side by side.</p>
+</Guide>

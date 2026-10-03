@@ -1,0 +1,62 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max, AB = P.aliquote_base;
+const R = 900;
+const senza = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX });
+const metaUscito = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX, quota: 50 });
+const lussoAss = calcolaImu({ categoria: 'A8', rendita: 2400, aliquota: AB.ap, uso: 'ap' });
+const nuovaCasa = calcolaImu({ categoria: 'A3', rendita: 600, aliquota: MAX });
+const tab = [
+  ['Casa A/2 assegnata al genitore affidatario', 'genitore assegnatario', $(0), 'assimilata all’abitazione principale'],
+  ['Stessa casa, nessun provvedimento di assegnazione, coniuge proprietario uscito al 50 %', 'ciascun comproprietario', $(metaUscito.imposta), 'quota del coniuge che non ci vive più'],
+  ['Casa A/8 assegnata al genitore affidatario', 'genitore assegnatario', $(lussoAss.imposta), `aliquota ${al(AB.ap)} e detrazione`],
+  ['Nuovo appartamento A/3 del coniuge uscito, con residenza e dimora', 'coniuge uscito', $(0), 'è la sua abitazione principale'],
+];
+const faqs = [
+  { q: 'Dopo la separazione la casa è intestata a me ma ci vive mia moglie con i bambini: pago l’IMU?', a: 'No. Se il giudice ha assegnato la casa familiare al genitore affidatario dei figli, il provvedimento gli attribuisce ai fini IMU un diritto di abitazione: soggetto passivo diventa lui o lei (art. 1, comma 743, legge 160/2019) e la casa è assimilata all’abitazione principale (comma 741, lett. c, n. 4). Il proprietario che è uscito non versa nulla su quell’immobile.' },
+  { q: 'Se la casa familiare assegnata è una villa A/8, chi paga e quanto?', a: `Paga il genitore assegnatario, con l’aliquota dell’abitazione principale di lusso e la detrazione di ${$(P.detrazione_ap)}, perché l’assimilazione non esenta le categorie A/1, A/8 e A/9. Con ${$(2400)} di rendita all’aliquota di base dello ${al(AB.ap)} l’imposta annua è ${$(lussoAss.imposta)}.` },
+  { q: 'Senza un provvedimento del giudice la casa è comunque esente per chi resta?', a: `Per il coniuge che ci vive con residenza e dimora, la sua quota è esente come abitazione principale. Per l’altro coniuge comproprietario che se n’è andato, la sua quota non è più prima casa e paga come altro fabbricato: con ${$(R)} di rendita e il 50 % all’aliquota dell’${al(MAX)}, ${$(metaUscito.imposta)} l’anno. L’assimilazione del comma 741 richiede il provvedimento del giudice.` },
+];
+---
+<Guide lang={lang} id="separazione" title="IMU casa coniugale e separazione: chi paga nel 2026"
+  description="IMU sulla casa coniugale dopo separazione o divorzio nel 2026: casa assegnata al genitore affidatario, diritto di abitazione e quota del coniuge che esce."
+  h1="Casa coniugale e separazione: chi paga l’IMU sulla casa assegnata"
+  intro="Quando una coppia con figli si separa, la casa familiare viene spesso assegnata a chi resta con i bambini. Per l’IMU questo sposta l’obbligo dal proprietario all’assegnatario."
+  resume={`La casa familiare assegnata dal giudice al genitore affidatario dei figli è considerata abitazione principale ai fini IMU, e il provvedimento costituisce in capo a quel genitore, solo per l’imposta, un diritto di abitazione. Lo dicono due norme della legge 160/2019: l’articolo 1, comma 741, lettera c), numero 4, che la assimila alla prima casa, e il comma 743, che rende soggetto passivo il genitore assegnatario. La conseguenza pratica è che nessuno paga l’IMU su quella casa, se non è di lusso: non il genitore che ci vive, perché è la sua abitazione principale, e non il coniuge proprietario che è uscito, perché non è più lui il soggetto passivo. Senza assegnazione, la quota del coniuge uscito diventa un altro fabbricato: su un A/2 con ${$(R)} di rendita, il 50 % all’aliquota dell’${al(MAX)} costa ${$(metaUscito.imposta)} l’anno. Se la casa assegnata è A/1, A/8 o A/9, paga l’assegnatario con l’aliquota ridotta e la detrazione.`}
+  faqs={faqs} related={['home', 'primaCasa', 'coniugi', 'usufrutto', 'lusso', 'compravendita', 'dichiarazione', 'secondaCasa']} sources={src(lang, 'legge160', 'mef_versamenti', 'corte209')}>
+  <MiniSim client:visible kind="separazione" lang={lang} href={route('home', lang)} />
+  <h2>Il diritto di abitazione «ai soli fini dell’imposta»</h2>
+  <p>Il proprietario di una casa resta proprietario anche dopo l’assegnazione al coniuge: il giudice non trasferisce la proprietà, decide solo chi la usa. Per l’IMU, però, la legge crea una finzione: il provvedimento vale come costituzione di un diritto di abitazione a favore del genitore affidatario. Poiché il titolare di un diritto di abitazione è soggetto passivo dell’imposta, il proprietario esce di scena. Non serve un atto notarile né una trascrizione: basta il provvedimento del giudice, in sede di separazione, divorzio o affidamento dei figli nati fuori dal matrimonio.</p>
+
+  <h2>Quattro situazioni ricorrenti</h2>
+  <ContentTable headers={['Situazione', 'Chi è soggetto passivo', 'IMU annua', 'Motivo']} align={['l', 'l', 'r', 'l']} rows={tab} />
+  <p>Gli importi usano l’aliquota dell’{al(MAX)} per gli altri fabbricati e l’aliquota di base per l’abitazione di lusso. Nel tuo comune possono essere diverse: il calcolatore le prende dal prospetto.</p>
+
+  <h2>Quando i figli non ci sono o diventano autonomi</h2>
+  <p>La norma parla di casa familiare assegnata al genitore affidatario dei figli. Una coppia senza figli che si separa, con la casa che resta a uno dei due per accordo, non rientra nell’assimilazione: ciascun coniuge paga sulla propria quota secondo la propria situazione, esente se ci vive come abitazione principale, tassato come altro fabbricato se se n’è andato. Quando il provvedimento di assegnazione viene revocato, per esempio perché i figli sono diventati economicamente indipendenti e la casa torna al proprietario, l’obbligo torna a lui dal mese della revoca.</p>
+
+  <h2>La nuova casa del coniuge che esce</h2>
+  <p>Il coniuge che lascia la casa familiare e va a vivere in un’altra casa di sua proprietà, con residenza e dimora, ha lì la sua abitazione principale: un appartamento A/3 con {$(600)} di rendita non paga nulla, mentre come seconda casa all’{al(MAX)} pagherebbe {$(nuovaCasa.imposta)}. Se invece va in affitto, l’unico immobile che possiede è la casa assegnata, su cui non è soggetto passivo: non paga IMU da nessuna parte. Se possiede altre case oltre a quella familiare, quelle restano seconde case.</p>
+
+  <h2>Cambiamenti in corso d’anno</h2>
+  <p>L’IMU si calcola a mesi. Se l’assegnazione arriva a metà anno, il genitore assegnatario diventa soggetto passivo dal mese del provvedimento, e prima di allora ciascun comproprietario rispondeva per la sua quota. Il mese conta per chi ha avuto la situazione per più della metà dei giorni, secondo il comma 761. Per i mesi precedenti all’assegnazione, se il coniuge uscito è già andato via, la sua quota può aver pagato come altro fabbricato: il calcolatore con quota e mesi di possesso permette di ricostruire l’importo esatto.</p>
+
+  <h2>Il coniuge che va a vivere all’estero</h2>
+  <p>Nelle coppie internazionali capita che dopo la separazione uno dei due torni nel suo paese. Se non c’è assegnazione del giudice e quel coniuge resta comproprietario, la sua quota paga come altro fabbricato e va versata dall’estero, di solito con bonifico verso la tesoreria del comune. Se invece la casa è assegnata al genitore affidatario che resta in Italia, il coniuge all’estero non versa nulla su quell’immobile. Le modalità di pagamento sono nella guida per i <a href={route('esteri', lang)}>residenti all’estero</a>.</p>
+
+  <h2>La comunicazione al comune</h2>
+  <p>Il comune non conosce automaticamente i provvedimenti del tribunale. Quando la situazione cambia in modo rilevante per l’imposta, la legge prevede la dichiarazione IMU entro il 30 giugno dell’anno successivo (comma 768-bis). Presentarla tutela il proprietario uscito, che altrimenti potrebbe ricevere un avviso di accertamento per una casa su cui non è più soggetto passivo. Il modello e i casi in cui serve sono nella guida sulla <a href={route('dichiarazione', lang)}>dichiarazione IMU</a>.</p>
+
+  <h2>Se la casa assegnata paga: come versare</h2>
+  <p>Solo la casa familiare di categoria A/1, A/8 o A/9 genera un’IMU, e la paga il genitore assegnatario con il proprio codice fiscale. Nel modello F24 si usa il codice tributo {P.f24.ap}, lo stesso dell’abitazione principale di lusso, con il codice catastale del comune e la detrazione di {$(P.detrazione_ap)} rapportata ai mesi. L’acconto del 16 giugno si calcola con l’aliquota dell’anno precedente, il saldo del 16 dicembre con quella dell’anno in corso. Se l’assegnatario non paga, il comune si rivolge a lui e non al proprietario, perché è lui il soggetto passivo per legge; per i dettagli sulla casa di pregio vedi la guida sull’<a href={route('lusso', lang)}>abitazione di lusso</a>, e per le situazioni con usufrutto quella su <a href={route('usufrutto', lang)}>usufrutto e nuda proprietà</a>.</p>
+</Guide>

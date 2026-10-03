@@ -1,0 +1,62 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, moltiplicatore } from '../../lib/engine/imu';
+import { conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import { mesiTrasferimento } from '../../lib/engine/imu';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti, B = P.aliquote_base;
+const R = 1300;
+const x = calcolaImu({ categoria: 'A10', rendita: R, aliquota: L.altri_max });
+const home = calcolaImu({ categoria: 'A3', rendita: R, aliquota: L.altri_max });
+const tot = conProspetto.length;
+const diffFiles = import.meta.glob<{ default: Record<string, { d: Array<[string, number, string]>; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const conA10 = Object.values(diffFiles).reduce((s, f) => s + Object.values(f.default).filter((v) => v.d.some((d) => d[0] === 'altri' && /A\/10/.test(d[2]))).length, 0);
+const rows = [700, 1300, 2500, 5000].map((r) => [$(r), $(calcolaImu({ categoria: 'A10', rendita: r, aliquota: B.altri }).imposta), $(calcolaImu({ categoria: 'A10', rendita: r, aliquota: L.altri_max }).imposta), $(calcolaImu({ categoria: 'A3', rendita: r, aliquota: L.altri_max }).imposta)]);
+const t = mesiTrasferimento('2026-05-12');
+const bought = calcolaImu({ categoria: 'A10', rendita: R, aliquota: L.altri_max, mesi: t.acquirente, periodo: 'fine' });
+const half = calcolaImu({ categoria: 'A10', rendita: R, aliquota: L.altri_max, quota: 50 });
+const faqs = [
+  { q: 'I run my consultancy from a flat I own in Italy: is it taxed as an office?', a: `Not unless it is registered as A/10. IMU follows the cadastral category, so a flat used as an office keeps the dwelling multiplier of ${moltiplicatore('A3')}. With ${$(R)} of rendita at ${al(L.altri_max)} that means ${$(home.imposta)} a year, against ${$(x.imposta)} for a genuine A/10 with the same rendita.` },
+  { q: 'Is there a special IMU rate for offices in Italy?', a: `Not in national law: offices pay the comune’s rate for other buildings, ${al(B.altri)} at base and up to ${al(L.altri_max)}. But ${n(conA10)} of the ${n(tot)} comuni whose schedules we read set targeted rates covering A/10 units, often for offices used directly by a business or by a recently founded company. Check your comune’s schedule.` },
+  { q: 'Do I pay IMU on an office I let to a public body?', a: 'Yes. The exemption in paragraph 759 (a) covers property owned by the State, comuni and, within their own territory, regions, provinces and health authorities, used only for their institutional tasks. A privately owned office let to a public body is still private property and pays IMU in full.' },
+];
+---
+<Guide lang={lang} id="uffici" title={`IMU on Offices (A/10) in Italy 2026: Multiplier and Rates`}
+  description={`IMU on offices and private studios (A/10) in Italy for 2026: multiplier ${moltiplicatore('A10')} instead of ${moltiplicatore('A3')}, comune rates up to ${al(L.altri_max)}, flats used as offices and tax code ${P.f24.altri}.`}
+  h1="IMU on offices in Italy: A/10 units, home studios and let premises"
+  intro="Category A/10 is the Italian cadastral class for offices and private studios. It sits in group A with homes, but its IMU is calculated on half the multiplier."
+  resume={`Offices and private studios registered in cadastral category A/10 pay IMU as “other buildings”, on a multiplier of ${moltiplicatore('A10')} rather than the ${moltiplicatore('A3')} used for homes (paragraph 745 of Law 160/2019, which gives banks and insurers in D/5 the same ${moltiplicatore('D5')}). The rendita from the visura is increased by 5 % and multiplied by ${moltiplicatore('A10')}: an office with ${$(R)} of rendita has a taxable value of ${$(x.base)} and, at the ${al(L.altri_max)} rate, pays ${$(x.imposta)} a year in two instalments of ${$(x.acconto)}, under F24 tax code ${P.f24.altri}. The owner pays even when the office is let. The decisive point for foreign owners and professionals is that IMU follows the category on the land registry, not how the space is used: a flat used as a consulting room or studio stays a dwelling and is taxed on the full residential multiplier. Some comuni set their own office rates, so check the schedule of yours.`}
+  faqs={faqs} related={['home', 'negozi', 'capannoni', 'locati', 'coefficienti', 'aliquote', 'esteri']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="uffici" lang={lang} href={route('home', lang)} />
+  <h2>Half the multiplier of a home</h2>
+  <p>Paragraph 745 (a) gives {moltiplicatore('A3')} to group A “excluding category A/10”, and paragraph 745 (d) gives A/10 a multiplier of {moltiplicatore('A10')}. At the same rendita, an office therefore has half the taxable value of a flat. Office rendite tend to be higher than residential ones in the same street, so the real gap is usually narrower, but the table shows the effect of the multiplier alone.</p>
+  <ContentTable headers={['Rendita', `Office at ${al(B.altri)}`, `Office at ${al(L.altri_max)}`, `Flat A/3 at ${al(L.altri_max)}`]} align={['r', 'r', 'r', 'r']} rows={rows} />
+
+  <h2>Category decides, not use</h2>
+  <p>Professionals relocating to Italy often work from a room or a whole flat registered as a dwelling. For IMU that space is a dwelling: if it is also your main residence and not in a luxury category, it is exempt; if it is a separate flat used only for work, it pays as another building on the residential multiplier. Changing the category to A/10 requires a cadastral update filed by a technician (geometra or architect) and produces a new rendita, so the IMU after the change can go either way. Run both cases through the calculator before deciding.</p>
+
+  <h2>Comune rates aimed at offices</h2>
+  <p>National law has no separate office rate, but comuni can create one in their schedule. Conditions seen in the schedules include offices used directly by a business, offices of young or innovative companies, and offices owned and used by non-profit bodies. In Genoa, for instance, offices and workshops of innovative start-ups in research get a reduced rate; Rome lowers the rate on A/10, B and C units owned and used by non-profit organisations. These appear under the calculator result with their Italian conditions.</p>
+
+  <h2>Let offices and leases</h2>
+  <p>If you let your office to a company, you remain the taxpayer: paragraph 743 makes the owner or usufructuary liable, never the tenant. The agreed-rent reduction of paragraph 760 does not apply to offices, since it covers only dwellings let under Law 431/1998. Under a finance lease (leasing) the lessee pays from the date of signing. If the office stands empty, the comune may apply a higher rate for property not in use.</p>
+
+  <h2>Paying</h2>
+  <p>Office IMU goes entirely to the comune under code {P.f24.altri}, the same code as second homes and shops, with the comune’s cadastral code. Pay on 16 June using last year’s rate and on 16 December using the {P.year} rate. Owners abroad can pay by bank transfer to the comune; the <a href={route('esteri', lang)}>guide for non-residents</a> lists what to quote, and the <a href={route('coefficienti', lang)}>multipliers guide</a> compares every category.</p>
+  <h2>Worked example: an office bought in May</h2>
+  <p>Suppose you complete the purchase of an office with {$(R)} of rendita on 12 May {P.year}. The day of the deed counts for the buyer, and May has 31 days, so you hold it for 20 days against the seller’s 11: May is yours. You owe IMU for {t.acquirente} months and the seller for {t.venditore}. At {al(L.altri_max)}, your share for the year is {$(bought.imposta)}. May and June fall in the first half of the year, so two months go into the June instalment and the other six into December: the calculator splits them once you enter the months and choose “to December”.</p>
+  <p>If you buy with a partner in equal shares, each of you pays half on a separate F24 or transfer: on a full year that is {$(half.imposta)} each. Each co-owner is a separate taxpayer under paragraph 743, so one partner paying everything does not discharge the other in the comune’s records unless its regulation allows it.</p>
+
+  <h2>What to check on the visura before you pay</h2>
+  <p>The cadastral record of an office shows the category (it should read A/10), the class, the size in rooms (vani) and the rendita in euros. Use the rendita exactly as printed, without adding 5 % yourself. If the visura still shows a residential category because the conversion was never registered, you must pay on that category until it is updated, whatever the use. If several units were merged into one office, make sure the merger was registered: otherwise each old unit keeps its own rendita and its own line on the payment form.</p>
+
+</Guide>

@@ -1,0 +1,68 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, moltiplicatore } from '../../lib/engine/imu';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const L = P.limiti, B = P.aliquote_base;
+const R = 12000;
+const x = calcolaImu({ categoria: 'D', rendita: R, aliquota: L.altri_max });
+const xMin = calcolaImu({ categoria: 'D', rendita: R, aliquota: L.D_min });
+const tot = conProspetto.length;
+const dist = distribuzione('D').slice(0, 5);
+const distRows = dist.map((d) => { const y = calcolaImu({ categoria: 'D', rendita: R, aliquota: d.aliquota }); return [al(d.aliquota), n(d.n), $(y.stato), $(y.comune), $(y.imposta)]; });
+const alMinimo = quanti('D', (v) => v === L.D_min);
+const oltre = quanti('D', (v) => v > L.altri_max);
+const diffFiles = import.meta.glob<{ default: Record<string, { d: Array<[string, number, string]>; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const conta = (re: RegExp) => Object.values(diffFiles).reduce((s, f) => s + Object.values(f.default).filter((v) => v.d.some((d) => d[0] === 'D' && re.test(d[2]))).length, 0);
+const conD1 = conta(/D\/1 /), conD2 = conta(/D\/2 /), conD3 = conta(/D\/3 /);
+const f24 = x.f24;
+const f24Rows = f24.map((r) => [r.codice, r.codice === P.f24.D_stato ? 'Stato' : 'Comune', r.rata === 'acconto' ? '16 giugno' : '16 dicembre', $(r.importo)]);
+const banca = calcolaImu({ categoria: 'D5', rendita: R, aliquota: L.altri_max });
+const faqs = [
+  { q: 'Perché l’IMU del capannone si paga con due codici tributo?', a: `Perché il gettito del gruppo D calcolato allo ${al(L.D_quota_stato)} è riservato allo Stato (comma 744): si versa con il codice ${P.f24.D_stato}. La parte che eccede, decisa dal comune, va con il codice ${P.f24.D_comune}. Su un capannone con ${$(R)} di rendita all’${al(L.altri_max)}, lo Stato riceve ${$(x.stato)} e il comune ${$(x.comune)} l’anno.` },
+  { q: 'Il comune può ridurre l’IMU del mio opificio sotto lo 0,76 %?', a: `No. Per gli immobili produttivi del gruppo D la legge consente ai comuni di scendere solo fino allo ${al(L.D_min)}, la quota statale (comma 753). Sotto quella soglia nessun comune può andare: ${n(alMinimo)} comuni sui ${n(tot)} letti applicano proprio il minimo. Fanno eccezione i fabbricati rurali strumentali D/10, che hanno un’aliquota propria.` },
+  { q: 'Il capannone in leasing chi paga l’IMU?', a: 'Paga l’impresa utilizzatrice. Per gli immobili concessi in locazione finanziaria, anche da costruire o in costruzione, il soggetto passivo è il locatario dalla data di stipula e per tutta la durata del contratto (comma 743). Se il fabbricato del gruppo D non ha ancora una rendita, il valore si ricava dalle scritture contabili del locatore, che deve fornire i dati.' },
+  { q: 'Il capannone costruito per essere venduto paga l’IMU?', a: 'No, dal 2022. I fabbricati costruiti e destinati dall’impresa costruttrice alla vendita sono esenti finché resta questa destinazione e non sono in alcun modo locati (comma 751). Appena vengono affittati, anche temporaneamente, l’esenzione cessa e l’immobile paga con l’aliquota della sua categoria.' },
+];
+---
+<Guide lang={lang} id="capannoni" title={`IMU capannoni e gruppo D 2026: quota Stato e comune`}
+  description={`IMU capannoni e immobili del gruppo D 2026: moltiplicatore ${moltiplicatore('D')}, aliquota tra lo ${al(L.D_min)} e l’${al(L.altri_max)}, quota allo Stato con codice ${P.f24.D_stato} e quota comune con ${P.f24.D_comune}.`}
+  h1="IMU sui capannoni e sugli immobili del gruppo D: Stato, comune e codici F24"
+  intro="Opifici, alberghi, centri commerciali, impianti sportivi a scopo di lucro: il gruppo catastale D raccoglie gli immobili produttivi, e la loro IMU si divide tra Stato e comune."
+  resume={`Gli immobili del gruppo catastale D, cioè opifici, capannoni industriali, alberghi, cinema, case di cura private, centri commerciali e fabbricati per attività speciali, pagano l’IMU con un’aliquota di base dello ${al(B.D)}. Il comune può alzarla fino all’${al(L.altri_max)}, oltre con la maggiorazione ex TASI, ma non può scendere sotto lo ${al(L.D_min)}, perché quella parte è riservata allo Stato (commi 744 e 753 della legge 160 del 2019). La base imponibile è la rendita catastale aumentata del 5 % e moltiplicata per ${moltiplicatore('D')}, oppure per ${moltiplicatore('D5')} per banche e assicurazioni in D/5. Un capannone con ${$(R)} di rendita, all’${al(L.altri_max)}, paga ${$(x.imposta)} l’anno: ${$(x.stato)} allo Stato con il codice ${P.f24.D_stato} e ${$(x.comune)} al comune con il codice ${P.f24.D_comune}. Al minimo dello ${al(L.D_min)} l’imposta scende a ${$(xMin.imposta)}, interamente statale. I fabbricati rurali strumentali in D/10 seguono invece un’aliquota a parte.`}
+  faqs={faqs} related={['home', 'negozi', 'uffici', 'rurali', 'aliquote', 'f24', 'acconto', 'saldo']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo', 'mef_versamenti')}>
+  <MiniSim client:visible kind="capannoni" lang={lang} href={route('home', lang)} />
+  <h2>Un’imposta con due destinatari</h2>
+  <p>Il comma 744 riserva allo Stato il gettito degli immobili produttivi del gruppo D calcolato all’aliquota dello {al(L.D_quota_stato)}. Il comune incassa soltanto quello che eccede, se ha deliberato un’aliquota più alta. La riserva non si applica agli immobili del gruppo D posseduti dal comune stesso sul proprio territorio. L’accertamento e la riscossione restano però comunali anche per la parte statale: in caso di controllo è il comune a contestare l’omesso versamento e a trattenere imposta, interessi e sanzioni recuperati.</p>
+  <p>Questa ripartizione spiega perché il calcolatore separa le due quote e produce quattro righe di F24 invece di due.</p>
+  <ContentTable caption={`Righe F24 per un capannone con ${$(R)} di rendita all’${al(L.altri_max)}`} headers={['Codice tributo', 'Destinatario', 'Scadenza', 'Importo']} align={['l', 'l', 'l', 'r']} rows={f24Rows} />
+
+  <h2>Moltiplicatori: {moltiplicatore('D')} e {moltiplicatore('D5')}</h2>
+  <p>Per il gruppo D il comma 745 fissa un moltiplicatore di {moltiplicatore('D')}, il più basso dopo quello dei negozi. La sola eccezione è la categoria D/5, istituti di credito, cambio e assicurazione, che ha un moltiplicatore di {moltiplicatore('D5')}. A parità di rendita, uno sportello bancario paga quindi più di un capannone: con {$(R)} di rendita all’{al(L.altri_max)} l’IMU di un D/5 è {$(banca.imposta)}, contro {$(x.imposta)} di un opificio.</p>
+  <p>Per i fabbricati del gruppo D non ancora iscritti in catasto, interamente posseduti da imprese e distintamente contabilizzati, il comma 746 fa riferimento al valore contabile aggiornato con coefficienti ministeriali, fino alla richiesta di attribuzione della rendita.</p>
+
+  <h2>Le aliquote dei comuni per il gruppo D</h2>
+  <p>Nei {n(tot)} prospetti letti l’aliquota più diffusa per il gruppo D è il massimo ordinario. {n(alMinimo)} comuni applicano il minimo dello {al(L.D_min)}, rinunciando a ogni incasso proprio su questi immobili, mentre {n(oltre)} superano l’{al(L.altri_max)} grazie alla maggiorazione ex TASI. Per ogni aliquota, ecco come si divide l’imposta del capannone di esempio.</p>
+  <ContentTable headers={['Aliquota', 'Comuni', 'Quota Stato', 'Quota comune', 'Totale']} align={['r', 'r', 'r', 'r', 'r']} rows={distRows} />
+
+  <h2>Aliquote mirate: opifici, alberghi, cinema</h2>
+  <p>Il prospetto consente ai comuni di distinguere tra le categorie del gruppo D e tra le condizioni d’uso. Lo hanno fatto in molti: {n(conD1)} comuni prevedono un’aliquota specifica che riguarda gli opifici D/1, {n(conD2)} una per gli alberghi e le pensioni D/2, {n(conD3)} una per teatri e cinema D/3. Torino riduce l’aliquota per gli opifici e i fabbricati industriali utilizzati direttamente da imprese, Genova per le start-up innovative del settore della ricerca, Firenze per le attività in zone colpite dall’abbandono commerciale, Bologna e Milano per le sale cinematografiche. Il calcolatore mostra queste aliquote sotto il risultato quando il comune scelto le prevede.</p>
+
+  <h2>Leasing, immobili merce e fabbricati in costruzione</h2>
+  <p>Nel leasing immobiliare l’IMU è a carico dell’utilizzatore dalla firma del contratto e per tutta la sua durata, anche per immobili da costruire o in costruzione (comma 743). Gli immobili costruiti dall’impresa per la vendita sono esenti dal 2022 finché non vengono venduti né locati (comma 751). Un capannone nuovo comincia a pagare come fabbricato dalla data di ultimazione dei lavori o da quella del primo utilizzo, se precedente; prima, come area fabbricabile sul valore del terreno.</p>
+
+  <h2>Acconto e saldo per le imprese</h2>
+  <p>Le scadenze sono quelle di tutti: 16 giugno e 16 dicembre, con l’acconto calcolato sulle aliquote dell’anno precedente e il saldo a conguaglio. Per le imprese che pagano importi elevati il conguaglio di dicembre può essere rilevante se il comune ha cambiato aliquota. Ogni riga dell’F24 si arrotonda all’euro separatamente, per cui la somma delle righe può differire di qualche euro dall’imposta teorica. Le guide su <a href={route('acconto', lang)}>acconto</a> e <a href={route('saldo', lang)}>saldo</a> mostrano il calcolo rata per rata.</p>
+
+  <h2>Capannone inagibile o sfitto</h2>
+  <p>Un capannone vuoto paga come uno utilizzato, salvo diverse aliquote del comune per gli immobili a disposizione. Se è dichiarato inagibile o inabitabile e di fatto non utilizzato, la base imponibile si dimezza per il periodo in cui sussistono le condizioni (comma 747, lettera b), con perizia dell’ufficio tecnico comunale o dichiarazione sostitutiva di un tecnico abilitato. La quota statale si riduce nella stessa proporzione.</p>
+</Guide>

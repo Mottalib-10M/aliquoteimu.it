@@ -1,0 +1,79 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 700;
+const full = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const half = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, pensionatoEstero: true });
+const relief = formatPercent(1 - P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const towns = [['Lucca', 'E715'], ['Todi', 'L188'], ['Positano', 'G932'], ['Taormina', 'L042'], ['Ostuni', 'G187'], ['Sorrento', 'I862']] as const;
+const townRows = towns.map(([name, code]) => { const c = comune(code); if (!c) return [name, '-', '-', '-']; const a = ratesOf(c).altri; const x = calcolaImu({ categoria: 'A2', rendita: 900, aliquota: a }); return [name, al(a), $(x.imposta), $(x.acconto)]; });
+const steps = [
+  ['1', 'Codice fiscale', 'Your Italian tax code, issued by an Italian consulate or the Agenzia delle Entrate when you bought'],
+  ['2', 'Visura catastale', 'The cadastral record: category (A/2, A/3…), rendita, comune'],
+  ['3', 'Comune rate', 'The comune’s rate schedule for other buildings (altri fabbricati)'],
+  ['4', 'Comune code', 'The four-character cadastral code of the comune, for example H501 for Rome'],
+  ['5', 'Tax code', `${P.f24.altri} for a dwelling, ${P.f24.ter} for land, ${P.f24.aree} for building land`],
+  ['6', 'Payment', 'F24 from an Italian account, or international transfer to the comune treasury'],
+];
+const faqs = [
+  { q: 'I live abroad and spend my summers in my Italian house: is it my main home for IMU?', a: `No. The main home exemption needs both residence registered in that comune (residenza anagrafica) and habitual dwelling there (paragraph 741 of Law 160/2019). A house used for holidays by someone resident abroad pays as a second home: ${$(full.imposta)} a year on ${$(R)} of rendita at ${al(MAX)}.` },
+  { q: 'Which pensioners living abroad pay only half the IMU?', a: `Those not resident in Italy who receive a pension earned under an international social security agreement with Italy, and live in a country of insurance other than Italy. The relief (${relief} off the tax) covers one dwelling, owned outright or in usufruct, that is neither let nor lent (Law 178/2020, art. 1, para. 48).` },
+  { q: 'What reference should I put on an international bank transfer for IMU?', a: `Your Italian codice fiscale, the comune’s cadastral code, the IMU tax code (${P.f24.altri} for a dwelling that is not a main home), the year, and whether it is the June instalment (acconto) or the December balance (saldo). Use the IBAN and BIC of the comune’s treasury, published on its website, and email the receipt to its tax office.` },
+  { q: 'Can a letting agent or an Italian relative pay my IMU for me?', a: 'Yes. Anyone can file an F24 in your name: what matters is that the form carries your codice fiscale as the taxpayer. Many owners abroad ask a commercialista, an agency managing the rental or a relative with an Italian account. You remain responsible if the payment is late or wrong.' },
+  { q: 'How far back can a comune chase unpaid IMU from a foreign owner?', a: `Until 31 December of the fifth year after the year the payment was due (Law 296/2006, para. 161). Unpaid IMU for 2026 can therefore be assessed until the end of 2031, with a ${formatPercent(P.ravvedimento.sanzione_base, 0, lang)} penalty and interest. Settling on your own before any notice, through the ravvedimento operoso, cuts the penalty to a fraction.` },
+];
+---
+<Guide lang={lang} id="esteri" title="IMU for Non-Residents 2026: Foreign Owners, AIRE, Pensioners"
+  description={`IMU for owners living outside Italy in 2026: no main home exemption, the ${relief} relief for treaty pensioners, comune rates and paying by bank transfer.`}
+  h1="IMU for non-residents: what foreign owners and Italians abroad pay in 2026"
+  intro="Whether you are British, American or German with a farmhouse in Tuscany, or an Italian who moved abroad and kept the family flat, IMU is a yearly bill you cannot ignore."
+  resume={`If you do not live in Italy, your Italian property is not a main home for IMU purposes, because the exemption requires registered residence and habitual dwelling in that very property. It is taxed as a second home, at the rate the comune sets for "other buildings", usually between ${al(P.aliquote_base.altri)} and ${al(MAX)}. Since 2020 the old exemption for Italian pensioners registered with AIRE, the register of Italians living abroad, no longer exists. One relief remains, under Law 178 of 2020: owners who live abroad and receive a pension earned under an international social security agreement with Italy pay half the IMU on one dwelling that is neither let nor lent. On a flat with ${$(R)} of cadastral income at ${al(MAX)}, IMU drops from ${$(full.imposta)} to ${$(half.imposta)} a year. You pay in two instalments, by 16 June and 16 December, either with the Italian F24 form or by international bank transfer to the comune.`}
+  faqs={faqs} related={['home', 'aliquote', 'secondaCasa', 'locati', 'f24', 'acconto', 'saldo', 'ravvedimento', 'compravendita']} sources={src(lang, 'legge160', 'legge178', 'mef_versamenti', 'mef_prospetti', 'codici_tributo', 'legge296')}>
+  <MiniSim client:visible kind="esteri" lang={lang} href={route('home', lang)} />
+  <h2>Why living abroad means paying IMU</h2>
+  <p>Italian law exempts only the abitazione principale, the dwelling where the owner and their family are registered as residents and actually live. Registration means an entry in the comune’s population register (anagrafe), which you lose when you move abroad; Italians who emigrate are moved to AIRE instead. Owning, furnishing and visiting the house every summer does not change this. A foreign buyer who never took Italian residence has never had a main home in Italy at all.</p>
+  <p>The practical consequence is that every Italian property of a non-resident pays IMU at the comune’s rate for other buildings (altri fabbricati), the same rate as rented flats, shops and holiday homes owned by Italians. Garages and cellars that would be exempt pertinenze of a main home are taxed too, each on its own rendita.</p>
+
+  <h2>The half-rate relief for pensioners under a treaty</h2>
+  <p>Paragraph 48 of article 1 of Law 178 of 2020 halves IMU from 2021 onwards, and also cuts the waste tax by two thirds. All of these conditions must be met:</p>
+  <ul>
+    <li>you are not resident in Italy;</li>
+    <li>you receive a pension earned under an international agreement with Italy (a regime di convenzione), typically a pension built by adding up contributions paid in Italy and in another country under EU rules or a bilateral treaty;</li>
+    <li>you live in a country of insurance other than Italy;</li>
+    <li>the relief applies to one dwelling only, which you own or hold in usufruct;</li>
+    <li>that dwelling is not let and not lent free of charge (comodato).</li>
+  </ul>
+  <p>A purely foreign pension with no Italian contribution period does not qualify, nor does a pension unrelated to any treaty. Letting the house to tourists for a few weeks breaks the "not let" condition. The comune cannot see your pension from its records, so check its regulation: most ask for a declaration or a copy of the pension certificate.</p>
+
+  <h2>What foreign owners pay in popular towns</h2>
+  <p>The rate is the comune’s choice, so two similar houses in Umbria and Puglia can carry quite different bills. The table uses an A/2 flat with {$(900)} of rendita, held all year by one owner, at each comune’s rate for other buildings.</p>
+  <ContentTable headers={['Comune', 'Rate', 'IMU per year', 'June instalment']} align={['l', 'r', 'r', 'r']} rows={townRows} />
+  <p>Any comune can be checked on the <a href={route('aliquote', lang)}>rates by comune</a> page, and the <a href={route('home', lang)}>IMU calculator</a> applies the relief for treaty pensioners with one switch.</p>
+
+  <h2>Six things you need before paying</h2>
+  <ContentTable headers={['Step', 'What', 'Where it comes from']} align={['l', 'l', 'l']} rows={steps} />
+  <p>The rendita is printed on the visura and on the purchase deed (rogito). Use it as written: the {formatPercent(P.base.rivalutazione_rendita, 0, lang)} revaluation is part of the formula and the calculator adds it once. If you own a share, for example half with a spouse, each of you pays your own half on a separate payment under your own codice fiscale.</p>
+
+  <h2>Paying from abroad, step by step</h2>
+  <p>The standard route is the F24 form, which an Italian bank, the post office or the Agenzia delle Entrate’s online service accepts. If you keep an Italian current account, your bank’s online banking will have an F24 section: fill in the IMU and other local taxes section with the tax code, the comune code, the year and the amount.</p>
+  <p>Without an Italian account, comuni accept an international transfer to their treasury account (tesoreria comunale). Their tax office page lists the IBAN and BIC for payments from abroad. The transfer reference should contain your codice fiscale, the comune code, the tax code {P.f24.altri}, the year, and the words acconto or saldo. Send the bank receipt by email to the ufficio tributi: a transfer does not reach the national payment database the way an F24 does, and the email avoids a reminder letter months later. Bank charges are yours, so instruct your bank to send the full amount in euro (OUR charges).</p>
+  <p>A third option is to let someone in Italy pay for you. A relative, a property manager or an accountant can submit an F24 in your name from their own account; the form simply has to show your codice fiscale as the taxpayer.</p>
+
+  <h2>Deadlines and late payment</h2>
+  <p>The June instalment is due by 16 June and the balance by 16 December, or the whole year in June. A transfer from outside the euro area can take several days, and what counts is the date the comune receives it, so send it a week early. The June payment uses last year’s rate and the December one this year’s, which matters when a comune changes its rate: see the <a href={route('saldo', lang)}>December balance</a> guide.</p>
+  <p>Missed a year because nobody told you? Italian comuni send few reminders and many foreign owners discover IMU years late. The <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> lets you pay the tax, interest and a much reduced penalty before the comune notices. After a formal assessment, the full {formatPercent(P.ravvedimento.sanzione_base, 0, lang)} penalty applies. Comuni can assess until 31 December of the fifth year after the one in which payment was due.</p>
+
+  <h2>Buying, selling and inheriting from abroad</h2>
+  <p>IMU follows ownership month by month. When you buy, you pay from the month of the deed if you owned the house for at least half of that month; the seller pays the months before. The <a href={route('compravendita', lang)}>buying and selling guide</a> works out the split for any date. The notary does not pay IMU for you. If you inherit a share of a family home, each heir pays their own share from the date of death: the <a href={route('eredita', lang)}>inheritance guide</a> covers the details, including the surviving spouse’s right to live in the home.</p>
+</Guide>

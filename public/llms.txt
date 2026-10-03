@@ -1,0 +1,16 @@
+# AliquoteIMU.it
+
+> Calcolo IMU 2026 con le aliquote ufficiali dei comuni italiani (prospetti del Dipartimento delle Finanze), in italiano e in inglese. Editore: Radif Partners. Calcolo nel browser, nessun dato trasmesso.
+
+## Dati
+- Aliquote IMU di 7 357 comuni lette dai prospetti 2025 e 2026 del Dipartimento delle Finanze (lettura del 2026-10-03); 42 comuni senza prospetto conforme con aliquote di base; Friuli Venezia Giulia (ILIA), provincia di Trento (IMIS) e di Bolzano (IMI) fuori IMU.
+- Parametri di legge: legge 160/2019, art. 1, commi 738-783; legge 178/2020, comma 48; D.Lgs. 471/1997 e 472/1997, art. 13.
+
+## Pagine principali
+- [Calcolo IMU 2026](https://aliquoteimu.it/it/): calcolatore con acconto, saldo e righe F24
+- [Aliquote IMU per comune](https://aliquoteimu.it/it/aliquote-imu-comuni/)
+- [Confronto tra comuni](https://aliquoteimu.it/it/confronto-imu-comuni/)
+- [Ravvedimento operoso IMU](https://aliquoteimu.it/it/ravvedimento-operoso-imu/)
+- [IMU calculator in English](https://aliquoteimu.it/en/)
+- [IMU for non-residents](https://aliquoteimu.it/en/imu-for-non-residents/)
+- [Metodologia](https://aliquoteimu.it/it/metodologia/)

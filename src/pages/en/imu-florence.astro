@@ -1,0 +1,36 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffOf, diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const c = comune('D612')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const nDiff = diffOf('D612').d.length;
+const CC = diffRate('D612', /art\. 2, comma 3/)!, BOT = diffRate('D612', /Bottega storica/)!, PATTI = diffRate('D612', /Accordi\/Patti territoriali/)!;
+const R = 1000;
+const flat = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const agreed = calcolaImu({ categoria: 'A2', rendita: R, aliquota: CC, canoneConcordato: true });
+const villa = calcolaImu({ categoria: 'A7', rendita: 2200, aliquota: r.altri });
+const faqs = [
+  { q: 'What IMU does a flat in central Florence used as a holiday home pay?', a: `${al(r.altri)}, Florence’s rate for second homes. A flat with ${$(R)} of cadastral income pays ${$(flat.imposta)} a year; a detached house (A/7) with ${$(2200)} of rendita pays ${$(villa.imposta)}. The comune’s lower rates apply only to regulated leases and specific commercial uses, not to homes kept for personal stays.` },
+  { q: 'Can I pay less IMU in Florence by letting at agreed rent?', a: `Yes. Agreed-rent, transitional and student leases pay ${al(CC)}, and agreed-rent leases also get the national cut to 75 %: ${$(agreed.imposta)} instead of ${$(flat.imposta)} on a ${$(R)} rendita. Leases under local territorial agreements defined in the comune’s regulation pay ${al(PATTI)}.` },
+  { q: 'Is a Florence flat let to tourists taxed as a let property?', a: `For IMU it remains an ‘other building’, so it pays Florence’s ${al(r.altri)} rate unless it meets one of the schedule’s targeted conditions, which concern regulated residential leases and specific commercial uses. On ${$(R)} of cadastral income that is ${$(flat.imposta)} a year. Income from the lets is taxed separately.` },
+];
+---
+<CityPage lang={lang} city="firenze" rendita={R} title={`IMU Florence 2026: Rates for Homes, Lets and Shops`}
+  description={`IMU in Florence for 2026: ${al(r.altri)} on second homes, ${al(CC)} at agreed rent, ${al(PATTI)} under local agreements, ${al(BOT)} for historic shops. Calculator.`}
+  h1="IMU in Florence in 2026: rates and calculator"
+  intro={`Florence has ${nDiff} targeted rates in its schedule, mostly for regulated lets and for the traditional shops of the historic centre.`}
+  resume={`Florence charges ${al(r.altri)} on second homes, rented flats, shops and offices, and the same on group D buildings, building land and farmland; luxury main homes pay ${al(r.ap)}. The schedule in force, resolution no. ${c.delibera} of ${c.data}, is still the 2025 one as of ${P.retrieved_at}. A flat in category A/2 with ${$(R)} of cadastral income held as a holiday home pays ${$(flat.imposta)} a year. Below the main rates the comune lists ${nDiff} targeted rates. Homeowners can pay less by letting under an agreed-rent, transitional or student lease (${al(CC)}) or under the local territorial agreements set in the comune’s regulation (${al(PATTI)}). Shop owners in the centre benefit from ${al(BOT)} for historic workshops and bookshops used by the owner. None of these reductions applies to a home kept empty or used only for holidays, which is the most common situation for owners living abroad.`}
+  faqs={faqs} related={['home', 'esteri', 'secondaCasa', 'concordato', 'negozi', 'aliquote', 'confronto']}>
+  <h2>Holiday homes in the hills</h2>
+  <p>Fiesole, Bagno a Ripoli and the Chianti towns that many foreign buyers choose are separate comuni with their own rates; only properties inside the city boundary pay Florence’s {al(r.altri)}. A farmhouse with land outside the city may also pay IMU on its fields unless they are farmed by a registered farmer: the <a href={route('terreni', lang)}>farmland guide</a> explains when.</p>
+  <h2>Historic shops and young entrepreneurs</h2>
+  <p>Florence uses its schedule to protect traditional trade: historic and craft workshops (botteghe storiche) and bookshops used by their owners pay {al(BOT)}. Group D premises in areas the comune has identified as losing businesses, used or rented by people aged up to 40 for innovative activities, also get a reduced rate.</p>
+  <h2>Paying from abroad</h2>
+  <p>Use the comune code {c.code} and tax code {P.f24.altri} for a flat. If you pay by international transfer, the comune publishes the treasury account details for non-residents; the <a href={route('esteri', lang)}>non-resident guide</a> lists what to put in the reference.</p>
+</CityPage>

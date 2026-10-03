@@ -1,0 +1,73 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, mesiTrasferimento } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatDecimal, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max, BASE = P.aliquote_base.altri, M = P.base.moltiplicatori;
+const k = formatDecimal(1 + P.base.rivalutazione_rendita, 2, lang);
+const R = 680;
+const x = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const half = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, quota: 50 });
+const garage = calcolaImu({ categoria: 'C6', rendita: 95, aliquota: MAX });
+const places = [['Lucca, Tuscany', 'E715'], ['Spoleto, Umbria', 'I921'], ['Lecce, Puglia', 'E506'], ['Menaggio, Lake Como', 'F120'], ['Noto, Sicily', 'F943'], ['Sorrento, Campania', 'I862']] as const;
+const pRows = places.filter(([, c]) => comune(c)).map(([name, c]) => { const k2 = comune(c)!; const a = ratesOf(k2).altri; return [name, al(a), $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: a }).imposta)]; });
+const deed = mesiTrasferimento('2026-04-20');
+const bought = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, mesi: deed.acquirente, periodo: 'fine' });
+const budget = [
+  ['IMU on the flat (A/3)', $(x.imposta)],
+  ['IMU on the garage (C/6, rendita 95 euro)', $(garage.imposta)],
+  ['Total per year', $(x.imposta + garage.imposta)],
+  ['Paid by 16 June', $(x.acconto + garage.acconto)],
+  ['Paid by 16 December', $(x.saldo + garage.saldo)],
+];
+const lowCount = quanti('altri', (v) => v < BASE);
+const faqs = [
+  { q: 'Do I pay full IMU if I only use my Italian house a few weeks a year?', a: `Yes. IMU depends on ownership, not use: an empty holiday home pays exactly like one you visit every month. A flat with ${$(R)} of rendita pays ${$(x.imposta)} a year at ${al(MAX)}, whether you spend two weeks or six months there. Only moving your registered residence and actual home to Italy would make it exempt.` },
+  { q: 'My spouse and I own the house 50/50: who pays the IMU?', a: `Each of you pays your own half, with your own Italian tax code, on a separate payment: ${$(half.imposta)} each per year in the example on this page. Each co-owner has an independent tax obligation (paragraph 743). Some comuni accept a payment by one owner on behalf of the other if their regulations say so, but separate payments avoid any dispute.` },
+  { q: 'Does letting my holiday home to tourists change the IMU?', a: 'Not the calculation itself: the house stays in its cadastral category and pays the comune’s rate for other buildings. A few comuni set a specific rate for homes used for tourist accommodation, which the calculator shows when it exists. The rental income is a separate matter, taxed through the Italian income tax return.' },
+  { q: 'Is the garage of my holiday flat taxed separately?', a: `Yes. Garages, cellars and parking spaces have their own rendita and pay IMU at the same rate as the flat, with the same ${M.C6} multiplier. A garage with 95 euro of rendita adds ${$(garage.imposta)} a year at ${al(MAX)}. The one-garage exemption exists only for the main home of an Italian resident.` },
+];
+---
+<Guide lang={lang} id="secondaCasa" title="IMU Second Home 2026: Holiday Homes in Italy Explained"
+  description={`IMU on a second home in Italy in 2026: no exemption for non-residents, rendita × ${k} × ${M.A}, rates from ${al(BASE)} to ${al(MAX)}, June and December payments, examples.`}
+  h1="IMU on a holiday home in Italy: what a non-resident owner pays"
+  intro="Bought a flat in Tuscany, a trullo in Puglia or a house by a lake? Every year in June and December the comune expects its share."
+  resume={`For anyone who lives abroad, a home in Italy is always a second home for IMU purposes, because the main home exemption requires Italian registered residence and actually living there. The tax is due every year whether the house is used, let or empty. It is worked out from the rendita catastale on the land registry record: add ${formatPercent(P.base.rivalutazione_rendita, 0, lang)}, multiply by ${M.A} for a dwelling, and apply the rate your comune sets for “altri fabbricati”. A flat classed A/3 with ${$(R)} of rendita has a taxable value of ${$(x.base)}; at ${al(MAX)}, the rate most comuni charge, IMU comes to ${$(x.imposta)} a year, paid as ${$(x.acconto)} by 16 June and ${$(x.saldo)} by 16 December 2026, or in full by 16 June. The rate can be lower: ${n(lowCount)} of the ${n(conProspetto.length)} comuni whose schedules we read charge less than the ${al(BASE)} base rate. The owner pays, never the tenant, and each co-owner pays only his or her share.`}
+  faqs={faqs} related={['home', 'esteri', 'aliquote', 'confronto', 'rendita', 'coefficienti', 'acconto', 'saldo', 'compravendita']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti', 'legge178')}>
+  <MiniSim client:visible kind="seconda" lang={lang} href={route('home', lang)} />
+  <h2>Why there is no exemption for you</h2>
+  <p>Italy exempts the abitazione principale, the home where the owner is registered as resident and habitually lives. A foreign owner who spends the summer in Italy but is resident in London, Munich or Toronto does not meet both conditions, so the house is taxed as “altri fabbricati”, the class that also covers rented flats, shops and offices. Italians registered abroad with the AIRE are in the same position since 2020. Registering a residence in Italy without actually living there is not a solution: comuni check utility consumption and other records, and can reassess five years back with penalties.</p>
+  <p>There is one relief designed for people abroad: a pensioner who lives outside Italy and receives a pension earned under an international social security agreement with Italy pays half on one dwelling, provided it is not let or lent. The <a href={route('esteri', lang)}>non-residents guide</a> sets out the conditions.</p>
+
+  <h2>A yearly budget for a typical holiday flat</h2>
+  <p>Most foreign owners have a flat and a garage or parking space. Both pay, each on its own rendita. The example uses the {al(MAX)} rate and the {$(R)} flat of this page.</p>
+  <ContentTable headers={['Item', 'Amount']} align={['l', 'r']} rows={budget} />
+  <p>If the comune raises its rate this year, the December figure will be higher than June’s, because June uses last year’s rate and December settles the difference. The <a href={route('home', lang)}>calculator</a> shows both instalments for your comune.</p>
+
+  <h2>Same flat, different towns</h2>
+  <p>The comune’s rate can matter more than the size of the property. Here is the IMU on the same A/3 flat with {$(R)} of rendita in towns popular with foreign buyers, using each comune’s current schedule.</p>
+  <ContentTable headers={['Comune', 'Second home rate', 'IMU per year']} align={['l', 'r', 'r']} rows={pRows} />
+  <p>Before buying, look up the rates of the towns you are considering in the <a href={route('aliquote', lang)}>rates by comune</a> tool, or put two of them side by side with the <a href={route('confronto', lang)}>comparison</a>.</p>
+
+  <h2>Buying part way through the year</h2>
+  <p>IMU is shared month by month between seller and buyer. A month counts for whoever owned the property for more than half its days, and the day of the deed counts for the buyer, who also keeps the month if the days are equal. With a deed signed on 20 April 2026, April goes to the seller, so you pay {deed.acquirente} months: {$(bought.imposta)} on the flat of this page, all of it in December because you owned nothing in the first half. The guide on <a href={route('compravendita', lang)}>buying and selling</a> has a calculator for any date.</p>
+
+  <h2>Letting the house</h2>
+  <p>Long or short lets do not change the IMU formula. The house keeps its category and pays the comune’s rate for other buildings, or a specific rate if the comune has one for let homes or tourist accommodation. Letting at the agreed rent (canone concordato) under a registered contract cuts the tax to {formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)}, but that kind of contract is rare for holiday homes; see the <a href={route('locati', lang)}>rented property guide</a>. Rental income is taxed separately through the Italian income tax return, not through IMU.</p>
+
+  <h2>Paying from abroad</h2>
+  <p>With an Italian bank account, you pay with the F24 form, tax code {P.f24.altri} for a second home, and the comune’s four-character cadastral code in the field for the local authority. Without one, comuni publish bank details for transfers from abroad: the reference must include your codice fiscale, the comune code, the IMU tax code, the year and whether it is the June or December payment. Make a separate payment for each comune where you own property. If you miss a deadline, the <a href={route('ravvedimento', lang)}>ravvedimento operoso</a> lets you pay late with a reduced penalty.</p>
+
+  <h2>Three mistakes foreign owners make</h2>
+  <p>Using the purchase price or the agent’s valuation instead of the rendita, which produces a wildly inflated figure. Paying once a year in December, when the first half is due in June. And assuming that the notary or the property manager pays automatically: unless you have arranged it, nobody pays IMU for you, and the comune will send the assessment to you, with interest and penalties, years later.</p>
+</Guide>

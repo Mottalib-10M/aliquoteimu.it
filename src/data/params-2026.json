@@ -1,0 +1,171 @@
+{
+  "_lisezmoi": "Paramètres légaux de l'IMU 2026 (RECETTE §4). Chaque valeur a été relue le 2026-10-03 sur le texte cité dans `sources` : Legge 160/2019 art. 1 commi 738-783 (Normattiva, texte vigent), L. 178/2020 c. 48, D.Lgs. 471/1997 art. 13 et D.Lgs. 472/1997 art. 13 (Normattiva, vigents au 2026-10-03 ; le Testo unico D.Lgs. 173/2024 ne s'applique qu'à partir du 1er janvier 2027, art. 102), L. 296/2006 c. 166. Les aliquote par comune sont dans comuni.json (scripts/it/build-data.py).",
+  "year": 2026,
+  "retrieved_at": "2026-10-03",
+  "valid_from": "2026-01-01",
+  "valid_to": "2026-12-31",
+  "base": {
+    "rivalutazione_rendita": 0.05,
+    "rivalutazione_dominicale": 0.25,
+    "moltiplicatore_terreni": 135,
+    "moltiplicatori": {
+      "A": 160,
+      "C2": 160,
+      "C6": 160,
+      "C7": 160,
+      "B": 140,
+      "C3": 140,
+      "C4": 140,
+      "C5": 140,
+      "A10": 80,
+      "D5": 80,
+      "D": 65,
+      "C1": 55
+    }
+  },
+  "aliquote_base": {
+    "ap": 0.5,
+    "rur": 0.1,
+    "ter": 0.76,
+    "D": 0.86,
+    "aree": 0.86,
+    "altri": 0.86
+  },
+  "limiti": {
+    "ap_max": 0.6,
+    "altri_max": 1.06,
+    "maggiorazione_ex_tasi": 0.08,
+    "D_min": 0.76,
+    "D_quota_stato": 0.76
+  },
+  "detrazione_ap": 200,
+  "riduzioni": {
+    "comodato_base": 0.5,
+    "storico_base": 0.5,
+    "inagibile_base": 0.5,
+    "canone_concordato_imposta": 0.75,
+    "pensionati_esteri_imposta": 0.5
+  },
+  "scadenze": {
+    "acconto": "2026-06-16",
+    "saldo": "2026-12-16",
+    "inserimento_prospetti": "2026-10-14",
+    "pubblicazione_prospetti": "2026-10-28",
+    "dichiarazione": "2027-06-30"
+  },
+  "f24": {
+    "ap": "3912",
+    "rur": "3913",
+    "ter": "3914",
+    "aree": "3916",
+    "altri": "3918",
+    "D_stato": "3925",
+    "D_comune": "3930",
+    "interessi_accertamento": "3923",
+    "sanzioni_accertamento": "3924"
+  },
+  "ravvedimento": {
+    "sanzione_base": 0.25,
+    "riduzione_entro_90_giorni": 0.5,
+    "giorni_quindicesimi": 15,
+    "frazioni": {
+      "entro_30": 0.1,
+      "entro_90": 0.111111,
+      "entro_dichiarazione": 0.125,
+      "oltre": 0.142857
+    }
+  },
+  "arrotondamento_centesimi": 49,
+  "sources": {
+    "legge160": {
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2019-12-27;160",
+      "label": {
+        "it": "Legge 27 dicembre 2019, n. 160, art. 1, commi 738-783 (Normattiva)",
+        "en": "Law no. 160 of 27 December 2019, art. 1, paragraphs 738-783 (Normattiva)"
+      }
+    },
+    "mef_prospetti": {
+      "url": "https://www1.finanze.gov.it/finanze2/dipartimentopolitichefiscali/fiscalitalocale/nuova_imu/dati/download.htm?anno=2026",
+      "label": {
+        "it": "Dipartimento delle Finanze, prospetti delle aliquote IMU 2026 e regolamenti comunali",
+        "en": "Department of Finance, 2026 IMU rate schedules (prospetti) and municipal regulations"
+      }
+    },
+    "mef_ricerca": {
+      "url": "https://www.finanze.gov.it/it/fiscalita/fiscalita-regionale-e-locale/Imposta-municipale-propria-IMU/Regolamenti-e-aliquote-ricerca/",
+      "label": {
+        "it": "Dipartimento delle Finanze, ricerca di regolamenti e aliquote IMU per comune",
+        "en": "Department of Finance, IMU rates and regulations search by municipality"
+      }
+    },
+    "mef_agevolazioni": {
+      "url": "https://www.finanze.gov.it/it/fiscalita/fiscalita-regionale-e-locale/Imposta-municipale-propria-IMU/disciplina-del-tributo/agevolazioni/",
+      "label": {
+        "it": "Dipartimento delle Finanze, IMU: agevolazioni (comodato, canone concordato, inagibili, storici)",
+        "en": "Department of Finance, IMU reliefs (free loan, agreed rent, unfit buildings, listed buildings)"
+      }
+    },
+    "mef_versamenti": {
+      "url": "https://www.finanze.gov.it/it/fiscalita/fiscalita-regionale-e-locale/Imposta-municipale-propria-IMU/disciplina-del-tributo/versamenti/",
+      "label": {
+        "it": "Dipartimento delle Finanze, IMU: versamenti, rate e computo dei mesi",
+        "en": "Department of Finance, IMU payments, instalments and months of ownership"
+      }
+    },
+    "legge178": {
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2020-12-30;178",
+      "label": {
+        "it": "Legge 30 dicembre 2020, n. 178, art. 1, comma 48 (pensionati residenti all'estero)",
+        "en": "Law no. 178 of 30 December 2020, art. 1, paragraph 48 (pensioners living abroad)"
+      }
+    },
+    "dlgs471": {
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1997-12-18;471",
+      "label": {
+        "it": "D.Lgs. 18 dicembre 1997, n. 471, art. 13 (sanzione per omesso versamento, 25 %)",
+        "en": "Legislative Decree no. 471 of 18 December 1997, art. 13 (late payment penalty, 25 %)"
+      }
+    },
+    "dlgs472": {
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1997-12-18;472",
+      "label": {
+        "it": "D.Lgs. 18 dicembre 1997, n. 472, art. 13 (ravvedimento operoso)",
+        "en": "Legislative Decree no. 472 of 18 December 1997, art. 13 (voluntary correction, ravvedimento)"
+      }
+    },
+    "legge296": {
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2006-12-27;296",
+      "label": {
+        "it": "Legge 27 dicembre 2006, n. 296, art. 1, comma 166 (arrotondamento all'euro)",
+        "en": "Law no. 296 of 27 December 2006, art. 1, paragraph 166 (rounding to the euro)"
+      }
+    },
+    "codici_tributo": {
+      "url": "https://www1.agenziaentrate.gov.it/servizi/codici/ricerca/",
+      "label": {
+        "it": "Agenzia delle Entrate, ricerca dei codici tributo F24",
+        "en": "Italian Revenue Agency, F24 tax code search"
+      }
+    },
+    "istat": {
+      "url": "https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/",
+      "label": {
+        "it": "ISTAT, codici dei comuni, delle province e delle regioni",
+        "en": "ISTAT, codes of Italian municipalities, provinces and regions"
+      }
+    },
+    "corte209": {
+      "url": "https://www.gazzettaufficiale.it/eli/id/2022/10/19/T-220209/s1",
+      "label": {
+        "it": "Corte costituzionale, sentenza n. 209 del 13 ottobre 2022 (abitazione principale e nucleo familiare)",
+        "en": "Constitutional Court, ruling no. 209 of 13 October 2022 (main home and family unit)"
+      }
+    }
+  },
+  "sanzioni_dichiarazione": {
+    "omessa": 1.0,
+    "infedele": 0.4,
+    "minimo": 50,
+    "acquiescenza": 0.333333
+  }
+}

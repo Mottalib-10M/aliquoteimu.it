@@ -1,0 +1,66 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route, CITTA } from '../../i18n/routes';
+import { cityName } from '../../i18n/nav';
+import { calcolaImu, moltiplicatore, type Categoria } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const RUR = P.aliquote_base.rur, MAX = P.limiti.altri_max;
+const R = 1500;
+const x = calcolaImu({ categoria: 'D10', rendita: R, aliquota: RUR });
+const tot = conProspetto.length;
+const pieni = quanti('rur', (v) => v === RUR);
+const azzerati = quanti('rur', (v) => v === 0);
+const intermedi = tot - pieni - azzerati;
+const cat: Array<[Categoria, string]> = [['D10', 'D/10, fabbricato per funzioni produttive agricole'], ['C2', 'C/2, magazzino o deposito'], ['C6', 'C/6, stalla, scuderia, rimessa'], ['C3', 'C/3, laboratorio']];
+const catRows = cat.map(([c, d]) => { const y = calcolaImu({ categoria: c, rendita: 800, aliquota: RUR, uso: 'rurale' }); const z = calcolaImu({ categoria: c, rendita: 800, aliquota: MAX }); return [d, String(moltiplicatore(c)), $(y.imposta), $(z.imposta)]; });
+const citta = CITTA.map((c) => [cityName(c.id, lang), al(ratesOf(comune(c.code)!).rur)]);
+const quota = calcolaImu({ categoria: 'D10', rendita: R, aliquota: RUR, quota: 50 });
+const faqs = [
+  { q: 'Il fienile dell’azienda agricola paga l’IMU?', a: `Sì, se è un fabbricato rurale strumentale paga con un’aliquota di base dello ${al(RUR)}, che il comune può solo ridurre fino a zero (comma 750). Su un D/10 con ${$(R)} di rendita sono ${$(x.imposta)} l’anno, codice tributo ${P.f24.rur}. Nei ${n(azzerati)} comuni che hanno azzerato l’aliquota non si paga nulla.` },
+  { q: 'La casa colonica in cui abito è un fabbricato rurale strumentale?', a: 'No. L’abitazione segue le regole delle case: se è la tua abitazione principale e non è di categoria A/1, A/8 o A/9 è esente; se non ci risiedi paga con l’aliquota degli altri fabbricati. L’aliquota agevolata del comma 750 riguarda solo le costruzioni strumentali all’attività agricola.' },
+  { q: 'Il comune può alzare l’aliquota dei fabbricati rurali sopra lo 0,1 %?', a: `No. Per i fabbricati rurali ad uso strumentale l’aliquota di base è ${al(RUR)} e i comuni possono solo ridurla, fino all’azzeramento (comma 750 della legge 160 del 2019). Nei prospetti letti nessun comune la supera: ${n(pieni)} applicano ${al(RUR)}, ${n(azzerati)} zero, gli altri una via di mezzo.` },
+];
+---
+<Guide lang={lang} id="rurali" title={`IMU fabbricati rurali strumentali 2026: aliquota e D/10`}
+  description={`IMU fabbricati rurali strumentali 2026: aliquota massima ${al(RUR)} che il comune può solo ridurre, stalle, magazzini e D/10, comuni a zero e codice ${P.f24.rur}.`}
+  h1="IMU sui fabbricati rurali strumentali: stalle, fienili e capannoni agricoli"
+  intro="Le costruzioni che servono all’attività agricola hanno un trattamento IMU a parte: un’aliquota bassissima, che il comune non può aumentare."
+  resume={`I fabbricati rurali ad uso strumentale, cioè le costruzioni che servono all’attività agricola come stalle, fienili, depositi per attrezzi e prodotti, serre e locali di trasformazione, pagano l’IMU con un’aliquota di base dello ${al(RUR)}. È l’unica aliquota che i comuni possono solo ridurre, fino a zero, senza poterla alzare (comma 750 della legge 160 del 2019, che rinvia all’articolo 9, comma 3-bis, del decreto-legge 557 del 1993 per la definizione). La base imponibile segue le regole dei fabbricati: rendita catastale aumentata del 5 % e moltiplicata per il coefficiente della categoria, ${moltiplicatore('D10')} per un D/10. Un fabbricato D/10 con ${$(R)} di rendita paga quindi ${$(x.imposta)} l’anno, con il codice tributo ${P.f24.rur}. Nei ${n(tot)} prospetti che abbiamo letto, ${n(pieni)} comuni applicano l’aliquota piena e ${n(azzerati)} l’hanno portata a zero, esentando di fatto i fabbricati agricoli.`}
+  faqs={faqs} related={['home', 'terreni', 'capannoni', 'aliquote', 'coefficienti', 'f24', 'esenzioni']} sources={src(lang, 'legge160', 'mef_prospetti', 'codici_tributo')}>
+  <MiniSim client:visible kind="rurali" lang={lang} href={route('home', lang)} />
+  <h2>Che cosa conta come fabbricato rurale strumentale</h2>
+  <p>La qualifica dipende dalla funzione, non dall’aspetto dell’edificio. Il comma 750 rinvia all’articolo 9, comma 3-bis, del decreto-legge 557 del 1993, che riconosce il carattere di ruralità alle costruzioni strumentali alle attività agricole dell’articolo 2135 del codice civile. Un capannone in cui l’azienda ripara i trattori, una cantina in cui vinifica la propria uva, un ricovero per gli animali rientrano nella definizione; lo stesso capannone affittato a un’impresa di logistica no.</p>
+  <p>Il prospetto delle aliquote ha una riga dedicata, «fabbricati rurali ad uso strumentale (inclusa la categoria catastale D/10)». La categoria D/10 è quella creata apposta per i fabbricati con funzioni produttive connesse alle attività agricole, ma un fabbricato strumentale può essere accatastato anche in altre categorie, come C/2 o C/6: è il suo uso agricolo a farlo rientrare nell’aliquota agevolata.</p>
+
+  <h2>Un’aliquota che il comune può solo abbassare</h2>
+  <p>Per quasi tutte le fattispecie la legge fissa una base e lascia al comune un margine in su e in giù. Per i fabbricati rurali il margine è solo verso il basso. Il risultato è una mappa molto netta: {n(pieni)} comuni sui {n(tot)} letti applicano {al(RUR)}, {n(azzerati)} hanno scelto lo zero e appena {n(intermedi)} una misura intermedia. Anche tra le grandi città la scelta varia.</p>
+  <ContentTable caption="Aliquota dei fabbricati rurali strumentali nelle grandi città" headers={['Città', 'Aliquota']} align={['l', 'r']} rows={citta} />
+
+  <h2>La base imponibile dipende dalla categoria</h2>
+  <p>La formula è quella di ogni fabbricato: rendita della visura, più 5 %, per il moltiplicatore della categoria catastale. Il moltiplicatore cambia molto: {moltiplicatore('D10')} per un D/10, {moltiplicatore('C2')} per un magazzino C/2 o una stalla C/6, {moltiplicatore('C3')} per un laboratorio C/3. A parità di rendita, un deposito agricolo accatastato in C/2 ha quindi una base più che doppia rispetto a un D/10. La tabella confronta l’IMU di un fabbricato con 800 euro di rendita usato per l’agricoltura e lo stesso fabbricato senza uso agricolo, tassato all’{al(MAX)}.</p>
+  <ContentTable headers={['Categoria', 'Moltiplicatore', `IMU rurale a ${al(RUR)}`, `IMU se non rurale (${al(MAX)})`]} align={['l', 'r', 'r', 'r']} rows={catRows} />
+
+  <h2>Abitazioni rurali: un’altra storia</h2>
+  <p>La casa dell’agricoltore non è un fabbricato strumentale ai fini dell’aliquota. Se è l’abitazione principale e non appartiene alle categorie A/1, A/8 o A/9 è esente come qualunque prima casa; se è vuota o abitata da altri paga con l’aliquota degli altri fabbricati. Chi compra un casale con annessi agricoli deve quindi distinguere: la casa segue le regole delle abitazioni, la stalla o il fienile restano rurali solo se continuano a servire un’attività agricola.</p>
+  <p>I <a href={route('terreni', lang)}>terreni agricoli</a> intorno al fabbricato hanno un regime ancora diverso, con esenzioni per coltivatori diretti e comuni montani, e si versano con un altro codice tributo.</p>
+
+  <h2>Quando un fabbricato rurale perde la qualifica</h2>
+  <p>La cessazione dell’attività agricola cambia tutto. Un fienile abbandonato o un capannone agricolo affittato a terzi per altri usi non è più strumentale all’agricoltura e paga con l’aliquota del gruppo D o degli altri fabbricati, a seconda della categoria. Per un capannone del gruppo D questo significa passare da {al(RUR)} a un’aliquota che non può scendere sotto lo {al(P.limiti.D_min)}, con la quota statale da versare a parte: la guida sui <a href={route('capannoni', lang)}>capannoni del gruppo D</a> spiega il calcolo.</p>
+  <p>Se invece un fabbricato rurale diventa inagibile e non è utilizzato, può beneficiare della riduzione del 50 % della base imponibile prevista dal comma 747, limitatamente al periodo in cui sussistono le condizioni.</p>
+
+  <h2>Versamento con il codice {P.f24.rur}</h2>
+  <p>L’IMU dei fabbricati rurali strumentali si versa interamente al comune, senza quota statale, con il codice tributo {P.f24.rur} e il codice catastale del comune. Le scadenze sono quelle ordinarie, 16 giugno e 16 dicembre. Dove il comune ha azzerato l’aliquota non c’è nulla da versare, ma il fabbricato resta nel catasto con la sua rendita: se l’uso cambia, l’imposta torna dovuta con l’aliquota della nuova fattispecie, contando i mesi secondo la regola dei quindici giorni.</p>
+  <h2>Proprietario e conduttore: chi paga</h2>
+  <p>L’IMU è del proprietario o del titolare di un diritto reale come l’usufrutto, non di chi coltiva. Se affitti la stalla o il fienile a un’azienda agricola che li usa per la propria attività, restano strumentali all’agricoltura e paghi con l’aliquota rurale. Se i fabbricati sono in comproprietà tra due fratelli al 50 %, ciascuno versa la sua metà: su un D/10 con {$(R)} di rendita allo {al(RUR)} sono {$(quota.imposta)} a testa, un importo così piccolo che l’arrotondamento all’euro di ogni rigo F24 diventa visibile.</p>
+
+</Guide>

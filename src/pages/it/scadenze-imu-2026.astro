@@ -1,0 +1,65 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu, ravvedimento } from '../../lib/engine/imu';
+import { COUNTS } from '../../lib/stats';
+import { formatMoney, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const $2 = (v: number) => formatMoney(v, 2, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'it-IT');
+const S = P.scadenze, RV = P.ravvedimento;
+const x = calcolaImu({ categoria: 'A2', rendita: 800, aliquota: P.limiti.altri_max });
+const cal = [
+  [d(S.acconto), 'Acconto IMU (prima rata) o rata unica annua', 'Contribuenti, F24'],
+  [d(S.inserimento_prospetti), 'Termine perentorio per inserire prospetto aliquote e regolamento nel Portale del federalismo fiscale', 'Comuni'],
+  [d(S.pubblicazione_prospetti), 'Pubblicazione dei prospetti sul sito del Dipartimento delle Finanze: valgono per il saldo', 'Dipartimento delle Finanze'],
+  [d(S.saldo), 'Saldo IMU a conguaglio con le aliquote 2026', 'Contribuenti, F24'],
+  [d(S.dichiarazione), 'Dichiarazione IMU per le variazioni avvenute nel 2026', 'Contribuenti, in via telematica'],
+];
+const ritardi = [5, 14, 25, 60, 150, 400].map((g) => { const pag = new Date(Date.UTC(2026, 5, 16 + g)).toISOString().slice(0, 10); const r = ravvedimento({ imposta: x.acconto, scadenza: S.acconto, pagamento: pag }); return [String(g), d(pag), formatPercent(r.sanzionePct, 3, lang), $2(r.sanzione)]; });
+const faqs = [
+  { q: 'Quali sono le date dell’IMU nel 2026?', a: `Due per i contribuenti: ${d(S.acconto)} per l’acconto (o per pagare tutto in una volta) e ${d(S.saldo)} per il saldo. Per le variazioni dell’anno la dichiarazione va presentata entro il ${d(S.dichiarazione)}. I comuni hanno avuto tempo fino al ${d(S.inserimento_prospetti)} per caricare le aliquote 2026 (art. 1, commi 762, 767 e 768-bis, legge 160/2019).` },
+  { q: 'Che cosa succede se il comune pubblica le aliquote dopo il 28 ottobre?', a: `Per il 2026 valgono quelle dell’anno precedente: un prospetto pubblicato oltre il ${d(S.pubblicazione_prospetti)} non ha effetto sul saldo (comma 767). Al 3 ottobre ${n(COUNTS.P25)} comuni non avevano ancora un prospetto 2026; i loro contribuenti, se nulla arriva entro il termine, pagano il saldo come l’acconto.` },
+  { q: 'Conviene pagare l’IMU in un’unica rata il 16 giugno?', a: `Non c’è sconto: si paga la stessa imposta, solo prima. Ha senso se l’aliquota 2026 del comune è già pubblicata o non cambierà. Altrimenti si versa con le aliquote 2025 e si rischia un conguaglio a dicembre. Per una seconda casa da ${$(x.imposta)} annui la rata unica anticipa ${$(x.saldo)} di sei mesi.` },
+];
+---
+<Guide lang={lang} id="scadenze" title="Scadenze IMU 2026: 16 giugno, 16 dicembre e dichiarazione"
+  description={`Scadenze IMU 2026: acconto il 16 giugno, saldo il 16 dicembre, aliquote comunali al 28 ottobre, dichiarazione al 30 giugno 2027 e costo di un ritardo.`}
+  h1="Scadenze IMU 2026: il calendario completo"
+  intro="Cinque date regolano l’IMU di un anno: due riguardano chi paga, due i comuni, una la dichiarazione."
+  resume={`Nel 2026 l’IMU si versa in due rate: l’acconto entro il ${d(S.acconto)} e il saldo entro il ${d(S.saldo)}, oppure in un’unica soluzione entro il ${d(S.acconto)} (art. 1, comma 762, legge 160 del 2019). Le due rate non si calcolano allo stesso modo. L’acconto usa le aliquote del 2025; il saldo usa le aliquote 2026 che il comune ha inserito nel Portale del federalismo fiscale entro il ${d(S.inserimento_prospetti)} e che il Dipartimento delle Finanze ha pubblicato entro il ${d(S.pubblicazione_prospetti)}. Per una seconda casa con 800 euro di rendita all’aliquota più diffusa sono ${$(x.acconto)} a giugno e ${$(x.saldo)} a dicembre. La dichiarazione IMU, quando è dovuta per variazioni avvenute nel 2026, va presentata entro il ${d(S.dichiarazione)}. Chi salta una scadenza può rimediare con il ravvedimento operoso: la sanzione cresce con i giorni di ritardo, ma nelle prime due settimane resta di pochi centesimi per ogni cento euro.`}
+  faqs={faqs} related={['home', 'acconto', 'saldo', 'ravvedimento', 'dichiarazione', 'f24', 'novita', 'aliquote']} sources={src(lang, 'legge160', 'mef_versamenti', 'dlgs471', 'dlgs472')}>
+  <MiniSim client:visible kind="scadenze" lang={lang} href={route('home', lang)} />
+  <h2>Il calendario dell’anno</h2>
+  <ContentTable headers={['Data', 'Adempimento', 'Chi']} align={['l', 'l', 'l']} rows={cal} />
+  <p>Le date dei contribuenti sono fissate dalla legge e non dipendono dal comune: anche chi possiede immobili in dieci comuni diversi paga tutto negli stessi due giorni, con un F24 che può contenere righe per ciascun comune. I comuni possono soltanto, con il proprio regolamento, differire i termini di versamento per situazioni particolari (comma 777, lettera b), per esempio dopo una calamità.</p>
+
+  <h2>Più immobili, più comuni, stesse date</h2>
+  <p>Le scadenze non si moltiplicano con gli immobili. Chi ha la casa al mare in un comune, un box nella città in cui vive e un terreno ereditato in un terzo comune compila un solo modello F24 per l’acconto e uno per il saldo, con una riga per ogni combinazione di comune e codice tributo. Ogni riga riporta il codice catastale del comune destinatario: è quel codice che indirizza i soldi alla tesoreria giusta. Anche i comproprietari hanno le stesse date, ma ciascuno versa la propria quota con il proprio codice fiscale, salvo che il regolamento comunale consideri regolari i versamenti fatti da un contitolare per conto degli altri (comma 777, lettera a).</p>
+
+  <h2>Giugno: aliquote vecchie, imposta del semestre</h2>
+  <p>La prima rata copre il periodo da gennaio a giugno ed è calcolata con l’aliquota e la detrazione dei dodici mesi precedenti. È una scelta pratica: a giugno il prospetto dell’anno spesso non c’è ancora. Chi possiede l’immobile da gennaio paga metà dell’imposta annua «vecchia»; chi lo ha acquistato a marzo paga quattro mesi, chi lo compra a luglio salta la rata. La guida sull’<a href={route('acconto', lang)}>acconto IMU</a> scende nei dettagli.</p>
+
+  <h2>Ottobre: le due date dei comuni</h2>
+  <p>Il {d(S.inserimento_prospetti)} è il termine perentorio entro cui il comune deve caricare prospetto e regolamento nell’apposita sezione del Portale; il {d(S.pubblicazione_prospetti)} è la data entro cui il Dipartimento delle Finanze li pubblica. Solo ciò che risulta pubblicato a quella data vale per il saldo. Una delibera tardiva non conta per l’anno in corso: si applicano le aliquote dell’anno prima, oppure quelle di base per i comuni che non hanno mai inviato un prospetto conforme. Su {n(COUNTS.P26 + COUNTS.P25)} comuni con un prospetto, {n(COUNTS.P26)} avevano già quello 2026 al momento del nostro controllo.</p>
+
+  <h2>Dicembre: il saldo a conguaglio</h2>
+  <p>La seconda rata ricalcola l’imposta di tutto l’anno con le aliquote 2026 e sottrae l’acconto. Se il comune ha aumentato l’aliquota, si paga di più che a giugno; se l’ha ridotta, si paga di meno, fino a zero. Il <a href={route('saldo', lang)}>saldo IMU</a> mostra gli esempi dei comuni che hanno cambiato aliquota.</p>
+
+  <h2>Giugno dell’anno dopo: la dichiarazione</h2>
+  <p>La dichiarazione IMU non si presenta ogni anno. Serve, entro il 30 giugno dell’anno successivo, quando ci sono variazioni che il comune non può conoscere dai propri archivi: un comodato a un figlio, un immobile divenuto inagibile, un terreno passato a un coltivatore diretto, alcune assimilazioni all’abitazione principale (comma 768-bis). Si presenta solo per via telematica. Le situazioni sono elencate nella guida alla <a href={route('dichiarazione', lang)}>dichiarazione IMU</a>.</p>
+
+  <h2>Quanto costa un giorno di ritardo</h2>
+  <p>Chi paga dopo la scadenza deve una sanzione del {formatPercent(RV.sanzione_base, 0, lang)} dell’imposta non versata, ridotta alla metà se il ritardo non supera novanta giorni e, entro quindici giorni, a un quindicesimo per ogni giorno (D.Lgs. 471/1997, art. 13). Regolarizzando da soli con il ravvedimento, la sanzione scende ancora a una frazione: un decimo entro trenta giorni, un nono entro novanta, un ottavo entro il termine della dichiarazione, un settimo dopo. La tabella usa l’acconto della nostra seconda casa di esempio, {$(x.acconto)}; agli importi si aggiungono gli interessi al tasso legale, giorno per giorno.</p>
+  <ContentTable headers={['Giorni di ritardo', 'Data di pagamento', 'Sanzione ridotta', 'Importo']} align={['r', 'l', 'r', 'r']} rows={ritardi} />
+  <MiniSim client:visible kind="ravv" lang={lang} href={route('ravvedimento', lang)} />
+
+  <h2>Il promemoria che evita le sanzioni</h2>
+  <p>Chi possiede più immobili o vive lontano dal comune ha due accorgimenti utili. Il primo è preparare l’F24 di dicembre all’inizio di novembre, quando i prospetti dell’anno sono pubblicati e il conguaglio si può calcolare. Il secondo è conservare le quietanze dei due versamenti per almeno sei anni: il comune può notificare un avviso di accertamento entro il 31 dicembre del quinto anno successivo a quello del versamento. Il <a href={route('ravvedimento', lang)}>calcolatore del ravvedimento</a> dice quanto costa regolarizzare oggi una rata dimenticata.</p>
+</Guide>

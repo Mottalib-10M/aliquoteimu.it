@@ -1,0 +1,39 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffOf, diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('D612')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const nDiff = diffOf('D612').d.length;
+const BOT = diffRate('D612', /Bottega storica/)!, LIB = diffRate('D612', /47\.61/)!, NEG = diffRate('D612', /esercizio di arti e professioni$/)!, PATTI = diffRate('D612', /Accordi\/Patti territoriali/)!, CC = diffRate('D612', /art\. 2, comma 3/)!, GIOV = diffRate('D612', /non superiore ad anni: 40/, 'D')!, CIN = diffRate('D612', /59\.14/, 'D')!;
+const R = 1000;
+const vuota = calcolaImu({ categoria: 'A2', rendita: R, aliquota: r.altri });
+const patti = calcolaImu({ categoria: 'A2', rendita: R, aliquota: PATTI });
+const conc = calcolaImu({ categoria: 'A2', rendita: R, aliquota: CC, canoneConcordato: true });
+const negozio = calcolaImu({ categoria: 'C1', rendita: 3000, aliquota: NEG });
+const bottega = calcolaImu({ categoria: 'C1', rendita: 3000, aliquota: BOT });
+const faqs = [
+  { q: 'A Firenze una libreria o una bottega storica paga meno IMU?', a: `Sì. Il prospetto prevede lo ${al(BOT)} per le botteghe storiche o artigiane e lo ${al(LIB)} per le librerie di libri nuovi o usati, quando il negozio è usato direttamente dal proprietario. Un negozio C/1 con 3 000 euro di rendita paga ${$(bottega.imposta)} come bottega storica invece di ${$(negozio.imposta)} con l’aliquota dei negozi in uso diretto.` },
+  { q: 'Cosa sono i patti territoriali nell’IMU di Firenze?', a: `Sono contratti di locazione stipulati secondo accordi locali per esigenze abitative particolari, definiti nel regolamento comunale: il prospetto li tassa allo ${al(PATTI)}, meno del canone concordato. Con ${$(R)} di rendita una casa affittata così paga ${$(patti.imposta)} invece di ${$(vuota.imposta)} se fosse vuota.` },
+  { q: 'Un giovane imprenditore che apre un’attività in centro a Firenze ha l’IMU ridotta?', a: `Il prospetto prevede lo ${al(GIOV)} per gli immobili del gruppo D in zone ad alto tasso di abbandono commerciale individuate dal comune, usati o presi in affitto da persone fisiche fino a 40 anni per attività innovative. Vale solo nelle zone delimitate con atti dell’amministrazione: va verificato l’indirizzo.` },
+];
+---
+<CityPage lang={lang} city="firenze" rendita={R} title={`IMU Firenze 2026: aliquote, botteghe storiche e affitti`}
+  description={`IMU Firenze 2026: seconda casa all’${al(r.altri)}, botteghe storiche allo ${al(BOT)}, patti territoriali allo ${al(PATTI)}, canone concordato allo ${al(CC)}. Calcolo.`}
+  h1="IMU a Firenze nel 2026: aliquote e calcolo"
+  intro={`Firenze ha il prospetto con più aliquote differenziate tra le dieci città di questo sito: ${nDiff}, tra botteghe storiche, librerie, affitti regolati e attività giovani in zone in difficoltà.`}
+  resume={`Il prospetto IMU di Firenze in vigore, approvato con delibera n. ${c.delibera} del ${c.data} e ancora quello del 2025 al ${P.retrieved_at}, fissa l’${al(r.altri)} per gli altri fabbricati, il gruppo D, le aree e i terreni, e lo ${al(r.ap)} per l’abitazione principale di lusso. Una seconda casa A/2 con ${$(R)} di rendita paga ${$(vuota.imposta)} l’anno. Sotto le aliquote di base il comune ha inserito ${nDiff} fattispecie differenziate, che toccano soprattutto due mondi. Il primo è l’affitto: lo ${al(CC)} per i contratti concordati, transitori e per studenti, e lo ${al(PATTI)} per i patti territoriali; una casa a canone concordato paga così ${$(conc.imposta)}, con la riduzione di legge al 75 %. Il secondo è il commercio del centro: botteghe storiche e librerie allo ${al(BOT)}, negozi in uso diretto all’${al(NEG)}, teatri e cinema allo ${al(CIN)}, e un’aliquota ridotta per le attività innovative di giovani in zone ad alto abbandono commerciale.`}
+  faqs={faqs} related={['home', 'negozi', 'concordato', 'locati', 'aliquote', 'confronto', 'capannoni']}>
+  <h2>Il commercio del centro storico</h2>
+  <p>Firenze usa il prospetto per difendere le attività tradizionali: le botteghe storiche o artigiane e le librerie, quando il proprietario usa direttamente il negozio, pagano lo {al(BOT)}. I negozi e i laboratori usati direttamente per un’attività commerciale o professionale hanno l’{al(NEG)}, appena sotto l’ordinario. Un negozio sfitto o affittato senza rientrare in queste fattispecie paga l’{al(r.altri)}.</p>
+  <h2>Affitti regolati</h2>
+  <p>Per le abitazioni, il prospetto distingue tra canone concordato, contratti transitori e contratti per studenti, tutti allo {al(CC)}, e i patti territoriali definiti dal regolamento, allo {al(PATTI)}. La differenza tra una casa vuota e una casa a canone concordato, su {$(R)} di rendita, è di {$(vuota.imposta - conc.imposta)} l’anno.</p>
+  <h2>Zone ad alto abbandono commerciale</h2>
+  <p>Una fattispecie poco comune: gli immobili del gruppo D situati in zone che il comune ha individuato come soggette ad abbandono delle attività economiche, usati o affittati da persone fisiche fino a 40 anni per attività innovative o start-up, pagano lo {al(GIOV)}. Prima di contarci, va chiesto all’ufficio tributi se l’indirizzo rientra nelle zone delimitate.</p>
+  <h2>Esenzioni del regolamento</h2>
+  <p>Il prospetto richiama le esenzioni per gli immobili dati in comodato gratuito al comune, ad altri enti territoriali o a enti non commerciali per i loro fini istituzionali, e per quelli delle ONLUS e degli enti del terzo settore destinati ad attività non commerciali, alle condizioni del regolamento comunale.</p>
+</CityPage>

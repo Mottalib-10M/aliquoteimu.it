@@ -1,0 +1,62 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf, ratesAcconto } from '../../lib/comuni';
+import { COUNTS, cambiati } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber, formatPercent, displayDate } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const d = (iso: string) => displayDate(iso, 'it-IT');
+const R = 900;
+const camb = cambiati('altri');
+const su = camb.filter((c) => c.rates!.altri > c.prev!.altri);
+const giu = camb.filter((c) => c.rates!.altri < c.prev!.altri);
+const vico = comune('L850')!, cappa = comune('B677')!, fil = comune('D593')!;
+const conv = (c: typeof vico) => calcolaImu({ categoria: 'A2', rendita: R, aliquota: ratesOf(c).altri, aliquotaAcconto: ratesAcconto(c).altri });
+const xv = conv(vico), xc = conv(cappa), xf = conv(fil);
+const accVsSal = [0.86, 0.96, 1.06, 1.14].map((a) => { const y = calcolaImu({ categoria: 'A2', rendita: R, aliquota: a, aliquotaAcconto: 0.96 }); return [al(0.96), al(a), $(y.acconto), $(y.saldo), $(y.saldo - y.acconto)]; });
+const faqs = [
+  { q: 'Perché il saldo IMU di dicembre è più alto dell’acconto?', a: `Perché il comune ha aumentato l’aliquota per il 2026. L’acconto di giugno si calcola con l’aliquota dell’anno precedente, il saldo con quella del prospetto pubblicato entro il 28 ottobre e recupera tutta la differenza dell’anno (comma 762). A ${vico.name}, passata dallo ${al(ratesAcconto(vico).altri)} all’${al(ratesOf(vico).altri)}, una casa con ${$(R)} di rendita paga ${$(xv.acconto)} a giugno e ${$(xv.saldo)} a dicembre.` },
+  { q: 'Se il saldo risulta negativo devo chiedere il rimborso?', a: `Sì: se l’imposta definitiva del 2026 è inferiore a quanto versato a giugno, il saldo è zero e la differenza è un credito. Si chiede al comune entro cinque anni dal versamento, e il comune deve rimborsare entro 180 giorni dalla domanda (legge 296 del 2006, comma 164). Alcuni regolamenti comunali ammettono la compensazione con altre somme dovute allo stesso comune.` },
+  { q: 'Il mio comune non ha pubblicato le aliquote 2026 entro il 28 ottobre: cosa pago a dicembre?', a: `Pagherai il saldo con le aliquote del prospetto 2025, che restano valide per tutto l’anno (comma 767). Al 3 ottobre 2026 erano ${n(COUNTS.P25)} i comuni ancora senza prospetto 2026. Se il comune non ha mai approvato un prospetto conforme, si applicano invece le aliquote di base fissate dalla legge.` },
+];
+---
+<Guide lang={lang} id="saldo" title="Saldo IMU 2026: conguaglio e scadenza del 16 dicembre"
+  description={`Saldo IMU 2026 entro il 16 dicembre: conguaglio con le aliquote 2026 pubblicate entro il 28 ottobre, comuni che hanno cambiato aliquota, saldo negativo e F24.`}
+  h1="Saldo IMU 2026: il conguaglio di dicembre"
+  intro="La seconda rata dell’IMU chiude il conto dell’anno: è qui che si vedono gli aumenti, e qualche volta i ribassi, decisi dal comune."
+  resume={`Il saldo IMU 2026 si paga entro il ${d(P.scadenze.saldo)} ed è la differenza tra l’imposta dovuta per tutto il 2026, calcolata con le aliquote del prospetto pubblicato sul sito del Dipartimento delle Finanze alla data del ${d(P.scadenze.pubblicazione_prospetti)}, e l’acconto già versato a giugno con le aliquote dell’anno prima (art. 1, comma 762, legge 160 del 2019). Se l’aliquota del comune non è cambiata, saldo e acconto sono uguali. Se è aumentata, il saldo assorbe tutto l’aumento dell’anno. Tra il 2025 e il 2026 abbiamo contato ${n(camb.length)} comuni che hanno modificato l’aliquota degli altri fabbricati, ${n(su.length)} al rialzo e ${n(giu.length)} al ribasso. A ${vico.name} una seconda casa con ${$(R)} di rendita versa ${$(xv.acconto)} a giugno e ${$(xv.saldo)} a dicembre. Chi ha pagato tutto in un’unica soluzione a giugno deve verificare se le aliquote sono cambiate e, nel caso, integrare entro dicembre.`}
+  faqs={faqs} related={['home', 'acconto', 'scadenze', 'novita', 'f24', 'rimborso', 'aliquote', 'ravvedimento']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti', 'legge296')}>
+  <MiniSim client:visible kind="saldo" lang={lang} href={route('home', lang)} />
+  <h2>La regola del conguaglio</h2>
+  <p>La seconda rata non è «l’altra metà». È l’imposta annua definitiva meno quanto già pagato. Per calcolarla servono le aliquote dell’anno in corso, che il comune deve inserire nel Portale del federalismo fiscale entro il {d(P.scadenze.inserimento_prospetti)} e che hanno effetto se pubblicate entro il {d(P.scadenze.pubblicazione_prospetti)} (comma 767). Con le aliquote 2026 si calcola l’imposta dell’intero anno, comprese detrazioni e riduzioni, e si sottrae l’acconto. Il risultato è il saldo.</p>
+  <p>Per chi ha comprato o venduto nel corso dell’anno il conguaglio considera i mesi di possesso effettivi. Un acquirente di settembre ha saltato l’acconto e paga a dicembre l’intera imposta dei suoi quattro mesi, calcolata con l’aliquota 2026.</p>
+  <ContentTable caption={`Acconto con l’aliquota 2025 dello ${al(0.96)}, saldo con l’aliquota 2026, rendita ${$(R)}`} headers={['Aliquota 2025', 'Aliquota 2026', 'Acconto', 'Saldo', 'Differenza tra le rate']} align={['r', 'r', 'r', 'r', 'r']} rows={accVsSal} />
+
+  <h2>Tre comuni, tre conguagli</h2>
+  <p>A {vico.name} ({vico.prov}) l’aliquota degli altri fabbricati è passata dallo {al(ratesAcconto(vico).altri)} all’{al(ratesOf(vico).altri)}: l’acconto della nostra casa di riferimento era {$(xv.acconto)}, il saldo sale a {$(xv.saldo)}. A {fil.name} ({fil.prov}), dallo {al(ratesAcconto(fil).altri)} all’{al(ratesOf(fil).altri)}, le rate sono {$(xf.acconto)} e {$(xf.saldo)}. A {cappa.name} ({cappa.prov}) è successo il contrario: l’aliquota è scesa dall’{al(ratesAcconto(cappa).altri)} allo {al(ratesOf(cappa).altri)}, e l’acconto pagato a giugno, {$(xc.acconto)}, supera già l’imposta di tutto l’anno, {$(xc.imposta)}. Lì il saldo è zero e resta un credito da recuperare.</p>
+  <p>Questi casi non sono rari. Su {n(COUNTS.P26)} prospetti 2026 pubblicati, {n(camb.length)} cambiano l’aliquota delle seconde case rispetto al 2025, e altri toccano le aliquote dei negozi, del gruppo D o delle aree fabbricabili. Il calcolatore confronta i due prospetti di ogni comune e mostra il saldo corretto.</p>
+
+  <h2>Quando il comune non pubblica in tempo</h2>
+  <p>Se entro il 28 ottobre il prospetto 2026 non è pubblicato, il terzo periodo del comma 767 stabilisce che si applicano le aliquote e i regolamenti vigenti nell’anno precedente: il saldo si calcola come l’acconto e le due rate coincidono. Il {d(P.retrieved_at)} erano ancora {n(COUNTS.P25)} i comuni in questa situazione. Una regola più severa riguarda i comuni che non hanno mai approvato un prospetto conforme: per loro valgono le aliquote di base dei commi da 748 a 755, finché non ne approvano uno.</p>
+  <p>Una delibera approvata ma non accompagnata dal prospetto non produce effetti (comma 757): vale ciò che risulta dal prospetto pubblicato, che prevale anche sul regolamento in caso di discordanza (comma 764).</p>
+
+  <h2>Saldo zero e crediti</h2>
+  <p>Se l’imposta definitiva è inferiore all’acconto, non si paga nulla a dicembre e la differenza è un credito verso il comune. Il rimborso si chiede entro cinque anni dal versamento e il comune ha 180 giorni per eseguirlo; sulle somme rimborsate spettano gli interessi nella misura stabilita dal comune, entro tre punti oltre il tasso legale (legge 296 del 2006, commi 164 e 165). La guida sul <a href={route('rimborso', lang)}>rimborso IMU</a> spiega la domanda. Il credito non si può portare in diminuzione dell’IMU di un altro comune.</p>
+
+  <h2>Rata unica a giugno e aliquote cambiate</h2>
+  <p>Chi ha pagato tutta l’IMU 2026 entro il 16 giugno ha usato, per forza di cose, le aliquote disponibili allora. Se il prospetto 2026 era già pubblicato, il conto è chiuso. Se il comune ha pubblicato dopo, o ha approvato aliquote diverse, a dicembre bisogna rifare il calcolo: un aumento si versa come saldo entro il 16 dicembre, una riduzione genera un credito. Non c’è sanzione per chi integra entro la scadenza del saldo.</p>
+
+  <h2>Il saldo nell’F24</h2>
+  <p>Nella sezione «IMU e altri tributi locali» si barra la casella «Saldo» e si usano gli stessi codici dell’acconto: {P.f24.altri} per seconde case, negozi e uffici, {P.f24.ap} per l’abitazione principale di lusso, {P.f24.ter} per i terreni, {P.f24.aree} per le aree, {P.f24.D_stato} e {P.f24.D_comune} per il gruppo D. Ogni riga si arrotonda all’euro. Più immobili nello stesso comune con lo stesso codice si sommano in una riga, indicando il numero degli immobili. I dettagli sono nella guida ai <a href={route('f24', lang)}>codici tributo</a>.</p>
+
+  <h2>Dopo il 16 dicembre</h2>
+  <p>Un saldo non versato o versato in meno si regolarizza con il <a href={route('ravvedimento', lang)}>ravvedimento operoso</a>: sanzione ridotta, interessi al tasso legale giorno per giorno, stesso codice tributo con la casella «Ravv.». Per il saldo 2026 il termine della dichiarazione relativa all’anno è il {d(P.scadenze.dichiarazione)}: entro quella data la sanzione ravveduta è un ottavo del {formatPercent(P.ravvedimento.sanzione_base, 0, lang)}, dopo un settimo. Il comune ha tempo fino al 31 dicembre del quinto anno successivo per notificare un avviso di accertamento.</p>
+</Guide>

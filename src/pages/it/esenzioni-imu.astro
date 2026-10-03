@@ -1,0 +1,77 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { quanti, conProspetto, N_IMU } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const files = import.meta.glob<{ default: Record<string, { d: unknown[]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const conEsenzioni = Object.values(files).reduce((t, f) => t + Object.values(f.default).filter((v) => v.e).length, 0);
+const assim = conProspetto.filter((c) => c.assim).length;
+const terEsenti = quanti('ter', (v) => v < 0);
+const R = 900;
+const evitata = calcolaImu({ categoria: 'A2', rendita: R, aliquota: MAX }).imposta;
+const legge = [
+  ['Abitazione principale non di lusso e pertinenze', 'comma 740', 'automatica'],
+  ['Case assimilate: cooperative, alloggi sociali, casa assegnata al genitore affidatario, forze armate e polizia', 'comma 741 c, n. 1-5', 'per legge; alcune con dichiarazione'],
+  ['Casa dell’anziano o disabile ricoverato, non locata', 'comma 741 c, n. 6', 'solo se il comune la prevede'],
+  ['Terreni di coltivatori diretti e IAP, isole minori, montani e collinari', 'comma 758', 'per legge'],
+  ['Immobili di Stato, comuni, enti per compiti istituzionali', 'comma 759 a', 'per legge'],
+  ['Fabbricati delle categorie da E/1 a E/9', 'comma 759 b', 'per legge'],
+  ['Fabbricati per il culto e immobili della Santa Sede', 'comma 759 d-e', 'per legge'],
+  ['Immobili di enti non commerciali per attività non commerciali', 'comma 759 g', 'dichiarazione annuale'],
+  ['Immobili occupati abusivamente con denuncia', 'comma 759 g-bis', 'comunicazione al comune'],
+  ['Fabbricati costruiti per la vendita dall’impresa (beni merce)', 'comma 751', 'dal 2022, finché invenduti e non locati'],
+];
+const valore = [500, 700, 900, 1200, 1600].map((r) => { const x = calcolaImu({ categoria: 'A2', rendita: r, aliquota: MAX }); return [$(r), $(x.imposta), $(x.imposta * 5)]; });
+const faqs = [
+  { q: 'Quali immobili sono esenti dall’IMU per legge nel 2026?', a: 'L’abitazione principale non di lusso con le pertinenze, le case assimilate dal comma 741, i terreni di coltivatori diretti e IAP o situati in zone montane e nelle isole minori, i fabbricati E/1-E/9, gli immobili pubblici per compiti istituzionali, quelli di culto e della Santa Sede, i beni merce invenduti e gli immobili occupati abusivamente con denuncia (legge 160/2019, commi 740-759).' },
+  { q: 'Il comune può decidere esenzioni IMU in più rispetto alla legge?', a: `In misura limitata. Può assimilare all’abitazione principale la casa dell’anziano o del disabile ricoverato, e lo fanno ${n(assim)} comuni su ${n(conProspetto.length)}, ed esentare gli immobili dati in comodato gratuito al comune o a enti non commerciali per i loro scopi istituzionali (comma 777, lettera e). Le esenzioni scelte compaiono nel prospetto delle aliquote.` },
+  { q: 'Un’aliquota allo zero per cento equivale a un’esenzione?', a: 'Nel risultato sì, perché l’imposta è nulla, ma giuridicamente no: l’immobile resta soggetto e il comune può cambiare aliquota l’anno dopo. Molti comuni azzerano per esempio i fabbricati rurali strumentali o le case inagibili già abitazione principale. Il calcolatore applica lo zero del prospetto e mostra un’imposta di zero euro.' },
+  { q: 'Serve una domanda per ottenere l’esenzione IMU?', a: 'Per l’abitazione principale no: il comune la riconosce dai dati anagrafici. Per altre ipotesi la legge chiede la dichiarazione IMU entro il 30 giugno dell’anno successivo, per esempio per gli immobili delle forze armate, gli alloggi sociali, i beni merce e gli enti non commerciali (comma 768-bis); per gli immobili occupati serve la comunicazione al comune.' },
+];
+---
+<Guide lang={lang} id="esenzioni" title="Esenzioni IMU 2026: chi non paga e cosa decide il comune"
+  description={`Esenzioni IMU 2026: abitazione principale, case assimilate, terreni montani, immobili pubblici, beni merce e occupati, con le scelte dei comuni.`}
+  h1="Esenzioni IMU 2026: l’elenco completo e le scelte dei comuni"
+  intro="Non pagare l’IMU è possibile in casi precisi, fissati dalla legge 160 del 2019 o lasciati alla scelta del comune. Fuori da quei casi, l’imposta si deve sempre."
+  resume={`Le esenzioni IMU sono di due tipi. Quelle di legge valgono in tutta Italia e non dipendono dal comune: l’abitazione principale non di lusso con le sue pertinenze, le case che la legge assimila all’abitazione principale, i terreni condotti da coltivatori diretti o situati in montagna e nelle isole minori, gli immobili pubblici destinati a compiti istituzionali, i fabbricati delle categorie E, quelli di culto, i beni merce delle imprese costruttrici e gli immobili occupati abusivamente dopo la denuncia. Quelle facoltative dipendono dal prospetto del comune: ${n(assim)} comuni assimilano la casa dell’anziano ricoverato, ${n(conEsenzioni)} indicano altre esenzioni nel prospetto. Un’esenzione vale quanto l’imposta che fa risparmiare: su una casa con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, sono ${$(evitata)} l’anno. Un’aliquota azzerata produce lo stesso effetto, ma il comune può rivederla ogni anno.`}
+  faqs={faqs} related={['home', 'primaCasa', 'terreni', 'occupati', 'anziani', 'rurali', 'regimi', 'dichiarazione', 'aliquote']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'corte209')}>
+  <MiniSim client:visible kind="esenzioni" lang={lang} href={route('home', lang)} />
+  <h2>Le esenzioni previste dalla legge</h2>
+  <p>La tabella raccoglie tutte le ipotesi in cui l’IMU non è dovuta su tutto il territorio nazionale, con il riferimento alla legge 160 del 2019 e il modo in cui si ottengono. Sono tassative: un caso non elencato non si può dedurre per analogia.</p>
+  <ContentTable headers={['Immobile', 'Norma', 'Come si ottiene']} align={['l', 'l', 'l']} rows={legge} />
+
+  <h2>L’abitazione principale e le case assimilate</h2>
+  <p>L’esenzione più diffusa riguarda la casa in cui si vive con la residenza. Copre l’abitazione delle categorie da A/2 ad A/7 e A/11 e una pertinenza per ciascuna delle categorie C/2, C/6 e C/7. Le abitazioni A/1, A/8 e A/9 restano soggette, con un’aliquota ridotta e una detrazione: la guida sulle <a href={route('lusso', lang)}>abitazioni di lusso</a> spiega il calcolo. Dopo la sentenza della Corte costituzionale n. 209 del 2022, ciascun coniuge può avere l’esenzione sulla casa in cui risiede e dimora davvero.</p>
+  <p>La legge equipara all’abitazione principale cinque situazioni: le case delle cooperative edilizie a proprietà indivisa assegnate ai soci, anche agli studenti universitari; gli alloggi sociali; la casa familiare assegnata dal giudice al genitore affidatario dei figli; un solo immobile non locato del personale delle forze armate, delle forze di polizia, dei vigili del fuoco e della carriera prefettizia, senza obbligo di residenza. Per questi casi la dichiarazione IMU serve ad attestare i requisiti quando il comune non può conoscerli.</p>
+
+  <h2>Terreni: esenzione per chi coltiva e per la montagna</h2>
+  <p>Il comma 758 esenta quattro gruppi di terreni agricoli: quelli posseduti e condotti da coltivatori diretti e imprenditori agricoli professionali iscritti alla previdenza agricola, ovunque si trovino; quelli nei comuni delle isole minori; quelli a proprietà collettiva indivisibile e inusucapibile; quelli nelle aree montane o di collina individuate dalla circolare del Ministero delle finanze n. 9 del 1993. Nei prospetti che abbiamo letto, {n(terEsenti)} comuni indicano i terreni come esenti; alcuni sono «parzialmente delimitati» e l’esenzione vale solo per certi fogli di mappa. La guida sui <a href={route('terreni', lang)}>terreni agricoli</a> riprende ogni caso.</p>
+
+  <h2>Immobili pubblici, religiosi e del terzo settore</h2>
+  <p>Sono esenti gli immobili dello Stato e dei comuni, e quelli che regioni, province, comunità montane, loro consorzi ed enti del servizio sanitario possiedono nel proprio territorio, purché destinati esclusivamente a compiti istituzionali. Sono esenti anche i fabbricati delle categorie da E/1 a E/9 (stazioni, ponti, fari, edifici speciali), quelli a uso culturale, quelli destinati esclusivamente al culto con le pertinenze, gli immobili della Santa Sede indicati nel Trattato del 1929 e quelli degli Stati esteri e delle organizzazioni internazionali esenti per accordo.</p>
+  <p>Gli enti non commerciali sono esenti sugli immobili che usano esclusivamente per attività assistenziali, sanitarie, didattiche, culturali, ricreative, sportive o religiose svolte con modalità non commerciali. Se l’immobile ha un uso misto, l’esenzione vale solo per la parte non commerciale, e l’ente presenta ogni anno una dichiarazione apposita.</p>
+
+  <h2>Beni merce e immobili occupati</h2>
+  <p>Dal 2022 i fabbricati costruiti dall’impresa e destinati alla vendita sono esenti finché restano invenduti e non vengono affittati. L’esenzione è dell’impresa costruttrice: chi compra paga dal mese del rogito. Sono esenti anche gli immobili non utilizzabili né disponibili per i quali è stata presentata denuncia per violazione di domicilio o invasione di edifici, o è iniziata un’azione penale per l’occupazione abusiva: il proprietario lo comunica al comune. La guida sugli <a href={route('occupati', lang)}>immobili occupati</a> spiega tempi e modulo.</p>
+
+  <h2>Quello che decide il comune</h2>
+  <p>Il comune non può inventare esenzioni, ma ha due leve. La prima è l’assimilazione all’abitazione principale della casa di anziani o disabili ricoverati in modo permanente, a condizione che non sia affittata: l’hanno scelta {n(assim)} comuni. La seconda è l’esenzione degli immobili concessi in comodato gratuito al comune, ad altri enti territoriali o a enti non commerciali per i loro scopi istituzionali. A queste si aggiungono le aliquote azzerate, che non sono esenzioni ma portano l’imposta a zero, e le esenzioni per le ONLUS e gli enti del terzo settore che diversi comuni riportano nel prospetto.</p>
+  <p>Il prospetto è il documento che fa fede: in caso di contrasto con il regolamento comunale prevale (comma 764). La <a href={route('aliquote', lang)}>pagina delle aliquote</a> riporta per ogni comune le esenzioni indicate, con il testo del Dipartimento delle Finanze.</p>
+
+  <h2>Quanto vale un’esenzione</h2>
+  <p>Per capire che cosa si perde quando un’esenzione viene meno, per esempio dopo un trasferimento di residenza o una casa data in affitto, basta calcolare l’imposta che sarebbe dovuta all’aliquota degli altri fabbricati. La tabella usa l’{al(MAX)} e un periodo di cinque anni, quanti il comune ne può accertare.</p>
+  <ContentTable headers={['Rendita', 'IMU annua evitata', 'In cinque anni']} align={['r', 'r', 'r']} rows={valore} />
+
+  <h2>Esenzioni perse: gli errori più comuni</h2>
+  <p>Il caso tipico è la casa considerata abitazione principale senza che lo sia: residenza in un comune e vita altrove, oppure un secondo box tenuto come pertinenza quando la categoria ne ha già una. Segue l’anziano che entra in una struttura e lascia la casa in affitto, perdendo l’assimilazione, e il terreno ereditato da un figlio che non è coltivatore diretto. Su {n(N_IMU)} comuni con IMU, ognuno controlla con i propri incroci di dati: l’imposta non pagata si recupera con sanzione e interessi.</p>
+</Guide>

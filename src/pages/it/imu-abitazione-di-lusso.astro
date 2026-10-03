@@ -1,0 +1,66 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { comune, ratesOf } from '../../lib/comuni';
+import { distribuzione, quanti, conProspetto } from '../../lib/stats';
+import { formatMoney, formatAliquota, formatNumber } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const AB = P.aliquote_base, M = P.base.moltiplicatori, D = P.detrazione_ap;
+const R = 2500;
+const base = calcolaImu({ categoria: 'A8', rendita: R, aliquota: AB.ap, uso: 'ap' });
+const dist = distribuzione('ap').slice(0, 6).map((d) => [al(d.aliquota), n(d.n)]);
+const sopra = quanti('ap', (v) => v > P.limiti.ap_max);
+const zero = quanti('ap', (v) => v === 0);
+const milano = ratesOf(comune('F205')!).ap;
+const sogliaDetr = D / (AB.ap / 100) / (1 + P.base.rivalutazione_rendita) / M.A;
+const scala = [600, 1000, 1500, 2500, 4000, 6000].map((r) => { const x = calcolaImu({ categoria: 'A1', rendita: r, aliquota: AB.ap, uso: 'ap' }); const y = calcolaImu({ categoria: 'A1', rendita: r, aliquota: P.limiti.ap_max, uso: 'ap' }); return [$(r), $(x.impostaLorda), $(x.detrazione), $(x.imposta), $(y.imposta)]; });
+const coppia = calcolaImu({ categoria: 'A8', rendita: R, aliquota: AB.ap, uso: 'ap', quota: 50 });
+const conPert = calcolaImu({ categoria: 'A8', rendita: R, renditaPertinenze: 180, aliquota: AB.ap, uso: 'ap' });
+const faqs = [
+  { q: 'La detrazione di 200 euro si divide tra marito e moglie comproprietari?', a: `Sì, se la villa è abitazione principale di entrambi: la detrazione spetta a ciascuno in proporzione alla quota per cui la casa ha quella destinazione (comma 749). Con il 50 % a testa ognuno detrae ${$(D / 2)} e, su una A/8 con ${$(R)} di rendita all’${al(AB.ap)}, paga ${$(coppia.imposta)}.` },
+  { q: 'Un’abitazione A/1 data in comodato al figlio ha la base dimezzata?', a: 'No. Il comma 747, lettera c), esclude espressamente dalla riduzione del 50 % le unità classificate A/1, A/8 e A/9. Se il figlio ci vive, per il genitore proprietario la casa resta un altro fabbricato e paga con l’aliquota piena del comune per gli altri immobili, salvo aliquote agevolate previste dal prospetto.' },
+  { q: 'Con una rendita bassa la villa di lusso può non pagare nulla?', a: `Sì: all’aliquota di base dello ${al(AB.ap)} la detrazione di ${$(D)} azzera l’imposta fino a una rendita di circa ${$(sogliaDetr)}. Oltre quella soglia si paga la differenza. Il calcolo cambia se il comune ha alzato o abbassato l’aliquota dell’abitazione principale.` },
+  { q: 'Il box della casa di lusso paga con quale aliquota?', a: `Con la stessa dell’abitazione principale di lusso, perché la pertinenza segue l’immobile principale, nel limite di una per categoria C/2, C/6 e C/7. La rendita del box si somma a quella della casa e la detrazione si applica al totale: con 180 euro di rendita in più l’IMU della A/8 dell’esempio passa a ${$(conPert.imposta)}.` },
+];
+---
+<Guide lang={lang} id="lusso" title="IMU abitazione di lusso 2026: A/1, A/8, A/9 e detrazione"
+  description={`IMU sull’abitazione principale di lusso 2026: aliquota base ${al(AB.ap)}, massimo ${al(P.limiti.ap_max)}, detrazione di ${$(D)} per mesi e quota, pertinenze ed esempi calcolati.`}
+  h1="IMU sull’abitazione principale di lusso: categorie A/1, A/8 e A/9"
+  intro="Ville, abitazioni signorili e palazzi storici sono le sole prime case che pagano ancora l’IMU. Con un’aliquota ridotta e una detrazione fissa."
+  resume={`Le abitazioni principali accatastate A/1 (signorili), A/8 (ville) e A/9 (castelli e palazzi di eminente pregio) pagano l’IMU anche quando ci si vive con la residenza: è l’unica eccezione all’esenzione della prima casa prevista dal comma 740 della legge 160/2019. L’aliquota di base è lo ${al(AB.ap)}, che il comune può aumentare di un decimo di punto, fino allo ${al(P.limiti.ap_max)}, o ridurre fino a zero; dall’imposta si toglie una detrazione di ${$(D)} l’anno, in proporzione ai mesi e alla quota di chi ci abita. La base imponibile si calcola come per ogni abitazione: rendita × 1,05 × ${M.A}. Una villa A/8 con ${$(R)} di rendita ha una base di ${$(base.base)}; all’aliquota di base l’imposta lorda è ${$(base.impostaLorda)} e, dopo la detrazione, restano ${$(base.imposta)}, da versare in due rate da ${$(base.acconto)} con il codice tributo ${P.f24.ap}. Le pertinenze C/2, C/6 e C/7, una per categoria, pagano con la stessa aliquota.`}
+  faqs={faqs} related={['home', 'primaCasa', 'pertinenze', 'aliquote', 'f24', 'storici', 'comodato', 'coefficienti', 'acconto']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti', 'codici_tributo')}>
+  <MiniSim client:visible kind="lusso" lang={lang} href={route('home', lang)} />
+  <h2>Perché la categoria conta più del valore</h2>
+  <p>L’IMU non guarda al prezzo di mercato né ai metri quadrati: guarda la categoria catastale. Una villa moderna con piscina può essere accatastata A/7 (villino) e risultare esente come prima casa, mentre un appartamento in un palazzo d’epoca classificato A/1 decenni fa paga ogni anno. La classificazione dipende dalle caratteristiche costruttive e di finitura rilevate al momento dell’accatastamento o dell’ultima variazione. Se ritieni che la categoria non corrisponda più all’immobile, la revisione passa per un tecnico abilitato e una pratica all’Agenzia delle Entrate.</p>
+
+  <h2>La detrazione di 200 euro: mesi, quote e soglia</h2>
+  <p>Il comma 749 prevede una detrazione di {$(D)} dall’imposta dovuta per l’abitazione principale di lusso e le sue pertinenze. La detrazione si riduce in proporzione ai mesi in cui la casa è stata davvero abitazione principale e, se ci vivono più comproprietari, si divide tra loro secondo la quota per cui la destinazione si verifica. Non può superare l’imposta: se l’IMU lorda è inferiore, il risultato è zero e la parte non usata si perde.</p>
+  <p>All’aliquota di base la detrazione copre interamente le rendite fino a circa {$(sogliaDetr)}. Sopra quella cifra la detrazione pesa sempre meno in proporzione: su una rendita di {$(6000)} vale poco più di un ventesimo dell’imposta.</p>
+  <ContentTable headers={['Rendita', `Lorda a ${al(AB.ap)}`, 'Detrazione', `Netta a ${al(AB.ap)}`, `Netta a ${al(P.limiti.ap_max)}`]} align={['r', 'r', 'r', 'r', 'r']} rows={scala} />
+
+  <h2>Le aliquote che i comuni applicano davvero</h2>
+  <p>Nei prospetti che abbiamo letto l’aliquota per l’abitazione principale di lusso si concentra su pochi valori. Il più frequente è il massimo ordinario, ma una parte consistente dei comuni è rimasta all’aliquota di base o è scesa sotto.</p>
+  <ContentTable headers={['Aliquota', 'Comuni']} align={['r', 'r']} rows={dist} />
+  <p>Sono {n(zero)} i comuni che l’hanno azzerata e {n(sopra)} quelli che superano lo {al(P.limiti.ap_max)} grazie alla maggiorazione ex TASI dello {al(P.limiti.maggiorazione_ex_tasi)}, possibile solo per chi la applicava già prima del 2020. Milano, per esempio, applica lo {al(milano)}. L’aliquota del tuo comune è nella <a href={route('aliquote', lang)}>ricerca per comune</a>, su {n(conProspetto.length)} prospetti.</p>
+
+  <h2>Pertinenze della casa di lusso</h2>
+  <p>Box, cantina e tettoia della casa di lusso non sono esenti: seguono l’abitazione e pagano con l’aliquota dell’abitazione principale, non con quella degli altri fabbricati, nel limite di una unità per ciascuna categoria C/2, C/6 e C/7. La rendita della pertinenza si somma a quella della casa, con lo stesso moltiplicatore {M.C6}, e la detrazione residua può assorbirne una parte. Una seconda cantina o un secondo box pagano invece come altri fabbricati. Nel calcolatore la rendita delle pertinenze si inserisce nelle opzioni avanzate quando scegli l’abitazione principale in A/1, A/8 o A/9.</p>
+
+  <h2>Quando la casa di lusso non è abitazione principale</h2>
+  <p>Se nella villa non hai residenza e dimora abituale, la casa non ha né aliquota ridotta né detrazione: paga come un qualsiasi altro fabbricato, con l’aliquota che il comune fissa per le seconde case, spesso l’{al(P.limiti.altri_max)}. Su {$(R)} di rendita la differenza è netta: {$(base.imposta)} come prima casa, {$(calcolaImu({ categoria: 'A8', rendita: R, aliquota: P.limiti.altri_max }).imposta)} come seconda. Lo stesso vale per la villa data in uso gratuito a un figlio: la riduzione del comodato non si applica alle categorie di lusso.</p>
+  <p>Gli immobili A/9 sono spesso anche vincolati come beni culturali. In quel caso la base imponibile si dimezza per il comma 747, lettera a), anche quando la casa è abitazione principale: la guida sugli <a href={route('storici', lang)}>immobili storici</a> spiega quando il vincolo dà diritto alla riduzione.</p>
+
+  <h2>Versamento e codice tributo</h2>
+  <p>L’IMU dell’abitazione principale di lusso si paga con l’F24, codice tributo {P.f24.ap}, che comprende anche le pertinenze. Le scadenze sono le stesse di tutti gli immobili: acconto entro il 16 giugno con l’aliquota e la detrazione dell’anno precedente, saldo entro il 16 dicembre a conguaglio. Se il comune ha cambiato aliquota tra il 2025 e il 2026, il calcolatore usa quella giusta per ogni rata. La detrazione va riportata nell’apposito campo del modello, sottratta dall’imposta lorda.</p>
+
+  <h2>Gli alloggi IACP</h2>
+  <p>La stessa detrazione di {$(D)} si applica agli alloggi regolarmente assegnati dagli istituti autonomi per le case popolari e dagli enti di edilizia residenziale pubblica con le stesse finalità (comma 749). Qui non conta la categoria: la detrazione riduce l’imposta dell’alloggio assegnato, che il comune può tassare con un’aliquota propria, indicata nel prospetto alla voce degli alloggi IACP.</p>
+</Guide>

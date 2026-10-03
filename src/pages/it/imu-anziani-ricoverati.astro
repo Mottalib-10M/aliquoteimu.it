@@ -1,0 +1,64 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { conProspetto } from '../../lib/stats';
+import { ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const si = conProspetto.filter((c) => c.assim);
+const no = conProspetto.filter((c) => !c.assim);
+const capNo = no.filter((c) => c.cap);
+const R = 650;
+const piena = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const tabCap = capNo.map((c) => [c.name, c.prov, al(ratesOf(c).altri), $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: ratesOf(c).altri }).imposta)]);
+const faqs = [
+  { q: 'Mia madre è in RSA da un anno: la sua casa paga l’IMU?', a: `Dipende dal comune in cui si trova la casa. Se il prospetto prevede l’assimilazione all’abitazione principale per anziani e disabili ricoverati in modo permanente, e la casa non è affittata, non paga nulla. Nei comuni che non la prevedono paga come altro fabbricato: con ${$(R)} di rendita all’${al(MAX)} sono ${$(piena.imposta)} l’anno. Lo prevedono ${n(si.length)} comuni su ${n(conProspetto.length)}.` },
+  { q: 'Se nella casa del nonno ricoverato vive un nipote senza contratto, l’esenzione resta?', a: 'La legge pone una sola condizione oltre al ricovero permanente: che la casa non risulti locata. Il Dipartimento delle Finanze ha precisato che il comune non può aggiungere requisiti, come il divieto che l’immobile sia occupato a titolo diverso dalla locazione. Un familiare che ci abita senza contratto di affitto non fa quindi perdere l’assimilazione, se il comune l’ha prevista.' },
+  { q: 'Il pensionato ricoverato con due case ha diritto all’esenzione su entrambe?', a: 'No. Il comma 741, lettera c), numero 6, della legge 160/2019 stabilisce che, in caso di più unità immobiliari, l’agevolazione si applica a una sola. Le altre abitazioni pagano come altri fabbricati, con l’aliquota che il comune fissa per le seconde case o con un’aliquota agevolata se il prospetto ne prevede una.' },
+];
+---
+<Guide lang={lang} id="anziani" title="IMU anziani ricoverati 2026: esenzione decisa dal comune"
+  description={`IMU sulla casa dell’anziano o disabile ricoverato nel 2026: assimilazione all’abitazione principale decisa dal comune (${n(si.length)} su ${n(conProspetto.length)}), condizioni e casi.`}
+  h1="Anziani e disabili ricoverati: quando la loro casa non paga l’IMU"
+  intro="Quando un genitore anziano si trasferisce in una casa di riposo o in una RSA, la sua casa smette di essere abitazione principale. Il comune può però decidere di trattarla come tale."
+  resume={`La casa di un anziano o di un disabile che prende la residenza in un istituto di ricovero o sanitario, a seguito di ricovero permanente, può essere considerata abitazione principale e quindi esente dall’IMU, a condizione che non sia affittata. Non è un diritto automatico: l’articolo 1, comma 741, lettera c), numero 6, della legge 160/2019 lascia la scelta al singolo comune, che la indica nel prospetto delle aliquote alla voce dell’assimilazione per anziani o disabili. Nei prospetti che abbiamo letto la prevedono ${n(si.length)} comuni su ${n(conProspetto.length)}, cioè il ${formatPercent(si.length / conProspetto.length, 0, lang)}; tra i capoluoghi non la prevedono ${n(capNo.length)}, tra cui Palermo. Dove manca, la casa paga come un altro fabbricato: un appartamento A/3 con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, costa ${$(piena.imposta)} l’anno. Se l’anziano possiede più abitazioni, l’agevolazione vale per una sola. Il calcolatore e la ricerca per comune ti dicono subito se il comune della casa ha scelto l’assimilazione.`}
+  faqs={faqs} related={['home', 'aliquote', 'primaCasa', 'eredita', 'comodato', 'esenzioni', 'dichiarazione', 'usufrutto']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_ricerca')}>
+  <MiniSim client:visible kind="anziani" lang={lang} href={route('aliquote', lang)} />
+  <h2>Le tre condizioni della norma</h2>
+  <p>Per l’assimilazione servono un ricovero permanente, la residenza presa nell’istituto di ricovero o sanitario e una casa non affittata. Un ricovero temporaneo, per una riabilitazione di qualche mese senza cambio di residenza, non rientra in questa norma, che parla di ricovero permanente. È il trasferimento della residenza nella struttura a far uscire la casa dalla definizione di abitazione principale; da quel momento, senza la scelta del comune, l’esenzione si perde.</p>
+  <p>Il comune ha solo la scelta se prevedere o no l’assimilazione. Il Dipartimento delle Finanze ha chiarito che non può restringerne il campo con requisiti ulteriori, come quello che la casa, oltre a non essere locata, non sia occupata da nessuno: è sufficiente che non ci sia un contratto di affitto.</p>
+
+  <h2>Come sapere se il tuo comune la prevede</h2>
+  <p>Dal 2025 la scelta compare nel prospetto delle aliquote, in una riga dedicata con risposta SI o NO. È lo stesso documento che fissa le aliquote, e prevale sul regolamento in caso di discordanza. Nella <a href={route('aliquote', lang)}>ricerca per comune</a> trovi la risposta sotto la tabella delle aliquote; il calcolatore la usa per sapere se la casa dell’anziano è esente. Se il comune ha pubblicato il prospetto 2026, vale quello; altrimenti vale il prospetto 2025 fino alla pubblicazione entro il 28 ottobre.</p>
+
+  <h2>I capoluoghi che non la prevedono</h2>
+  <p>La grande maggioranza dei comuni ha scelto l’assimilazione. Tra i capoluoghi di provincia fanno eccezione questi, dove la casa dell’anziano ricoverato paga come seconda casa (appartamento A/3 con {$(R)} di rendita):</p>
+  <ContentTable headers={['Comune', 'Provincia', 'Aliquota altri fabbricati', 'IMU annua']} align={['l', 'l', 'r', 'r']} rows={tabCap} />
+
+  <h2>Chi paga quando l’esenzione non c’è</h2>
+  <p>Soggetto passivo resta l’anziano proprietario, o chi ha l’usufrutto. Spesso a occuparsi del versamento sono i figli o l’amministratore di sostegno, che pagano con il codice fiscale dell’anziano, codice tributo {P.f24.altri}, e il codice catastale del comune. Le rate sono quelle ordinarie: 16 giugno con l’aliquota dell’anno precedente e 16 dicembre a conguaglio. Se il ricovero comincia durante l’anno, la casa è esente fino al mese in cui l’anziano ha cambiato residenza e paga per i mesi successivi.</p>
+
+  <h2>Casa affittata per pagare la retta</h2>
+  <p>Molte famiglie affittano la casa del genitore ricoverato per coprire la retta della struttura. L’affitto fa decadere l’assimilazione, anche nei comuni che la prevedono, perché la legge la condiziona proprio al fatto che l’immobile non sia locato. A quel punto conviene verificare se il prospetto prevede un’aliquota ridotta per le abitazioni affittate, o se un contratto a <a href={route('concordato', lang)}>canone concordato</a> riduce l’imposta al {formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)}.</p>
+
+  <h2>Due case e una sola agevolazione</h2>
+  <p>Chi possiede la casa in cui viveva e un’altra abitazione, per esempio una casa di famiglia in paese, può avere l’assimilazione su una sola. Nella pratica si sceglie quella che altrimenti pagherebbe di più. L’altra resta un altro fabbricato. Se una delle due è data in uso gratuito a un figlio che ci vive, vale la pena di confrontare il risultato con le regole del <a href={route('comodato', lang)}>comodato</a>, che richiedono però che il comodante risieda nello stesso comune.</p>
+
+  <h2>Disabili ricoverati e amministratore di sostegno</h2>
+  <p>La norma mette sullo stesso piano anziani e disabili: l’età non conta, conta il ricovero permanente con residenza nella struttura. Una persona con disabilità che vive stabilmente in una comunità o in un istituto ha quindi lo stesso trattamento, se il comune ha scelto l’assimilazione. Quando la persona non può gestire i propri affari, i versamenti e le eventuali comunicazioni al comune li cura l’amministratore di sostegno o il tutore, che firma per conto dell’interessato. Conviene conservare il certificato di residenza nella struttura e la documentazione del ricovero: sono le prove che il comune chiede quando verifica un’esenzione di questo tipo.</p>
+
+  <h2>L’anno del ricovero</h2>
+  <p>L’anno in cui avviene il trasferimento è quello in cui si sbaglia di più. Se il comune non prevede l’assimilazione, la casa è esente per i mesi in cui è stata abitazione principale e paga dal mese del cambio di residenza; l’acconto di giugno copre i mesi fino a giugno, con l’aliquota dell’anno precedente. Se il comune la prevede, non cambia nulla finché la casa resta vuota o abitata da familiari senza contratto. Il campo dei mesi nelle opzioni avanzate del calcolatore permette di dividere l’anno; conviene annotare la data del cambio di residenza, che è quella su cui il comune basa i controlli.</p>
+
+  <h2>Dopo la scomparsa dell’anziano</h2>
+  <p>Con l’apertura della successione la casa passa agli eredi, ciascuno soggetto passivo per la propria quota, con la regola dei mesi del comma 761. L’assimilazione dell’anziano finisce con lui: per gli eredi la casa è un altro fabbricato, a meno che uno di loro ci vada a vivere con la residenza. Il calcolo per quote e mesi è nella guida sull’<a href={route('eredita', lang)}>immobile ereditato</a>.</p>
+</Guide>

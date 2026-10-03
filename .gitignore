@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.local
+.DS_Store
+*.log
+
+# Bing API credentials
+scripts/.env
+
+# Logs locaux
+npm-install.log
+preview.log
+
+# cache des prospetti MEF (scripts/it/build-data.py)
+scripts/it/.cache-mef/

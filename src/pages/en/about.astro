@@ -1,0 +1,30 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import LegalIdentity from '../../components/LegalIdentity.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, profilePageSchema, organizationSchema } from '../../lib/seo';
+import { COUNTS } from '../../lib/stats';
+import { formatNumber } from '../../lib/format';
+import { CONTACT_EMAIL } from '../../data/site-config';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const n = (v: number) => formatNumber(v, 0, lang);
+---
+<PageLayout title="AliquoteIMU.it: Who Publishes It and How the Site Works" description="About AliquoteIMU.it, published by Radif Partners: how we read every comune’s IMU rate schedule, how the site is funded and how to report an error to us." lang={lang} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'About', path: route('about', lang) }]), profilePageSchema({ path: route('about', lang), lang }), organizationSchema(lang)]} breadcrumbs={[{ label: 'About' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">About this site</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <p>AliquoteIMU.it is published by Radif Partners, a company that builds free calculators and practical tax guides for several European countries. Every site in the group follows the same rules: calculations run in the visitor’s browser, every rate comes from an official source cited on the page, and the limits of each calculation are written down.</p>
+    <h2>Why an IMU site, and why in English</h2>
+    <p>IMU is simple arithmetic, but the rate changes from one comune to the next and often from year to year, and it sits in a PDF schedule on the Department of Finance website, in Italian. We read the schedules of {n(COUNTS.P26 + COUNTS.P25)} comuni and wired them into the calculator. The English version is for people who own property in Italy but live elsewhere, or who are new to the Italian system, and explains the Italian terms they will meet on the forms.</p>
+    <h2>How we work</h2>
+    <p>Legal parameters live in a single file checked against Law 160 of 2019 and the Department of Finance’s pages, last checked on {P.retrieved_at}. The calculation engine is covered by automated tests built from the cases the law describes. The <a href={route('method', lang)}>methodology</a> page sets out formulas, data and limits; the <a href={route('editorial', lang)}>editorial policy</a> explains updates and corrections.</p>
+    <h2>Funding</h2>
+    <p>The site is free and needs no account. It may carry advertising in future, never above a calculator and never in exchange for a product review. We do not sell data: we do not collect any.</p>
+    <h2>Reporting an error</h2>
+    <p>If a rate differs from your comune’s schedule, or a result looks wrong, write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> with the comune and the page. We check the source and correct, with the date of the correction.</p>
+    <h2>What we do not do</h2>
+    <p>We are not an accountancy firm or a tax assistance centre (CAF). We do not file F24 payments for anyone and cannot answer individual questions. For complex cases, such as an estate with several properties or a disputed building plot, contact the comune’s tax office, a CAF or a commercialista.</p>
+    <h2>Publisher</h2>
+    <LegalIdentity lang="en" />
+  </div>
+</PageLayout>

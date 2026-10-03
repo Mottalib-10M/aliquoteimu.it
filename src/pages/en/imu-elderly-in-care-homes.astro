@@ -1,0 +1,60 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { conProspetto } from '../../lib/stats';
+import { ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const yes = conProspetto.filter((c) => c.assim);
+const capNo = conProspetto.filter((c) => !c.assim && c.cap);
+const R = 600;
+const full = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const rows = capNo.map((c) => [c.name, al(ratesOf(c).altri), $(calcolaImu({ categoria: 'A3', rendita: R, aliquota: ratesOf(c).altri }).imposta)]);
+const faqs = [
+  { q: 'My father moved permanently into a care home near Bologna: does his flat still pay IMU?', a: `Only if the comune where the flat is located has not chosen to treat it as a main home. If its rate schedule has the relief for elderly or disabled people in permanent care, and the flat is not let, it pays nothing. Otherwise it pays as an ordinary building: on ${$(R)} of rendita at ${al(MAX)}, ${$(full.imposta)} a year. ${n(yes.length)} of ${n(conProspetto.length)} comuni grant the relief.` },
+  { q: 'Can the comune refuse the care home relief because a relative lives in the flat rent-free?', a: 'No. The law sets one condition besides permanent care with residence in the institution: that the home is not let. Italy’s Department of Finance has stated that a comune granting the relief cannot add requirements, such as the home not being occupied in any other way. A relative staying without a rental contract does not cancel it.' },
+  { q: 'We rent out mother’s flat to pay the care home fees: is the IMU relief lost?', a: `Yes. Letting the home ends the relief, even where the comune grants it, because the law makes it conditional on the home not being let (Law 160/2019, art. 1, para. 741 c, no. 6). Check whether the comune has a lower rate for let homes, or whether an agreed-rent contract (canone concordato), which cuts the tax to ${formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang)}, makes sense.` },
+];
+---
+<Guide lang={lang} id="anziani" title="IMU for Elderly Owners in Care 2026: Comune Relief"
+  description={`IMU on the home of an elderly or disabled owner in permanent care in Italy, 2026: main home treatment if the comune grants it (${n(yes.length)} of ${n(conProspetto.length)} do).`}
+  h1="Elderly or disabled owners in care: when their home stops paying IMU"
+  intro="When an elderly parent moves into a nursing home in Italy, the family house is no longer a main home. The comune may decide to keep treating it as one."
+  resume={`The home of an elderly or disabled person who takes up residence in a care or health institution following a permanent admission can be treated as a main home, and so be exempt from IMU, provided it is not let. This is not automatic: article 1, paragraph 741 c), no. 6, of Law 160/2019 leaves the choice to each comune, which records it in its rate schedule (prospetto delle aliquote) as a yes or no. In the schedules we read, ${n(yes.length)} comuni out of ${n(conProspetto.length)} grant it, about ${formatPercent(yes.length / conProspetto.length, 0, lang)}; among provincial capitals, ${n(capNo.length)} do not, including Palermo. Where the relief is missing, the home pays as an ordinary building: a flat classed A/3 with ${$(R)} of cadastral income pays ${$(full.imposta)} a year at ${al(MAX)}. If the person owns more than one home, the relief covers only one. Families abroad who look after a parent’s house in Italy can check the comune’s choice in the rates by comune tool before paying.`}
+  faqs={faqs} related={['home', 'aliquote', 'primaCasa', 'eredita', 'esteri', 'concordato', 'dichiarazione', 'usufrutto']} sources={src(lang, 'legge160', 'mef_prospetti', 'mef_ricerca')}>
+  <MiniSim client:visible kind="anziani" lang={lang} href={route('aliquote', lang)} />
+  <h2>The three conditions</h2>
+  <p>The relief needs a permanent admission, registered residence moved to the institution, and a home that is not let. A temporary stay for rehabilitation without a change of residence is outside this rule, which speaks of permanent admission. It is the transfer of residence to the care home that takes the house out of the main home definition; from then on, unless the comune grants the relief, the exemption is lost.</p>
+  <p>The comune decides only whether to grant the relief. Italy’s Department of Finance has made clear that it cannot narrow it by adding further requirements, for example that nobody lives in the home: the absence of a rental contract is enough.</p>
+
+  <h2>Finding your comune’s choice</h2>
+  <p>Since 2025 the choice appears on the comune’s rate schedule, on a dedicated line answered SI or NO. The same document sets the rates and prevails over the comune’s regulations if they conflict. The <a href={route('aliquote', lang)}>rates by comune</a> page shows the answer under the table of rates, and the calculator uses it. If the comune has published a 2026 schedule, that one applies; otherwise the 2025 schedule stays in force until publication, due by 28 October.</p>
+
+  <h2>Provincial capitals without the relief</h2>
+  <p>Most comuni grant it. Among provincial capitals, these do not, so the home of an owner in care pays as a second home (A/3 with {$(R)} of rendita):</p>
+  <ContentTable headers={['Comune', 'Rate for other buildings', 'IMU per year']} align={['l', 'r', 'r']} rows={rows} />
+
+  <h2>Who pays when there is no relief</h2>
+  <p>The elderly owner, or whoever holds the usufruct, remains the taxpayer. In practice children or a court-appointed support administrator (amministratore di sostegno) make the payment with the owner’s tax code (codice fiscale), under F24 code {P.f24.altri} and the comune’s cadastral code. Instalments are the usual ones: 16 June at last year’s rate and 16 December to settle. If the admission starts during the year, the home is exempt up to the month of the change of residence and pays for the following months.</p>
+
+  <h2>Children living abroad</h2>
+  <p>A frequent case on this site: a parent in Italy goes into care while the children live in the UK or elsewhere. Payment can be made from abroad by bank transfer to the comune, quoting the parent’s codice fiscale, the comune code, the IMU code and the year; the comune publishes its bank details. If the comune grants the relief, there is nothing to pay as long as the flat is not let. Keep the certificate of residence at the institution and the admission papers: they are what the comune asks for when it checks.</p>
+
+  <h2>Disabled residents and two homes</h2>
+  <p>The law treats elderly and disabled people the same way: age does not matter, permanent admission with residence does. If the person owns more than one home, the relief applies to one only; the others pay as ordinary buildings. The sensible choice is the home that would otherwise pay more.</p>
+
+  <h2>Paying the right amount in the year of admission</h2>
+  <p>The year in which the move to the care home happens is the one that causes most errors. The June instalment is due on the months up to June, at last year’s rate; if the change of residence happened in March and the comune does not grant the relief, the house paid nothing for January and February as a main home and pays from March. In a comune that grants the relief, nothing changes at all as long as the house stays empty or is used by family without a lease. Use the calculator’s months field in the advanced options to split the year, and keep a note of the date of the change of residence: it is the date the comune will use if it checks.</p>
+
+  <h2>After the owner’s death</h2>
+  <p>When the estate opens, the home passes to the heirs, each liable for his or her share under the monthly rule of paragraph 761. The care home relief ends with the owner: for the heirs the house is an ordinary building unless one of them moves in with registered residence. Shares and months are worked out in the guide on <a href={route('eredita', lang)}>inherited property</a>.</p>
+</Guide>

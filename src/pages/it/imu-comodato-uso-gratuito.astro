@@ -1,0 +1,72 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { COMUNI, ratesOf } from '../../lib/comuni';
+import { formatMoney, formatAliquota, formatNumber, formatPercent } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const n = (v: number) => formatNumber(v, 0, lang);
+const MAX = P.limiti.altri_max;
+const QQ = formatPercent(P.riduzioni.canone_concordato_imposta, 0, lang);
+const HALF = formatPercent(P.riduzioni.pensionati_esteri_imposta, 0, lang);
+const RID = formatPercent(1 - P.riduzioni.comodato_base, 0, lang);
+const files = import.meta.glob<{ default: Record<string, { d: [string, number, string][]; e: string }> }>('../../data/differenziate/*.json', { eager: true });
+const byCode = new Map(COMUNI.map((c) => [c.code, c]));
+const hits: Array<{ nome: string; cap: boolean; r: number; altri: number }> = [];
+for (const f of Object.values(files)) for (const [code, v] of Object.entries(f.default)) {
+  const h = v.d.find((d) => /Comodato d'uso gratuito/i.test(d[2]));
+  const c = byCode.get(code);
+  if (h && c) hits.push({ nome: c.name, cap: c.cap, r: h[1], altri: ratesOf(c).altri });
+}
+const sotto = hits.filter((h) => h.r < h.altri).length;
+const capRows = hits.filter((h) => h.cap).sort((a, b) => a.r - b.r).slice(0, 10).map((h) => [h.nome, al(h.altri), al(h.r), $(calcolaImu({ categoria: 'A3', rendita: 700, aliquota: h.r, riduzione: 'comodato' }).imposta)]);
+const R = 700;
+const pieno = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const com = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, riduzione: 'comodato' });
+const righe = [450, 600, 750, 900, 1100].map((r) => { const a = calcolaImu({ categoria: 'A3', rendita: r, aliquota: MAX }); const b = calcolaImu({ categoria: 'A3', rendita: r, aliquota: MAX, riduzione: 'comodato' }); return [$(r), $(a.imposta), $(b.imposta), $(a.imposta - b.imposta)]; });
+const faqs = [
+  { q: 'Il comodato al figlio deve essere registrato per avere lo sconto IMU?', a: `Sì. Il comma 747, lettera c, della legge 160/2019 concede la riduzione del ${RID} della base imponibile solo se il contratto di comodato è registrato all’Agenzia delle Entrate, anche quando è verbale. Senza registrazione la casa paga come una seconda casa: con ${$(R)} di rendita e aliquota ${al(MAX)} sono ${$(pieno.imposta)} invece di ${$(com.imposta)}.` },
+  { q: 'Posso prestare casa a mio figlio se possiedo anche una casa al mare?', a: 'No, per la riduzione di legge. Il comodante deve possedere in Italia soltanto la casa data in comodato, oppure quella più la propria abitazione principale nello stesso comune. Una terza abitazione, anche una piccola quota ereditata o una casa al mare, fa perdere il beneficio. Restano possibili le aliquote agevolate che il comune prevede nel prospetto per altre ipotesi di comodato.' },
+  { q: 'Il comodato tra fratelli o ai nipoti dimezza l’IMU?', a: 'No. La legge parla di parenti in linea retta entro il primo grado, cioè genitori e figli. Fratelli, nipoti, nonni, suoceri e generi restano esclusi dalla riduzione statale. Alcuni comuni hanno però un’aliquota ridotta per il comodato a parenti fino al secondo grado o per ipotesi diverse da quella di legge: compare nel prospetto e nel calcolatore.' },
+  { q: 'Se il figlio comodatario muore, il beneficio continua?', a: 'Sì, a una condizione: che nella casa resti a vivere, come abitazione principale, il coniuge del figlio insieme a figli minori. In quel caso il comma 747 estende la riduzione al coniuge superstite. Se i figli sono maggiorenni o il coniuge lascia la casa, la base imponibile torna piena dal mese successivo.' },
+];
+---
+<Guide lang={lang} id="comodato" title={`IMU comodato d’uso gratuito 2026: base ridotta e requisiti`}
+  description={`IMU 2026 sulla casa in comodato a figli o genitori: base ridotta del ${RID}, contratto registrato, un solo immobile, stesso comune e aliquote agevolate.`}
+  h1="IMU sulla casa data in comodato a un figlio o a un genitore"
+  intro="Prestare gratis un appartamento al figlio o ai genitori può dimezzare la base dell’IMU, ma solo se tutte le condizioni della legge sono rispettate insieme."
+  resume={`Chi presta gratuitamente una casa a un figlio o a un genitore che ci vive con la residenza non è esentato dall’IMU, ma paga su una base imponibile ridotta del ${RID}. Lo prevede il comma 747, lettera c, della legge 160/2019, con condizioni rigide: contratto di comodato registrato, parentela in linea retta di primo grado, comodante proprietario di una sola abitazione in Italia (oppure di quella più la propria abitazione principale), residenza e dimora del comodante nello stesso comune della casa prestata, categoria diversa da A/1, A/8 e A/9. Per un appartamento A/3 con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, l’IMU passa da ${$(pieno.imposta)} a ${$(com.imposta)} l’anno, con un risparmio di ${$(pieno.imposta - com.imposta)}. Sopra la riduzione di legge si applica l’aliquota che il comune riserva a questa fattispecie: ${n(hits.length)} prospetti contengono una voce dedicata al comodato, e in ${n(sotto)} casi l’aliquota è più bassa di quella ordinaria.`}
+  faqs={faqs} related={['home', 'secondaCasa', 'primaCasa', 'concordato', 'dichiarazione', 'aliquote', 'f24', 'coniugi']} sources={src(lang, 'legge160', 'mef_agevolazioni', 'mef_prospetti', 'mef_versamenti')}>
+  <MiniSim client:visible kind="comodato" lang={lang} href={route('home', lang)} />
+  <h2>Le sei condizioni, tutte insieme</h2>
+  <p>Il beneficio non è un’agevolazione da chiedere: si applica da sé quando ogni requisito è soddisfatto, e sparisce appena uno solo manca. Il primo è la parentela. Comodante e comodatario devono essere genitore e figlio, in qualsiasi direzione: il padre che presta al figlio, la figlia che presta alla madre. Il secondo è l’uso: il comodatario deve avere nella casa residenza anagrafica e dimora abituale, cioè farne la propria abitazione principale.</p>
+  <p>Il terzo riguarda il patrimonio di chi presta. In tutta Italia può possedere soltanto quella casa, oppure quella e un’altra in cui vive lui stesso, purché nello stesso comune. Il quarto è la residenza del comodante, che deve abitare e risiedere nel comune dove si trova l’appartamento prestato. Il quinto è la registrazione del contratto. Il sesto è la categoria: le abitazioni signorili, le ville e i castelli (A/1, A/8, A/9) non godono mai della riduzione.</p>
+
+  <h2>Quanto si risparmia</h2>
+  <p>La riduzione agisce sulla base imponibile, non sull’aliquota: la rendita si rivaluta e si moltiplica come sempre, poi si divide per due prima di applicare l’aliquota del comune. Il risparmio è quindi esattamente metà dell’imposta che si pagherebbe senza comodato, qualunque sia la rendita.</p>
+  <ContentTable caption={`Appartamento A/3, aliquota ${al(MAX)}, un solo proprietario, tutto l’anno`} headers={['Rendita', 'Senza comodato', 'Con comodato registrato', 'Risparmio annuo']} align={['r', 'r', 'r', 'r']} rows={righe} />
+
+  <h2>Le aliquote dei comuni per il comodato</h2>
+  <p>Molti prospetti delle aliquote contengono una riga dedicata alle abitazioni concesse in comodato. Il Dipartimento delle Finanze precisa, nelle note del prospetto, che per i casi del comma 747 l’imposta si determina applicando la riduzione di legge sull’aliquota stabilita dal comune per quella fattispecie. In pratica i due sconti si sommano: prima l’aliquota agevolata, poi la base dimezzata. Nei prospetti che abbiamo letto, {n(hits.length)} comuni hanno una voce per il comodato d’uso gratuito, e {n(sotto)} di loro la tassano meno delle seconde case ordinarie.</p>
+  <ContentTable caption={`Capoluoghi con un’aliquota per il comodato: IMU di un A/3 con ${$(700)} di rendita, base dimezzata`} headers={['Comune', 'Altri fabbricati', 'Comodato', 'IMU con riduzione']} align={['l', 'r', 'r', 'r']} rows={capRows} />
+  <p>Attenzione al testo della voce. Alcuni comuni scrivono «ipotesi diverse da quella di cui all’art. 1, comma 747, lett. c)»: è un’agevolazione pensata proprio per chi non rientra nella legge, per esempio perché possiede due case, e in quel caso la base resta piena. Il calcolatore mostra il testo integrale della riga e la applica con un clic.</p>
+
+  <h2>Il contratto: scritto o verbale, ma registrato</h2>
+  <p>Il comodato può essere stipulato per iscritto o anche a voce. Quello che conta per l’IMU è la registrazione presso l’Agenzia delle Entrate, che dà una data certa al prestito. Finché il contratto non risulta registrato, la condizione di legge non è soddisfatta: chi ha prestato la casa per anni senza registrare ha pagato correttamente l’imposta piena e non ha nulla da chiedere indietro. Per l’anno in cui avviene la registrazione, i mesi si contano con la regola generale del comma 761, che attribuisce un mese a chi lo ha avuto per più della metà dei giorni.</p>
+
+  <h2>La dichiarazione IMU</h2>
+  <p>Il comune non sa, dall’anagrafe, che la casa del figlio è stata prestata con un contratto registrato né che il genitore non possiede altri immobili. La <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> è lo strumento previsto dal comma 768-bis per comunicare al comune le variazioni rilevanti per l’imposta, entro il 30 giugno dell’anno successivo, e vale anche per gli anni seguenti finché nulla cambia. Le istruzioni ministeriali del modello indicano i casi in cui è dovuta: conviene leggerle prima di dare per scontato che il comune conosca la situazione. Una riduzione che il comune non riesce a riscontrare è il primo motivo di avvisi di accertamento.</p>
+
+  <h2>Casi che fanno perdere il beneficio</h2>
+  <p>I controlli dei comuni si concentrano su pochi punti. Il figlio che sposta la residenza altrove, anche per lavoro, interrompe il beneficio dal mese successivo. Il genitore che eredita una quota di un’altra casa, anche minima, smette di possedere «un solo immobile». La casa prestata in un comune diverso da quello in cui vive il genitore non rientra, nemmeno se dista pochi chilometri. Un box venduto o un terreno non contano, perché la norma parla di abitazioni, ma una seconda unità abitativa sì.</p>
+  <p>Se uno dei requisiti viene meno, la casa torna a pagare come <a href={route('secondaCasa', lang)}>seconda casa</a>, con l’aliquota degli altri fabbricati o con quella eventualmente prevista dal comune per il comodato fuori dalla legge.</p>
+
+  <h2>Comodato o affitto a canone concordato?</h2>
+  <p>Per un genitore che non ha bisogno di un reddito dalla casa, il comodato al figlio è quasi sempre più conveniente sul piano dell’IMU di un affitto, anche agevolato. L’affitto a <a href={route('concordato', lang)}>canone concordato</a> porta l’imposta al {QQ}, il comodato alla metà; in più il comodato non genera reddito da dichiarare. L’affitto a un estraneo, d’altra parte, non richiede nessuno dei requisiti di parentela e di patrimonio. Il calcolatore principale permette di confrontare le due strade sulla stessa casa.</p>
+</Guide>

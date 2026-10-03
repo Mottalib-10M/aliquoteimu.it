@@ -1,0 +1,55 @@
+---
+import MiniSim from '../../components/calc/MiniSim';
+import Guide from '../../components/Guide.astro';
+import ContentTable from '../../components/ContentTable.astro';
+import { route } from '../../i18n/routes';
+import { calcolaImu } from '../../lib/engine/imu';
+import { formatMoney, formatAliquota } from '../../lib/format';
+import { src } from '../../lib/sources';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const $ = (v: number) => formatMoney(v, 0, lang);
+const al = (v: number) => formatAliquota(v, lang);
+const MAX = P.limiti.altri_max;
+const R = 750;
+const piena = calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX });
+const dovuta = (mesiOcc: number) => calcolaImu({ categoria: 'A3', rendita: R, aliquota: MAX, mesi: 12 - mesiOcc, periodo: 'inizio' });
+const righe = [['gennaio', 12], ['aprile', 9], ['luglio', 6], ['ottobre', 3], ['dicembre', 1]].map(([m, k]) => { const d = dovuta(k as number); return [`dal 1° ${m}`, String(k), $(d.imposta), $(piena.imposta - d.imposta), $(d.acconto), $(d.saldo)]; });
+const faqs = [
+  { q: 'Il proprietario di una casa occupata deve pagare l’IMU?', a: `Non per i mesi in cui l’immobile è occupato abusivamente e non è utilizzabile né disponibile, a condizione di aver presentato denuncia all’autorità giudiziaria o di aver avviato un’azione penale. È l’esenzione del comma 759, lettera g-bis, della legge 160/2019. Su una casa A/3 con ${$(R)} di rendita all’${al(MAX)} vale ${$(piena.imposta)} per un anno intero.` },
+  { q: 'Basta che la casa sia occupata per non pagare l’IMU?', a: 'No. Servono due elementi: l’immobile non deve essere né utilizzabile né disponibile per il proprietario, e deve esistere una denuncia per violazione di domicilio (articolo 614, secondo comma, del codice penale) o per invasione di edifici (articolo 633), oppure un’azione giudiziaria penale per l’occupazione. Un inquilino moroso che non lascia la casa dopo la fine del contratto è una situazione diversa.' },
+  { q: 'Come comunico al comune che la casa è occupata?', a: 'Con il modello della dichiarazione IMU previsto dal comma 768-bis, indicando il possesso dei requisiti per l’esenzione. La stessa comunicazione va fatta quando l’occupazione cessa e l’immobile torna disponibile, perché da quel momento l’imposta è di nuovo dovuta. Conserva la copia della denuncia o degli atti del procedimento penale.' },
+  { q: 'L’esenzione vale anche per un negozio o un terreno occupato?', a: `Sì. Il comma 759, lettera g-bis, parla di «immobili», senza limitarsi alle abitazioni, e richiama l’articolo 633 del codice penale, che punisce l’invasione di terreni o edifici. Un negozio, un capannone o un terreno occupati abusivamente, con denuncia presentata, sono esenti per il periodo dell’occupazione alle stesse condizioni di una casa.` },
+];
+---
+<Guide lang={lang} id="occupati" title={`IMU immobili occupati abusivamente 2026: esenzione`}
+  description={`IMU 2026 sugli immobili occupati abusivamente: esenzione durante l’occupazione con denuncia per gli artt. 614 o 633 c.p., comunicazione al comune ed esempi.`}
+  h1="IMU sugli immobili occupati abusivamente"
+  intro="Una casa occupata senza titolo non si può usare né affittare. La legge esonera dall’IMU il proprietario che ha denunciato l’occupazione, per tutto il tempo in cui dura."
+  resume={`Il proprietario di un immobile occupato abusivamente non paga l’IMU per il periodo in cui l’immobile non è né utilizzabile né disponibile, se ha presentato denuncia all’autorità giudiziaria per violazione di domicilio (articolo 614, secondo comma, del codice penale) o per invasione di terreni o edifici (articolo 633), oppure se per l’occupazione è stata presentata denuncia o avviata un’azione giudiziaria penale. L’esenzione è nel comma 759, lettera g-bis, della legge 160/2019. Il proprietario deve comunicare al comune il possesso dei requisiti con il modello di dichiarazione IMU, e fare una nuova comunicazione quando il diritto cessa. Per un appartamento A/3 con ${$(R)} di rendita, all’aliquota dell’${al(MAX)}, l’esenzione vale ${$(piena.imposta)} su un anno intero: se l’occupazione è stata denunciata il 1° luglio, nel 2026 si pagano solo i primi sei mesi, cioè ${$(dovuta(6).imposta)}.`}
+  faqs={faqs} related={['home', 'esenzioni', 'inagibili', 'dichiarazione', 'secondaCasa', 'acconto', 'rimborso', 'locati']} sources={src(lang, 'legge160', 'mef_versamenti', 'mef_prospetti')}>
+  <MiniSim client:visible kind="occupati" lang={lang} href={route('home', lang)} />
+  <h2>Due condizioni, entrambe necessarie</h2>
+  <p>La prima è materiale: l’immobile deve essere «non utilizzabile né disponibile». Il proprietario non può entrarci, abitarlo, affittarlo o venderlo libero, perché qualcuno lo occupa senza titolo. La seconda è formale: deve esistere una denuncia all’autorità giudiziaria per uno dei due reati indicati dalla norma, la violazione di domicilio dell’articolo 614, secondo comma, e l’invasione di terreni o edifici dell’articolo 633 del codice penale, oppure una denuncia o un’azione giudiziaria penale per l’occupazione abusiva.</p>
+  <p>Senza denuncia l’esenzione non spetta, anche se l’occupazione è evidente e documentata. Per questo il primo passo, oltre che per recuperare la casa, è anche fiscale: la data della denuncia segna l’inizio del periodo esente.</p>
+
+  <h2>Quanto vale l’esenzione</h2>
+  <p>L’esenzione è totale, non una riduzione della base: per i mesi coperti non si paga nulla, né allo Stato né al comune. Il calcolo per il resto dell’anno è quello ordinario. La tabella mostra l’imposta ancora dovuta sulla stessa casa al variare della data da cui decorre l’occupazione denunciata, con l’occupazione che prosegue fino a dicembre.</p>
+  <ContentTable caption={`Appartamento A/3, rendita ${$(R)}, aliquota ${al(MAX)}`} headers={['Occupazione', 'Mesi esenti', 'IMU dovuta', 'Esenzione', 'Acconto', 'Saldo']} align={['l', 'r', 'r', 'r', 'r', 'r']} rows={righe} />
+  <p>Se l’occupazione inizia nel primo semestre, anche l’acconto di giugno si riduce, perché l’acconto copre i mesi da gennaio a giugno. Se inizia dopo giugno, l’acconto resta pieno e l’esenzione si recupera tutta con il saldo di dicembre.</p>
+
+  <h2>Occupazione abusiva e inquilino moroso</h2>
+  <p>La norma riguarda chi entra o resta in un immobile senza alcun titolo e contro la volontà del proprietario. L’inquilino che smette di pagare il canone o non lascia la casa alla scadenza ha avuto un titolo, il contratto di locazione, e la sua situazione si risolve di regola con lo sfratto davanti al giudice civile, non con una denuncia penale per invasione. In questi casi l’esenzione del comma 759 non è pensata per applicarsi, e l’immobile continua a pagare l’IMU come casa locata o a disposizione. Prima di applicare l’esenzione è prudente chiedere a un legale se la propria situazione rientra nei reati indicati.</p>
+
+  <h2>La comunicazione al comune</h2>
+  <p>La legge chiede al proprietario di comunicare al comune il possesso dei requisiti utilizzando il modello di dichiarazione IMU del comma 768-bis, e di presentare un’analoga dichiarazione quando l’esenzione cessa. Senza comunicazione il comune vede un versamento mancante o ridotto e può emettere un avviso di accertamento; con la comunicazione e la copia della denuncia la situazione è chiara. La guida sulla <a href={route('dichiarazione', lang)}>dichiarazione IMU</a> spiega scadenze e modalità di invio telematico.</p>
+
+  <h2>Documenti da tenere pronti</h2>
+  <p>Il comune può chiedere di provare le condizioni dell’esenzione, e il procedimento per riavere la casa richiede gli stessi documenti. Conviene raccogliere fin dall’inizio la copia della denuncia con la data di presentazione e il numero di registro, il titolo di proprietà, la visura catastale con categoria e rendita, eventuali fotografie e verbali delle forze dell’ordine, la corrispondenza con l’amministratore di condominio. Per chi vive lontano, in un’altra regione o all’estero, è utile dare a un avvocato o a una persona di fiducia una delega per seguire la pratica e ricevere le comunicazioni. Anche i contratti delle utenze intestati al proprietario aiutano a dimostrare che, prima dell’occupazione, l’immobile era nella sua disponibilità. Più l’occupazione dura, più questi documenti diventano importanti, perché la dichiarazione resta valida per gli anni successivi finché nulla cambia (comma 768-bis), mentre i controlli possono arrivare fino a cinque anni dopo.</p>
+
+  <h2>Quando la casa viene liberata</h2>
+  <p>L’esenzione finisce con la fine dell’occupazione, per esempio con lo sgombero o con la riconsegna delle chiavi. Da quel mese l’immobile torna a pagare l’IMU, con l’aliquota del comune per la sua situazione: casa a disposizione, casa affittata, seconda casa. Spesso un immobile appena liberato ha bisogno di lavori; se è stato danneggiato al punto da non poter essere usato, può valere la riduzione per i fabbricati <a href={route('inagibili', lang)}>inagibili</a>, con la relativa perizia.</p>
+
+  <h2>Imposta già versata</h2>
+  <p>Chi ha pagato l’IMU per mesi in cui la casa era già occupata e denunciata ha versato più del dovuto e può chiederne il rimborso al comune entro cinque anni dal versamento, secondo l’articolo 1, comma 164, della legge 296 del 2006. La guida sul <a href={route('rimborso', lang)}>rimborso IMU</a> descrive l’istanza.</p>
+</Guide>

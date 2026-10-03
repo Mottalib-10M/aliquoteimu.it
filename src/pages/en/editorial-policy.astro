@@ -1,0 +1,22 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema } from '../../lib/seo';
+import P from '../../data/params-2026.json';
+const lang = 'en';
+---
+<PageLayout title="Editorial Policy of AliquoteIMU.it: Sources and Checks" description="Editorial policy of AliquoteIMU.it: the official sources used for IMU, how often comune rates are refreshed, how the calculation engine is checked and how errors are corrected." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Editorial policy', path: route('editorial', lang) }])]} breadcrumbs={[{ label: 'Editorial policy' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Editorial policy</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <h2>Sources</h2>
+    <p>We use official sources only: Law 160 of 2019 and other laws in their current text on Normattiva, the pages and rate schedules of the Department of Finance, the Gazzetta Ufficiale, the Agenzia delle Entrate and ISTAT. A press article or blog post is never a source for a rate or a rule. Each page lists the sources it relies on.</p>
+    <h2>Updates</h2>
+    <p>Comune schedules are re-read after 28 October, when the Department publishes the year’s schedules, and again early in the year. Legal parameters are checked after each budget law and any reform affecting IMU. The date of the last check, currently {P.retrieved_at}, appears at the top and bottom of every page.</p>
+    <h2>Checking the calculation</h2>
+    <p>The engine is separate from the text and covered by automated tests; every figure quoted in a page comes from the engine or the parameter file, never typed by hand, so a correction flows everywhere. Rates extracted from the schedules are checked against the legal limits.</p>
+    <h2>Corrections</h2>
+    <p>A reported error is checked against the source and fixed within days; the fix updates the page date. Reports go through the <a href={route('contact', lang)}>contact page</a>.</p>
+    <h2>Independence</h2>
+    <p>No comune, CAF, bank or adviser has paid to appear or to shape the content. The publisher is Radif Partners.</p>
+  </div>
+</PageLayout>

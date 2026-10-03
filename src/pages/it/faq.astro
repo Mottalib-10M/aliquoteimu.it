@@ -1,0 +1,23 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { route } from '../../i18n/routes';
+import { breadcrumbSchema, faqSchema, organizationSchema } from '../../lib/seo';
+import MiniSim from '../../components/calc/MiniSim';
+const lang = 'it';
+const faqs = [
+  { q: 'Da quando paga l’IMU una casa appena costruita?', a: 'Dalla data di ultimazione dei lavori di costruzione o, se è precedente, dalla data in cui il fabbricato è comunque utilizzato (comma 741, lettera a, della legge 160 del 2019). Fino ad allora, se l’edificio è in costruzione su un’area edificabile, l’imposta si paga sul valore dell’area e non su una rendita.' },
+  { q: 'Durante una ristrutturazione pesante si paga l’IMU sulla rendita?', a: 'No. In caso di demolizione o di interventi di restauro, risanamento o ristrutturazione edilizia previsti dal testo unico dell’edilizia, la base imponibile è il valore dell’area, considerata fabbricabile, fino alla fine dei lavori o al primo utilizzo dell’edificio (comma 746). Conviene chiedere al comune se ha fissato valori di riferimento per quella zona.' },
+  { q: 'Chi paga l’IMU su un immobile in leasing?', a: 'Il locatario, cioè chi utilizza il bene, dalla data di stipula del contratto e per tutta la sua durata, anche per gli immobili da costruire o in costruzione (comma 743). Per i fabbricati del gruppo D non accatastati, il valore si ricava dalle scritture contabili del locatore, che deve fornire i dati al locatario.' },
+  { q: 'Le parti comuni del condominio pagano l’IMU?', a: 'Sì, se sono accatastate in modo autonomo come bene comune censibile, per esempio l’alloggio del portiere. In quel caso il versamento lo fa l’amministratore per conto di tutti i condomini (comma 768). Le parti comuni senza rendita propria, come scale e cortili, non hanno un’IMU separata.' },
+  { q: 'Cambia la rendita catastale a metà anno: quale uso per l’IMU?', a: 'La base imponibile si calcola sulla rendita vigente al 1° gennaio. Fa eccezione la variazione dovuta a interventi edilizi sul fabbricato, che ha effetto dalla data di fine lavori o, se precedente, da quella di utilizzo (comma 745). In quel caso l’anno si divide in due periodi, ciascuno con la sua rendita.' },
+  { q: 'L’immobile sta a cavallo tra due comuni: a quale si paga?', a: 'Al comune sul cui territorio insiste interamente o prevalentemente la superficie dell’immobile (comma 742). Se i confini comunali cambiano, il soggetto attivo è il comune in cui l’immobile si trova al 1° gennaio dell’anno d’imposta. Nel modello F24 va il codice catastale di quel comune.' },
+  { q: 'Con un immobile in multiproprietà chi versa l’IMU?', a: 'Per i beni su cui sono costituiti diritti di godimento a tempo parziale, regolati dal codice del consumo, il versamento è fatto da chi amministra il bene (comma 768). Il singolo titolare della settimana non presenta un proprio F24: la quota gli viene di solito addebitata dall’amministratore.' },
+];
+---
+<PageLayout title="IMU 2026: domande frequenti sui casi particolari di legge" description="Domande frequenti sull’IMU 2026: casa appena costruita, ristrutturazione, leasing, parti comuni, rendita che cambia, immobile tra due comuni, multiproprietà." lang={lang} faqs={faqs} jsonLd={[faqSchema(faqs, lang), organizationSchema(lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Domande frequenti', path: route('faq', lang) }])]} breadcrumbs={[{ label: 'Domande frequenti' }]}>
+  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Domande frequenti sull’IMU</h1></header>
+  <div class="prose prose-slate max-w-none">
+    <p>Qui raccogliamo i casi particolari previsti dalla legge 160 del 2019 che non hanno una guida propria. Per le domande più comuni sul calcolo, le aliquote e le scadenze trovi le risposte nel <a href={route('home', lang)}>calcolo IMU</a> e nelle guide dedicate.</p>
+  </div>
+  <MiniSim client:visible kind="rendita" lang={lang} href={route('home', lang)} />
+</PageLayout>

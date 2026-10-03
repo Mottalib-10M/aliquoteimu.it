@@ -1,0 +1,39 @@
+---
+import CityPage from '../../components/CityPage.astro';
+import { route } from '../../i18n/routes';
+import { comune, ratesOf } from '../../lib/comuni';
+import { calcolaImu } from '../../lib/engine/imu';
+import { diffOf, diffRate } from '../../lib/diff-build';
+import { formatAliquota, formatMoney } from '../../lib/format';
+import P from '../../data/params-2026.json';
+const lang = 'it';
+const c = comune('F839')!; const r = ratesOf(c);
+const $ = (v: number) => formatMoney(v, 0, lang); const al = (v: number) => formatAliquota(v, lang);
+const nDiff = diffOf('F839').d.length;
+const R = 700;
+const sc = calcolaImu({ categoria: 'A4', rendita: R, aliquota: r.altri });
+const conc = calcolaImu({ categoria: 'A4', rendita: R, aliquota: r.altri, canoneConcordato: true });
+const baBari = diffRate('A662', /art\. 2, comma 3/)!;
+const concBari = calcolaImu({ categoria: 'A4', rendita: R, aliquota: baBari, canoneConcordato: true });
+const ter = calcolaImu({ tipo: 'terreno', rendita: 200, aliquota: r.ter });
+const faqs = [
+  { q: 'Napoli ha aliquote IMU agevolate per chi affitta a canone concordato?', a: `No: il prospetto in vigore non contiene aliquote differenziate, quindi anche la casa a canone concordato si calcola all’${al(r.altri)}. Resta però la riduzione di legge al 75 % del comma 760: con ${$(R)} di rendita l’IMU passa da ${$(sc.imposta)} a ${$(conc.imposta)}. A Bari, dove il prospetto prevede lo ${al(baBari)}, la stessa casa pagherebbe ${$(concBari.imposta)}.` },
+  { q: 'I terreni agricoli a Napoli pagano l’IMU?', a: `Sì, se non sono posseduti e condotti da coltivatori diretti o IAP iscritti alla previdenza agricola: il comune non rientra tra quelli con terreni esenti e applica l’${al(r.ter)}. Un terreno con 200 euro di reddito dominicale paga ${$(ter.imposta)} l’anno; il coltivatore diretto non paga nulla.` },
+  { q: 'Per l’IMU di Napoli quale codice ente si usa nell’F24?', a: `Il codice catastale ${c.code}, per tutte le municipalità della città, insieme al codice tributo della fattispecie: ${P.f24.altri} per seconde case, negozi e uffici, ${P.f24.ap} per l’abitazione principale di lusso, ${P.f24.D_stato} e ${P.f24.D_comune} per il gruppo D. Lo stesso codice vale anche per il bonifico dall’estero verso la tesoreria comunale.` },
+];
+---
+<CityPage lang={lang} city="napoli" rendita={R} title={`IMU Napoli 2026: aliquota unica, seconda casa e terreni`}
+  description={`IMU Napoli 2026: un’unica aliquota dell’${al(r.altri)} per seconde case, negozi, uffici, aree e terreni, lusso allo ${al(r.ap)}. Prospetto in vigore e calcolo.`}
+  h1="IMU a Napoli nel 2026: aliquote e calcolo"
+  intro="Napoli applica la stessa aliquota a quasi tutti gli immobili e non prevede aliquote agevolate nel prospetto: il calcolo è semplice, ma senza sconti comunali."
+  resume={`Il prospetto IMU di Napoli, approvato con delibera n. ${c.delibera} del ${c.data}, fissa l’${al(r.altri)} per gli altri fabbricati, cioè seconde case, case affittate, negozi e uffici, e la stessa aliquota per il gruppo D, le aree fabbricabili e i terreni agricoli. L’abitazione principale di lusso paga lo ${al(r.ap)}, i fabbricati rurali strumentali lo ${al(r.rur)}. Al ${P.retrieved_at} il comune non ha ancora pubblicato il prospetto 2026, quindi valgono queste aliquote del 2025, che resteranno anche per il saldo se il nuovo prospetto non arriva entro il 28 ottobre. Un appartamento A/4 con ${$(R)} di rendita posseduto come seconda casa paga ${$(sc.imposta)} l’anno, in due rate da ${$(sc.acconto)}. A differenza di altre grandi città, Napoli non ha inserito nel prospetto aliquote ridotte per l’affitto concordato, il comodato o le attività commerciali: valgono soltanto le riduzioni previste dalla legge.`}
+  faqs={faqs} related={['home', 'aliquote', 'concordato', 'comodato', 'terreni', 'confronto', 'f24']}>
+  <h2>Una sola aliquota, poche variabili</h2>
+  <p>Il prospetto napoletano conta {nDiff} aliquote differenziate. In pratica l’unica scelta che cambia l’imposta è la categoria dell’immobile, attraverso il moltiplicatore: a parità di rendita, un negozio C/1 paga circa un terzo di un’abitazione, perché il coefficiente è {P.base.moltiplicatori.C1} invece di {P.base.moltiplicatori.A}. Chi possiede più immobili in città può quindi calcolare tutto con la stessa aliquota e un solo codice ente.</p>
+  <h2>Le riduzioni che restano</h2>
+  <p>Senza aliquote comunali di favore, contano le riduzioni nazionali. La casa data in comodato a un figlio o a un genitore, con contratto registrato e le altre condizioni del comma 747, ha la base imponibile dimezzata; la casa affittata a canone concordato paga il 75 % dell’imposta; un immobile inagibile, per il periodo dell’inagibilità, ha la base dimezzata. Le guide sul <a href={route('comodato', lang)}>comodato</a> e sul <a href={route('concordato', lang)}>canone concordato</a> spiegano le condizioni.</p>
+  <h2>La casa dell’anziano ricoverato</h2>
+  <p>Napoli ha scelto di assimilare all’abitazione principale l’unità posseduta da anziani o disabili che prendono la residenza in un istituto di ricovero in modo permanente, a condizione che non sia affittata. Senza questa scelta, prevista come facoltativa dal comma 741, la casa pagherebbe l’{al(r.altri)} come una seconda casa.</p>
+  <h2>Terreni e aree</h2>
+  <p>Terreni agricoli e aree fabbricabili seguono la stessa aliquota delle seconde case. Per le aree il valore è quello venale al 1° gennaio: conviene verificare se il comune ha approvato valori di riferimento per zona, che limitano l’accertamento a chi dichiara un valore non inferiore.</p>
+</CityPage>
