@@ -4,7 +4,7 @@
 // « favicon déclarée mais absente du build » sur chaque page.
 // Usage : node scripts/gen-icons.mjs   (dans le dossier du site, sharp installé)
 import sharp from 'sharp';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 const svg = readFileSync('public/favicon.svg');
 const png = (size) => sharp(svg, { density: 384 }).resize(size, size).png().toBuffer();
 const sizes = [16, 32, 48];
@@ -17,4 +17,8 @@ writeFileSync('public/favicon.ico', Buffer.concat([head, ...dir, ...bufs]));
 writeFileSync('public/apple-touch-icon.png', await png(180));
 writeFileSync('public/icon-192.png', await png(192));
 writeFileSync('public/icon-512.png', await png(512));
-console.log('icônes : favicon.ico, apple-touch-icon.png, icon-192.png, icon-512.png');
+// Sites plus anciens : toute autre icône PNG déjà présente (favicon-16x16.png, favicon-192.png,
+// android-chrome-512x512.png…) est redessinée à sa taille, lue dans son nom, pour qu'aucune ne garde l'ancien dessin.
+const extra = readdirSync('public').filter((f) => /^(favicon|icon|android-chrome|apple-touch-icon)-?.*?(\d+)(x\d+)?\.png$/.test(f) && !['icon-192.png', 'icon-512.png'].includes(f));
+for (const f of extra) { const n = +f.match(/(\d+)(?:x\d+)?\.png$/)[1]; if (n >= 16 && n <= 1024) writeFileSync(`public/${f}`, await png(n)); }
+console.log('icônes : favicon.ico, apple-touch-icon.png, icon-192.png, icon-512.png' + (extra.length ? ', ' + extra.join(', ') : ''));
