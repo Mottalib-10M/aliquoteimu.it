@@ -4,11 +4,36 @@ import { route } from '../../i18n/routes';
 import { breadcrumbSchema } from '../../lib/seo';
 const lang = 'en';
 ---
-<PageLayout title="Cookies on AliquoteIMU.it: What Is Set in Your Browser" description="Cookies and local storage on AliquoteIMU.it: none for the IMU calculators, no audience measurement or advertising tool active, and how to check this in your browser settings." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Cookies', path: route('cookies', lang) }])]} breadcrumbs={[{ label: 'Cookies' }]}>
+<PageLayout title="IMU Calculator Cookies in Italy: Google Analytics, Clarity" description="IMU calculator cookies in Italy: none for the calculation, _ga and _ga_ from Google Analytics 4, _clck and _clsk from Microsoft Clarity, how to block them." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Cookies', path: route('cookies', lang) }])]} breadcrumbs={[{ label: 'Cookies' }]}>
   <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Cookies</h1></header>
   <div class="prose prose-slate max-w-none">
-    <p>The calculators do not use cookies. Your inputs stay in the page and, if you use the share link, in the page address.</p>
-    <p>The site currently loads no audience measurement and no advertising, so it sets no third-party cookies and shows no banner. You can check this in your browser’s site data settings or developer tools.</p>
-    <p>If we add a measurement tool in future, we will list here the cookies it sets and how long they last. Questions: see the <a href={route('privacy', lang)}>privacy policy</a>.</p>
+    <p>Working out IMU needs no cookie at all: the cadastral income, rate and other values stay in the page and, if you use the share link, in the page address. The cookies on this site come from two analytics tools, listed below. The legal details are in the <a href={route('privacy', lang)}>privacy policy</a>.</p>
+
+    <h2>Categories</h2>
+    <table>
+      <thead><tr><th>Category</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Strictly necessary</td><td>none</td></tr>
+        <tr><td>Analytics (audience measurement)</td><td>active</td></tr>
+        <tr><td>Advertising</td><td>none</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Analytics cookies</h2>
+    <table>
+      <thead><tr><th>Cookie</th><th>Service</th><th>Lifetime</th></tr></thead>
+      <tbody>
+        <tr><td><code>_clck</code></td><td>Microsoft Clarity</td><td>1 year</td></tr>
+        <tr><td><code>_clsk</code></td><td>Microsoft Clarity</td><td>1 day</td></tr>
+        <tr><td><code>MUID</code>, <code>CLID</code></td><td>Microsoft (own domains, possibly)</td><td>up to 1 year</td></tr>
+        <tr><td><code>_ga</code></td><td>Google Analytics 4</td><td>2 years</td></tr>
+        <tr><td><code>_ga_Q7GZQGMC3P</code></td><td>Google Analytics 4</td><td>2 years</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Microsoft Clarity</strong> shows how the rate pages and the calculator are used, through session recordings and heatmaps (clicks, scrolling, pages visited). Values typed into the calculator fields are masked and never leave the browser. <strong>Google Analytics 4</strong> (Google Ireland Limited) counts page views, traffic sources, visit length, device and approximate location, and keeps the data for 14 months. Both load when the page opens: the site shows no consent banner.</p>
+
+    <h2>How to refuse analytics cookies</h2>
+    <p>Since no banner asks for consent, the choice sits with your browser: block third-party cookies, block the domains <code>clarity.ms</code> and <code>google-analytics.com</code>, or install the <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">Google Analytics opt-out add-on</a>. Existing cookies disappear when you clear the site’s data. The IMU calculator keeps working just the same.</p>
+    <p>Last updated: 5 October 2026.</p>
   </div>
 </PageLayout>

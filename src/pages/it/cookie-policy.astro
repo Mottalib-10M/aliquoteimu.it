@@ -4,11 +4,36 @@ import { route } from '../../i18n/routes';
 import { breadcrumbSchema } from '../../lib/seo';
 const lang = 'it';
 ---
-<PageLayout title="Cookie di AliquoteIMU.it: cosa viene salvato nel browser" description="Cookie e memoria locale su AliquoteIMU.it: nessun cookie per i calcolatori IMU, nessuno strumento di misura né di pubblicità attivo, e come verificarlo nelle impostazioni del browser." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Cookie', path: route('cookies', lang) }])]} breadcrumbs={[{ label: 'Cookie' }]}>
+<PageLayout title="Cookie calcolo IMU in Italia: Google Analytics e Clarity" description="Cookie del calcolo IMU in Italia: nessuno per i calcolatori, _ga e _ga_ di Google Analytics 4, _clck e _clsk di Microsoft Clarity, durata e come bloccarli." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Cookie', path: route('cookies', lang) }])]} breadcrumbs={[{ label: 'Cookie' }]}>
   <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Cookie</h1></header>
   <div class="prose prose-slate max-w-none">
-    <p>I calcolatori non usano cookie. I valori che inserisci restano nella pagina e, se usi il link di condivisione, nell’indirizzo.</p>
-    <p>Al momento il sito non carica strumenti di misura dell’audience né pubblicità, quindi non imposta cookie di terze parti e non mostra alcun banner. Puoi verificarlo nelle impostazioni del browser, alla voce dei dati dei siti, o negli strumenti per sviluppatori.</p>
-    <p>Se in futuro introdurremo uno strumento di misura, lo indicheremo qui con i cookie impostati e la loro durata. Per le domande vedi l’<a href={route('privacy', lang)}>informativa privacy</a>.</p>
+    <p>Per calcolare l’IMU non serve alcun cookie: rendita, aliquota e gli altri valori restano nella pagina e, se usi il link di condivisione, nell’indirizzo. I cookie presenti sul sito vengono da due strumenti di statistica, elencati qui sotto. Il quadro giuridico è nell’<a href={route('privacy', lang)}>informativa privacy</a>.</p>
+
+    <h2>Categorie</h2>
+    <table>
+      <thead><tr><th>Categoria</th><th>Stato</th></tr></thead>
+      <tbody>
+        <tr><td>Tecnici necessari</td><td>nessuno</td></tr>
+        <tr><td>Analytics (statistiche di visita)</td><td>attivo</td></tr>
+        <tr><td>Pubblicità</td><td>nessuno</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Cookie di statistica</h2>
+    <table>
+      <thead><tr><th>Cookie</th><th>Servizio</th><th>Durata</th></tr></thead>
+      <tbody>
+        <tr><td><code>_clck</code></td><td>Microsoft Clarity</td><td>1 anno</td></tr>
+        <tr><td><code>_clsk</code></td><td>Microsoft Clarity</td><td>1 giorno</td></tr>
+        <tr><td><code>MUID</code>, <code>CLID</code></td><td>Microsoft (domini propri, eventuali)</td><td>fino a 1 anno</td></tr>
+        <tr><td><code>_ga</code></td><td>Google Analytics 4</td><td>2 anni</td></tr>
+        <tr><td><code>_ga_Q7GZQGMC3P</code></td><td>Google Analytics 4</td><td>2 anni</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Microsoft Clarity</strong> serve a vedere come si usano le pagine sulle aliquote e il calcolatore, con registrazioni delle sessioni e mappe di calore (clic, scorrimento, pagine visitate). I valori digitati nei campi del calcolatore sono mascherati e non lasciano il browser. <strong>Google Analytics 4</strong> (Google Ireland Limited) conta pagine viste, provenienza, durata delle visite, dispositivo e posizione approssimativa, e conserva i dati 14 mesi. Entrambi si caricano all’apertura della pagina: il sito non mostra banner di consenso.</p>
+
+    <h2>Come rifiutare i cookie di statistica</h2>
+    <p>Poiché nessun banner chiede il consenso, la scelta passa dal browser: blocca i cookie di terze parti, blocca i domini <code>clarity.ms</code> e <code>google-analytics.com</code>, oppure installa il <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">componente di disattivazione di Google Analytics</a>. I cookie già presenti spariscono cancellando i dati del sito. Il calcolo dell’IMU continua a funzionare allo stesso modo.</p>
+    <p>Ultimo aggiornamento: 5 ottobre 2026.</p>
   </div>
 </PageLayout>

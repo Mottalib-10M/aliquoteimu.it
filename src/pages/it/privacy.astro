@@ -6,18 +6,38 @@ import { breadcrumbSchema } from '../../lib/seo';
 import { CONTACT_EMAIL, LEGAL } from '../../data/site-config';
 const lang = 'it';
 ---
-<PageLayout title="Privacy di AliquoteIMU.it: quali dati trattiamo e perché" description="Informativa privacy di AliquoteIMU.it: il calcolo IMU avviene nel tuo browser, nessun dato personale viene inviato, nessun account, nessuna misura d’audience attiva, solo i log tecnici dell’hosting." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Privacy', path: route('privacy', lang) }])]} breadcrumbs={[{ label: 'Privacy' }]}>
+<PageLayout title="Privacy calcolo IMU in Italia: dati, cookie e statistiche" description="Privacy del calcolo IMU in Italia: i valori restano nel browser, Google Analytics 4 e Microsoft Clarity misurano le visite senza banner, come opporsi e diritti." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Privacy', path: route('privacy', lang) }])]} breadcrumbs={[{ label: 'Privacy' }]}>
   <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Informativa sulla privacy</h1></header>
   <div class="prose prose-slate max-w-none">
+    <p>Questa informativa, resa ai sensi degli articoli 13 e 14 del Regolamento generale sulla protezione dei dati (RGPD, Regolamento UE 2016/679), spiega quali dati vengono trattati quando consulti le aliquote IMU o usi i calcolatori del sito.</p>
+
     <h2>Titolare</h2>
     <LegalIdentity lang="it" />
-    <h2>Cosa non raccogliamo</h2>
-    <p>I calcolatori funzionano interamente nel tuo browser. Comune, rendita, aliquota e gli altri valori che inserisci non vengono inviati a noi né a terzi, non sono conservati su un server e non sono collegati alla tua persona. Non ci sono account, newsletter o moduli che raccolgono dati personali. Se usi il link di condivisione, i valori sono scritti nell’indirizzo della pagina e li vede solo chi riceve quel link.</p>
+    <p>Per le questioni di privacy scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Non è stato nominato un responsabile della protezione dei dati, perché il volume di trattamento non lo richiede.</p>
+
+    <h2>I calcolatori non inviano i tuoi valori</h2>
+    <p>Il calcolo dell’IMU avviene interamente nel tuo browser. Comune, rendita catastale, categoria, percentuale di possesso e aliquota non vengono inviati a noi né a terzi, non sono conservati su un server e non sono collegati alla tua persona. Non ci sono account, newsletter o moduli che raccolgono dati personali.</p>
+    <p>Quando modifichi un campo, il calcolatore scrive i valori nell’indirizzo della pagina, così puoi condividere il calcolo. Questo aggiornamento dell’indirizzo non viene trasmesso agli strumenti di statistica descritti sotto. Se però apri un link che contiene già dei valori, per esempio uno ricevuto da qualcuno, quei valori fanno parte dell’indirizzo della pagina visitata.</p>
+
     <h2>Log dell’hosting</h2>
-    <p>Il sito è ospitato da {LEGAL.hosting.name}. Come ogni server web, l’hosting registra dati tecnici di ogni richiesta, come indirizzo IP, pagina richiesta, data e tipo di browser, per servire il sito e proteggerlo dagli abusi. Non usiamo questi log per identificare i visitatori.</p>
-    <h2>Misura d’audience e pubblicità</h2>
-    <p>Al momento nessuno strumento di misura dell’audience e nessuno script pubblicitario è attivo sul sito. Se ne introdurremo uno, questa pagina e la pagina <a href={route('cookies', lang)}>cookie</a> lo nomineranno prima della sua attivazione, con i dati trattati e il modo per opporsi.</p>
+    <p>Il sito è ospitato da {LEGAL.hosting.name}. Come ogni server web, l’hosting registra per ogni richiesta l’indirizzo IP, la pagina richiesta, la data e il tipo di browser, per servire il sito e proteggerlo dagli abusi. Base giuridica: legittimo interesse al funzionamento sicuro del sito (art. 6, par. 1, lett. f RGPD). Non abbiamo accesso a questi log e non li usiamo per identificare i visitatori.</p>
+
+    <h2>Statistiche di visita</h2>
+    <p>Per capire quali pagine sulle aliquote comunali vengono consultate, da dove arrivano i visitatori e in quale punto del calcolatore si fermano, il sito usa due strumenti di misura. Entrambi si caricano all’apertura della pagina, senza banner di consenso.</p>
+    <h3>Microsoft Clarity</h3>
+    <p>Clarity, fornito da Microsoft Ireland Operations Limited e Microsoft Corporation, produce registrazioni delle sessioni e mappe di calore: clic, scorrimento, pagine visitate con il loro indirizzo, tipo di dispositivo e di browser, posizione approssimativa ricavata dall’indirizzo IP. I valori che digiti nei campi del calcolatore sono mascherati nel browser e non vengono trasmessi. Clarity imposta i cookie <code>_clck</code> (1 anno) e <code>_clsk</code> (1 giorno); sui domini di Microsoft possono essere impostati anche <code>MUID</code> e <code>CLID</code>. Le registrazioni sono conservate 30 giorni, i dati aggregati fino a 13 mesi.</p>
+    <h3>Google Analytics 4</h3>
+    <p>Google Analytics 4, fornito da Google Ireland Limited, conta le pagine viste, la provenienza delle visite, la loro durata, il tipo di dispositivo e la posizione approssimativa (paese e città), senza memorizzare l’indirizzo IP. Imposta i cookie <code>_ga</code> e <code>_ga_Q7GZQGMC3P</code>, entrambi con durata di 2 anni. I dati sono conservati 14 mesi.</p>
+    <h3>Base giuridica e opposizione</h3>
+    <p>Il trattamento si basa sul nostro legittimo interesse a sapere come viene usato il sito e a migliorare le pagine sull’IMU (art. 6, par. 1, lett. f RGPD). Puoi opporti in qualsiasi momento: blocca i cookie di terze parti nel browser, blocca i domini <code>clarity.ms</code> e <code>google-analytics.com</code>, oppure installa il <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">componente di disattivazione di Google Analytics</a>. Il calcolatore funziona allo stesso modo. Il dettaglio dei cookie è nella pagina <a href={route('cookies', lang)}>cookie</a>.</p>
+    <h3>Pubblicità</h3>
+    <p>Il sito non mostra pubblicità.</p>
+
+    <h2>Destinatari e trasferimenti</h2>
+    <p>Non vendiamo né cediamo dati. Li ricevono solo l’hosting e, come responsabili del trattamento per le statistiche, Microsoft e Google. Microsoft Corporation e Google LLC hanno sede negli Stati Uniti: i dati possono esservi trasferiti nell’ambito del Data Privacy Framework UE-USA, al quale entrambe aderiscono, e delle clausole contrattuali standard. Vedi l’<a href="https://privacy.microsoft.com/privacystatement" rel="nofollow noopener" target="_blank">informativa di Microsoft</a> e quella di <a href="https://policies.google.com/privacy" rel="nofollow noopener" target="_blank">Google</a>.</p>
+
     <h2>I tuoi diritti</h2>
-    <p>Il Regolamento generale sulla protezione dei dati (RGPD) ti riconosce i diritti di accesso, rettifica, cancellazione e opposizione. Come spiegato sopra, dai calcolatori non tratteniamo alcun dato. Per qualsiasi richiesta scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Puoi presentare reclamo al Garante per la protezione dei dati personali o all’autorità del paese dell’editore, la {LEGAL.supervisoryAuthority}.</p>
+    <p>Il RGPD ti riconosce i diritti di accesso, rettifica, cancellazione, limitazione, portabilità e opposizione (articoli da 15 a 21). Per qualsiasi richiesta scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>: rispondiamo entro un mese. Non tenendo account, di solito non disponiamo di dati che ti identificano, e in quel caso te lo diciamo. Puoi presentare reclamo al Garante per la protezione dei dati personali o all’autorità del paese dell’editore, la {LEGAL.supervisoryAuthority}.</p>
+    <p>Ultimo aggiornamento: 5 ottobre 2026.</p>
   </div>
 </PageLayout>

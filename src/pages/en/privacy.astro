@@ -6,18 +6,38 @@ import { breadcrumbSchema } from '../../lib/seo';
 import { CONTACT_EMAIL, LEGAL } from '../../data/site-config';
 const lang = 'en';
 ---
-<PageLayout title="Privacy Policy of AliquoteIMU.it: What We Collect and Why" description="Privacy policy of AliquoteIMU.it: the IMU calculation runs in your browser, no personal data is sent, no account, no audience measurement is active, only the host’s technical logs." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Privacy', path: route('privacy', lang) }])]} breadcrumbs={[{ label: 'Privacy' }]}>
+<PageLayout title="IMU Calculator Privacy in Italy: Data, Cookies and Analytics" description="IMU calculator privacy in Italy: your inputs stay in the browser, Google Analytics 4 and Microsoft Clarity measure visits without a banner, how to object." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Privacy', path: route('privacy', lang) }])]} breadcrumbs={[{ label: 'Privacy' }]}>
   <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Privacy policy</h1></header>
   <div class="prose prose-slate max-w-none">
+    <p>This notice, given under articles 13 and 14 of the General Data Protection Regulation (GDPR, EU Regulation 2016/679), explains what data is processed when you look up IMU rates or use the calculators on this site.</p>
+
     <h2>Controller</h2>
     <LegalIdentity lang="en" />
-    <h2>What we do not collect</h2>
-    <p>The calculators run entirely in your browser. The comune, cadastral income, rate and other values you enter are not sent to us or anyone else, are not stored on a server and are not linked to you. There is no account, no newsletter and no form collecting personal data. If you use the share link, your inputs are written into the page address, visible only to the people you send it to.</p>
+    <p>For privacy questions, write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. No data protection officer has been appointed, as the scale of processing does not require one.</p>
+
+    <h2>The calculators do not send your figures</h2>
+    <p>The IMU calculation runs entirely in your browser. The comune, cadastral income, category, ownership share and rate you enter are not sent to us or anyone else, are not stored on a server and are not linked to you. There is no account, no newsletter and no form collecting personal data.</p>
+    <p>When you change a field, the calculator writes the values into the page address so you can share the calculation. That address update is not passed to the analytics tools described below. If you open a link that already contains values, such as one someone sent you, those values are part of the address of the page you visit.</p>
+
     <h2>Hosting logs</h2>
-    <p>The site is hosted by {LEGAL.hosting.name}. Like any web server, the host records technical data for each request, such as the IP address, the page requested, the date and the browser type, to deliver the site and protect it from abuse. We do not use these logs to identify visitors.</p>
-    <h2>Audience measurement and advertising</h2>
-    <p>No audience measurement tool and no advertising script is active on the site at present. If we add one, this page and the <a href={route('cookies', lang)}>cookies page</a> will name it before it is switched on, with the data involved and how to object.</p>
+    <p>The site is hosted by {LEGAL.hosting.name}. Like any web server, the host records the IP address, page requested, date and browser type of each request to deliver the site and protect it from abuse. Legal basis: legitimate interest in running the site securely (GDPR art. 6(1)(f)). We have no access to these logs and do not use them to identify visitors.</p>
+
+    <h2>Audience measurement</h2>
+    <p>To learn which comune rate pages people read, where visitors come from and where they stop in the calculator, the site uses two measurement tools. Both load when the page opens, with no consent banner.</p>
+    <h3>Microsoft Clarity</h3>
+    <p>Clarity, provided by Microsoft Ireland Operations Limited and Microsoft Corporation, produces session recordings and heatmaps: clicks, scrolling, pages visited with their address, device and browser type, and an approximate location derived from the IP address. Values you type into the calculator fields are masked in the browser and are not transmitted. Clarity sets the cookies <code>_clck</code> (1 year) and <code>_clsk</code> (1 day); <code>MUID</code> and <code>CLID</code> may also be set on Microsoft’s own domains. Recordings are kept for 30 days, aggregated data for up to 13 months.</p>
+    <h3>Google Analytics 4</h3>
+    <p>Google Analytics 4, provided by Google Ireland Limited, counts page views, where visits come from, how long they last, the device type and an approximate location (country and city), without storing the IP address. It sets the cookies <code>_ga</code> and <code>_ga_Q7GZQGMC3P</code>, both for 2 years. Data is kept for 14 months.</p>
+    <h3>Legal basis and how to object</h3>
+    <p>This processing rests on our legitimate interest in knowing how the site is used and improving its IMU pages (GDPR art. 6(1)(f)). You can object at any time: block third-party cookies in your browser, block the domains <code>clarity.ms</code> and <code>google-analytics.com</code>, or install the <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">Google Analytics opt-out browser add-on</a>. The calculator works exactly the same. Each cookie is listed on the <a href={route('cookies', lang)}>cookies page</a>.</p>
+    <h3>Advertising</h3>
+    <p>The site shows no advertising.</p>
+
+    <h2>Recipients and transfers</h2>
+    <p>We do not sell or share data. The only recipients are the host and, as processors for the statistics, Microsoft and Google. Microsoft Corporation and Google LLC are based in the United States: data may be transferred there under the EU-US Data Privacy Framework, under which both are certified, and standard contractual clauses. See the <a href="https://privacy.microsoft.com/privacystatement" rel="nofollow noopener" target="_blank">Microsoft privacy statement</a> and <a href="https://policies.google.com/privacy" rel="nofollow noopener" target="_blank">Google’s privacy policy</a>.</p>
+
     <h2>Your rights</h2>
-    <p>The General Data Protection Regulation gives you rights of access, correction, erasure and objection. As explained above, we keep no data from the calculators. For any request, write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. You may complain to the Italian data protection authority (Garante per la protezione dei dati personali) or to the authority of the publisher’s country, the {LEGAL.supervisoryAuthority}.</p>
+    <p>The GDPR gives you rights of access, rectification, erasure, restriction, portability and objection (articles 15 to 21). For any request, write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>; we reply within one month. As we keep no accounts, we usually hold nothing that identifies you, and we will tell you so. You may complain to the Italian data protection authority (Garante per la protezione dei dati personali) or to the authority of the publisher’s country, the {LEGAL.supervisoryAuthority}.</p>
+    <p>Last updated: 5 October 2026.</p>
   </div>
 </PageLayout>
