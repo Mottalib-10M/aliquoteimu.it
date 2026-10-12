@@ -61,12 +61,13 @@ const sources = src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti', 'mef_ag
 const jsonLd = [webApplicationSchema({ name: `Calcolo IMU ${YEAR}`, description, path: route('home', lang), lang }), faqSchema(faqs, lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }]), organizationSchema(lang), personSchema(lang), websiteSchema(lang)];
 ---
 <PageLayout title={title} description={description} lang={lang} jsonLd={jsonLd} faqs={faqs} related={related} sources={sources}>
-  <header class="mb-6">
-    <h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Calcolo IMU {YEAR} con le aliquote del tuo comune</h1>
-    <p class="mt-3 text-lg text-navy-600">Scegli il comune, il tipo di immobile e la rendita catastale: l’aliquota arriva dal prospetto ufficiale, l’acconto di giugno usa quella dell’anno precedente e il saldo di dicembre quella {YEAR}, con le righe F24 già pronte.</p>
-    <p class="mt-3"><span class="inline-block rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-600">Prospetti MEF di {n(COUNTS.P26 + COUNTS.P25)} comuni · verificati il <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, LANG_TAGS[lang])}</time> da {AUTHOR_NAME}</span></p>
+  <header class="mb-4">
+    <h1 class="text-[1.75rem] font-bold text-navy-900 max-sm:leading-tight sm:text-3xl md:text-4xl">Calcolo IMU {YEAR} con le aliquote del tuo comune</h1>
+    <p class="mt-2 text-base text-navy-600 sm:text-lg">Scegli il comune, il tipo di immobile e la rendita catastale: l’aliquota arriva dal prospetto ufficiale, l’acconto di giugno usa quella dell’anno precedente e il saldo di dicembre quella {YEAR}, con le righe F24 già pronte.</p>
   </header>
   <ImuCalculator client:load lang={lang} methodHref={route('method', lang)} />
+  {/* Premier écran (RECETTE §5, 2026-10-11) : la ligne de vérification passe juste sous le calculateur. */}
+  <p class="mt-3"><span class="inline-block rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-600">Prospetti MEF di {n(COUNTS.P26 + COUNTS.P25)} comuni · verificati il <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, LANG_TAGS[lang])}</time> da {AUTHOR_NAME}</span></p>
   <p class="mt-8 text-navy-700">L’IMU, imposta municipale propria, è dovuta ogni anno da chi possiede un immobile in Italia diverso dall’abitazione principale: seconde case, case affittate o sfitte, negozi, uffici, capannoni, terreni e aree edificabili. Si calcola in quattro passaggi. La rendita catastale della visura si aumenta del 5 %; il risultato si moltiplica per un coefficiente che dipende dalla categoria ({M.A} per le abitazioni, {M.C1} per i negozi); alla base così ottenuta si applica l’aliquota decisa dal comune; l’importo si riduce in proporzione alla tua quota e ai mesi di possesso. Per un appartamento A/2 con {$(R)} di rendita, all’{al(P.limiti.altri_max)} l’IMU {YEAR} è di {$(ex.imposta)} l’anno. La stessa casa costa {$(imuIn('H501'))} a Roma, dove l’aliquota è {al(ratesOf(roma).altri)}, e {$(imuIn('A326'))} ad Aosta, ferma allo {al(ratesOf(aosta).altri)}. Per questo il calcolatore parte dal prospetto delle aliquote che il tuo comune ha inviato al Dipartimento delle Finanze, e lo dice quando quel prospetto è ancora quello dell’anno scorso.</p>
   <AdSlot slot="home-1" />
   <section class="prose prose-slate mt-10 max-w-none">

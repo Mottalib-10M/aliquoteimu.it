@@ -17,14 +17,15 @@ const jsonLd = [webApplicationSchema({ name: h1, description, path, lang }), web
 const rel = related.map((r) => ({ href: route(r, lang), name: label(r, lang), description: '' }));
 ---
 <PageLayout title={title} description={description} lang={lang} jsonLd={jsonLd} faqs={faqs} related={rel} sources={sources} breadcrumbs={[{ label: label(id, lang) }]}>
-  <header class="mb-6">
-    <h1 class="text-3xl font-bold text-navy-900 md:text-4xl">{h1}</h1>
-    <p class="mt-3 text-lg text-navy-600">{intro}</p>
-    <p class="mt-2 text-sm text-navy-500">{ui.reviewedBy} <a href={route('about', lang)} class="text-accent-700 hover:underline">{AUTHOR_NAME}</a></p>
+  <header class="mb-4">
+    <h1 class="text-[1.75rem] font-bold text-navy-900 max-sm:leading-tight sm:text-3xl md:text-4xl">{h1}</h1>
+    <p class="mt-2 text-base text-navy-600 sm:text-lg">{intro}</p>
   </header>
   <div data-outil>
     <slot name="tool" />
   </div>
+  {/* Premier écran (RECETTE §5, 2026-10-11) : « Verificato da » passe juste sous le calculateur. */}
+  <p class="mt-3 text-sm text-navy-500">{ui.reviewedBy} <a href={route('about', lang)} class="text-accent-700 hover:underline">{AUTHOR_NAME}</a></p>
   <p class="mt-8 text-navy-700">{resume}</p>
   <AdSlot slot={`${id}-1`} />
   <section class="prose prose-slate mt-10 max-w-none"><slot /></section>

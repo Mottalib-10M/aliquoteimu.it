@@ -46,3 +46,17 @@ h1 { font-weight: 700; } h2 { font-weight: 650; } h3 { font-weight: 600; }
 .prose table, table.journal { font-variant-numeric: tabular-nums; border-collapse: collapse; }
 .prose thead th, table.journal thead th { font-variant: small-caps; letter-spacing: .02em; border-bottom: 1px solid var(--color-navy-300); background: transparent; }
 .prose td, .prose th, table.journal td, table.journal th { border-left: 0; border-right: 0; }
+
+/* Chapeau replié (RECETTE §26 et §5, 2026-10-11) : le texte reste dans le HTML, l'écran montre la
+   première phrase et le lien suit la dernière ligne visible. */
+.clamp { position: relative; }
+.clamp > p { display: inline; }
+.clamp-rest { display: none; }
+.clamp-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.clamp-toggle:checked ~ p .clamp-rest { display: inline; }
+.clamp-toggle:checked ~ .clamp-more { display: none; }
+.clamp-more { display: inline-block; cursor: pointer; margin-left: 0.25rem; font-size: 0.875rem; font-weight: 600; color: var(--color-accent-700); text-decoration: underline; text-underline-offset: 3px; }
+.clamp-toggle:focus-visible ~ .clamp-more { outline: 2px solid #111827; outline-offset: 3px; }
+/* Le mini-simulateur qui ouvre un guide suit de près la réponse au-dessus (premier écran, 2026-10-11). */
+.guide-body > astro-island:first-of-type > .rechner-mini, .guide-body > .rechner-mini:first-child { margin-top: 0.5rem; }
+.guide-body > astro-island:first-of-type > .rechner-mini > p:first-child { margin-top: 0; }

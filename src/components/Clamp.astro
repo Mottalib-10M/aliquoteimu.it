@@ -1,0 +1,21 @@
+---
+/**
+ * Chapeau replié (RECETTE §26 et §5, 2026-10-11) : UN seul <p> dans le HTML, entier ; l'écran montre
+ * la première phrase entière, la suite est dans un <span> masqué du même <p>, dépliée par une case à
+ * cocher, sans JavaScript. Jamais de coupe au milieu d'une phrase, jamais de <details> : check-seo
+ * doit trouver le bloc citable dans le haut de la page (§21).
+ */
+import { t } from '../i18n/ui';
+import type { Locale } from '../i18n/routes';
+interface Props { text: string; lang: Locale; id: string; sentences?: number; class?: string }
+const { text, lang, id, sentences = 1, class: cls = '' } = Astro.props;
+// Coupe entre deux phrases : ponctuation finale, espace, puis majuscule. « 0,86 % » ou « n. 209 » ne coupent pas.
+const parts = text.split(/(?<=[.!?])\s+(?=\p{Lu})/u);
+const head = parts.slice(0, sentences).join(' ').trim();
+const rest = parts.slice(sentences).join(' ').trim();
+---
+<div class={`clamp mb-2 ${cls}`}>
+  {rest && <input type="checkbox" id={id} class="clamp-toggle" />}
+  <p class="leading-relaxed text-navy-700">{head}{rest && <span class="clamp-rest"> {rest}</span>}</p>
+  {rest && <label for={id} class="clamp-more">{t(lang).readMore}</label>}
+</div>

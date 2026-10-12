@@ -53,12 +53,13 @@ const sources = src(lang, 'legge160', 'mef_prospetti', 'mef_versamenti', 'mef_ag
 const jsonLd = [webApplicationSchema({ name: `IMU calculator ${YEAR}`, description, path: route('home', lang), lang }), faqSchema(faqs, lang), breadcrumbSchema([{ name: 'Home', path: route('home', lang) }]), organizationSchema(lang), personSchema(lang), websiteSchema(lang)];
 ---
 <PageLayout title={title} description={description} lang={lang} jsonLd={jsonLd} faqs={faqs} related={related} sources={sources}>
-  <header class="mb-6">
-    <h1 class="text-3xl font-bold text-navy-900 md:text-4xl">IMU calculator {YEAR}: Italian property tax with your comune’s rates</h1>
-    <p class="mt-3 text-lg text-navy-600">Pick the comune, the type of property and its cadastral income. The rate comes from the comune’s official schedule, the June instalment uses last year’s rate and the December balance this year’s, with the F24 lines ready to copy.</p>
-    <p class="mt-3"><span class="inline-block rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-600">Department of Finance schedules for {n(COUNTS.P26 + COUNTS.P25)} comuni · checked on <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, LANG_TAGS[lang])}</time> by {AUTHOR_NAME}</span></p>
+  <header class="mb-4">
+    <h1 class="text-[1.75rem] font-bold text-navy-900 max-sm:leading-tight sm:text-3xl md:text-4xl">IMU calculator {YEAR}: Italian property tax with your comune’s rates</h1>
+    <p class="mt-2 text-base text-navy-600 sm:text-lg">Pick the comune, the type of property and its cadastral income. The rate comes from the comune’s official schedule, the June instalment uses last year’s rate and the December balance this year’s, with the F24 lines ready to copy.</p>
   </header>
   <ImuCalculator client:load lang={lang} methodHref={route('method', lang)} />
+  {/* Premier écran (RECETTE §5, 2026-10-11) : la ligne de vérification passe juste sous le calculateur. */}
+  <p class="mt-3"><span class="inline-block rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-medium text-navy-600">Department of Finance schedules for {n(COUNTS.P26 + COUNTS.P25)} comuni · checked on <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, LANG_TAGS[lang])}</time> by {AUTHOR_NAME}</span></p>
   <p class="mt-8 text-navy-700">IMU (imposta municipale propria) is the yearly property tax that Italian comuni levy on every building and plot that is not the owner’s main home. If you live in the UK, the US, Germany or anywhere else and own a flat in Rome, a farmhouse in Umbria or a house by the sea, you pay it every year, in June and December, whether or not you use the place. It is worked out in four steps. Take the cadastral income (rendita catastale) shown on the land registry record, add 5 %, multiply by {M.A} for a dwelling, and apply the rate set by the comune. Then scale it to your share of ownership and the months you owned it. A flat with {$(R)} of rendita pays {$(ex.imposta)} a year at {al(P.limiti.altri_max)}, the most common rate. It pays {$(imuIn('H501'))} in Rome and {$(imuIn('A326'))} in Aosta, because each comune sets its own rate. That is why this calculator starts from the rate schedule your comune filed with the Department of Finance, and tells you when that schedule is still last year’s.</p>
   <AdSlot slot="home-1" />
   <section class="prose prose-slate mt-10 max-w-none">

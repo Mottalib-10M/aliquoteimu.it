@@ -37,7 +37,7 @@ export default function ConfrontoComuni({ lang = 'it', a = 'H501', b = 'F205' }:
         <SelectField id="cf-cat" label={L.cat} value={cat} onChange={(v) => setCat(v as Categoria)} options={CATS.map(([k, it, en]) => ({ value: k, label: lang === 'en' ? en : it }))} />
         <NumberField id="cf-r" label={L.r} value={r} onChange={setR} unit="€" max={1000000} decimals={2} lang={lang} />
       </form>
-      <div aria-live="polite" className="mt-6 grid gap-4 sm:grid-cols-2">{card(A, xa)}{card(B, xb)}</div>
+      <div aria-live="polite" data-resultat className="mt-6 grid gap-4 sm:grid-cols-2">{card(A, xa)}{card(B, xb)}</div>
       {xa && xb && <p className="mt-4 rounded-lg bg-accent-50 p-4 text-navy-900"><span className="text-sm text-navy-600">{L.diff}</span><br /><span className="tabular-nums text-2xl font-bold">{$(Math.abs(d))}</span> <span className="text-sm">{d === 0 ? L.same : L.cheaper(d > 0 ? B.name : A.name, $(Math.abs(d)))}</span></p>}
     </div>
   );

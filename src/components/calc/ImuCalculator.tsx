@@ -11,6 +11,7 @@ import { calcolaImu, fattispecie, lusso, type Categoria, type Fattispecie, type 
 import { comune as byCode, cerca, ratesOf, ratesAcconto, isImu, differenziate, type Comune, type Differenziata } from '../../lib/comuni';
 import { formatMoney, formatAliquota, type Lang } from '../../lib/format';
 import { readParams, num, str, updateURL } from '../../lib/url-state';
+import ResultBar from './ResultBar';
 
 export type ProfiloId = 'seconda' | 'ap' | 'locato' | 'concordato' | 'comodato' | 'negozio' | 'ufficio' | 'box' | 'laboratorio' | 'D' | 'rurale' | 'terreno' | 'area';
 interface Profilo { id: ProfiloId; tipo: Tipo; cats: Categoria[]; uso: Uso; concordato?: boolean; riduzione?: RiduzioneBase; it: string; en: string }
@@ -111,6 +112,7 @@ export default function ImuCalculator({ lang = 'it', initialCode = 'H501', initi
   const [diff, setDiff] = useState<{ d: Differenziata[]; e: string }>({ d: [], e: '' });
   const [copied, setCopied] = useState('');
   const box = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
 
   const c: Comune = byCode(code) ?? byCode('H501')!;
   const fatt: Fattispecie = fattispecie(P.tipo, cat, P.uso);
@@ -150,7 +152,9 @@ export default function ImuCalculator({ lang = 'it', initialCode = 'H501', initi
   };
 
   return (
-    <div data-chrome className="not-prose rounded-xl border border-navy-200 bg-white p-4 sm:p-6">
+    <div data-chrome className="not-prose grid gap-6 rounded-xl border border-navy-200 bg-white p-4 sm:p-6 lg:grid-cols-2 lg:items-start">
+      {/* Ordinateur : champs à gauche, résultat à droite (RECETTE §5, règle du 2026-10-11). */}
+      <div>
       <form className="grid gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
         <div ref={box} className="relative grid grid-rows-subgrid row-span-3 content-start gap-y-0">
           <label htmlFor="imu-comune" className="mb-1 block text-sm font-medium text-navy-700">{L.comune}</label>
@@ -195,8 +199,10 @@ export default function ImuCalculator({ lang = 'it', initialCode = 'H501', initi
         </details>
       )}
 
+      </div>
+      <div>
       {imu && (
-        <div aria-live="polite" className="mt-6 rounded-xl bg-accent-50 p-5">
+        <div ref={card} aria-live="polite" data-resultat className="rounded-xl bg-accent-50 p-5">
           <p className="text-sm font-medium text-navy-600">{res.esente || res.imposta <= 0 ? L.esente : L.annua} · {c.name}</p>
           <p className="tabular-nums mt-1 text-4xl font-bold text-navy-900">{$(res.imposta)}</p>
           {motivo && <p className="mt-2 text-sm text-navy-700">{motivo}</p>}
@@ -227,6 +233,7 @@ export default function ImuCalculator({ lang = 'it', initialCode = 'H501', initi
             <button type="button" onClick={() => window.print()} className="rounded-lg border border-navy-300 bg-white px-3 py-2 font-medium text-navy-800 hover:bg-navy-50">{L.stampa}</button>
             {methodHref && <a href={methodHref} className="px-1 py-2 font-medium text-accent-700 hover:underline">{L.metodo}</a>}
           </div>
+          <ResultBar target={card} label={`${res.esente || res.imposta <= 0 ? L.esente : L.annua} · ${c.name}`} value={$(res.imposta)} />
         </div>
       )}
 
@@ -245,6 +252,7 @@ export default function ImuCalculator({ lang = 'it', initialCode = 'H501', initi
         </div>
       )}
       {imu && !compact && diff.e && <p className="mt-3 text-xs text-navy-600"><strong>{L.esenzioni}:</strong> {diff.e}</p>}
+      </div>
     </div>
   );
 }
