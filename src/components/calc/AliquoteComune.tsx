@@ -37,7 +37,7 @@ export default function AliquoteComune({ lang = 'it', initialCode = 'H501' }: { 
     <div data-chrome className="not-prose grid gap-6 rounded-xl border border-navy-200 bg-white p-4 sm:p-6 lg:grid-cols-2 lg:items-start">
       {/* Ordinateur : champs et aliquote à gauche, résultat à droite (RECETTE §5, règle du 2026-10-11). */}
       <div>
-        <form className="grid gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
+        <form className="grid content-start gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
           <ComunePicker id="al-comune" label={L.comune} value={c} onPick={(x) => setCode(x.code)} lang={lang} />
           <NumberField id="al-rendita" label={L.rendita} value={r} onChange={setR} unit="€" max={1000000} decimals={2} lang={lang} />
         </form>

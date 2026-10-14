@@ -31,7 +31,7 @@ export default function ConfrontoComuni({ lang = 'it', a = 'H501', b = 'F205' }:
   const d = xa && xb ? xa.imposta - xb.imposta : 0;
   return (
     <div data-chrome className="not-prose rounded-xl border border-navy-200 bg-white p-4 sm:p-6">
-      <form className="grid gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
+      <form className="grid content-start gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
         <ComunePicker id="cf-a" label={L.a} value={A} onPick={(x) => setA(x.code)} lang={lang} />
         <ComunePicker id="cf-b" label={L.b} value={B} onPick={(x) => setB(x.code)} lang={lang} />
         <SelectField id="cf-cat" label={L.cat} value={cat} onChange={(v) => setCat(v as Categoria)} options={CATS.map(([k, it, en]) => ({ value: k, label: lang === 'en' ? en : it }))} />

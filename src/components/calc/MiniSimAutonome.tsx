@@ -64,9 +64,12 @@ export default function MiniSimAutonome({ kind, lang = 'en', href, locale = 'en-
         <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
           {spec.inputs.map((i) => i.options
             ? <div key={i.id}><label htmlFor={`m-${kind}-${i.id}`} className="mb-1 block text-sm font-medium" style={{ color: C.text }}>{i.label}</label>
-                <select id={`m-${kind}-${i.id}`} value={String(v[i.id])} onChange={(e) => set(i.id)(Number(e.target.value))} className="h-12 w-full rounded-lg border bg-white px-3" style={{ borderColor: C.border, color: C.text }}>
-                  {i.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select></div>
+                <div className="relative">
+                  <select id={`m-${kind}-${i.id}`} value={String(v[i.id])} onChange={(e) => set(i.id)(Number(e.target.value))} className="h-12 w-full appearance-none truncate rounded-lg border bg-white pl-3 pr-10" style={{ borderColor: C.border, color: C.text }}>
+                    {i.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: C.muted }} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M5 7.5l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </div></div>
             : <Field key={i.id} id={`m-${kind}-${i.id}`} label={i.label} value={v[i.id]} onChange={set(i.id)} unit={i.unit} max={i.max} decimals={i.decimals} locale={locale} />)}
         </form>
         <div aria-live="polite" className="rounded-lg p-4" style={{ background: C.surface }}>

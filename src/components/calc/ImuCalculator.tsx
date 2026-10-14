@@ -155,7 +155,7 @@ export default function ImuCalculator({ lang = 'it', initialCode = 'H501', initi
     <div data-chrome className="not-prose grid gap-6 rounded-xl border border-navy-200 bg-white p-4 sm:p-6 lg:grid-cols-2 lg:items-start">
       {/* Ordinateur : champs à gauche, résultat à droite (RECETTE §5, règle du 2026-10-11). */}
       <div>
-      <form className="grid gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
+      <form className="grid content-start gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
         <div ref={box} className="relative grid grid-rows-subgrid row-span-3 content-start gap-y-0">
           <label htmlFor="imu-comune" className="mb-1 block text-sm font-medium text-navy-700">{L.comune}</label>
           <input id="imu-comune" type="text" autoComplete="off" role="combobox" aria-expanded={open && results.length > 0} aria-controls="imu-comune-list" aria-autocomplete="list"

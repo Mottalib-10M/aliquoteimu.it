@@ -30,7 +30,7 @@ export default function RavvedimentoCalc({ lang = 'it' }: { lang?: Lang }) {
   const $ = (v: number) => formatMoney(v, 2, lang);
   return (
     <div data-chrome className="not-prose rounded-xl border border-navy-200 bg-white p-4 sm:p-6">
-      <form className="grid gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
+      <form className="grid content-start gap-x-5 gap-y-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
         <NumberField id="rv-imposta" label={L.imposta} value={imposta} onChange={setImposta} unit="€" max={10000000} decimals={2} lang={lang} />
         <SelectField id="rv-scad" label={L.scad} value={scad} onChange={setScad} options={SCAD.map((d) => ({ value: d, label: L.lab(d) }))} />
         <div className="grid grid-rows-subgrid row-span-3 content-start gap-y-0">
