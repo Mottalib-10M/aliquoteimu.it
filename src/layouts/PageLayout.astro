@@ -7,13 +7,15 @@ import { t } from '../i18n/ui';
 import { route, type Locale } from '../i18n/routes';
 import type { FAQItem } from '../lib/seo';
 interface BreadcrumbItem { label: string; href?: string }
-interface Props { title: string; description: string; lang: Locale; canonical?: string; ogImage?: string; noindex?: boolean; jsonLd?: string[]; related?: Array<{ href: string; name: string; description: string }>; faqs?: FAQItem[]; sources?: Array<{ name: string; url: string }>; breadcrumbs?: BreadcrumbItem[]; showAuthor?: boolean }
-const { title, description, lang, canonical, ogImage, noindex = false, jsonLd = [], related = [], faqs = [], sources = [], breadcrumbs = [], showAuthor = true } = Astro.props;
+interface Props { title: string; description: string; lang: Locale; canonical?: string; ogImage?: string; noindex?: boolean; jsonLd?: string[]; related?: Array<{ href: string; name: string; description: string }>; faqs?: FAQItem[]; sources?: Array<{ name: string; url: string }>; breadcrumbs?: BreadcrumbItem[]; showAuthor?: boolean; /** Date en haut, à droite de la ligne fine : page de lecture seulement (RECETTE §8.4). */ dateEnHaut?: boolean }
+const { title, description, lang, canonical, ogImage, noindex = false, jsonLd = [], related = [], faqs = [], sources = [], breadcrumbs = [], showAuthor = true, dateEnHaut = false } = Astro.props;
 const ui = t(lang);
 ---
 <BaseLayout title={title} description={description} lang={lang} canonical={canonical} ogImage={ogImage} noindex={noindex} jsonLd={jsonLd} breadcrumbs={breadcrumbs}>
-  {/* Premier écran (RECETTE §5, 2026-10-11) : la date passe dans la rangée du fil d'Ariane. */}
-  <p slot="crumb-aside" data-chrome class="ml-auto text-xs text-navy-500 sm:text-sm">{ui.updatedOn} <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, __LT[lang])}</time><slot name="crumb-extra" /></p>
+  {/* Date en haut seulement sur une page de lecture (GuideLayout, dateEnHaut) : sur un simulateur
+       ou un accueil elle repoussait le titre sans rien apprendre ; elle reste en bas de page et
+       dans dateModified (RECETTE §8.4, règle du 2026-10-15). */}
+  {(dateEnHaut || Astro.slots.has('crumb-extra')) && <p slot="crumb-aside" data-chrome class="ml-auto text-xs text-navy-500 sm:text-sm">{dateEnHaut && <Fragment>{ui.updatedOn} <time datetime={LAST_UPDATED}>{displayDate(LAST_UPDATED, __LT[lang])}</time> · </Fragment>}<slot name="crumb-extra" /></p>}
   <div class="mx-auto max-w-6xl px-4 pb-8 pt-2">
     <slot />
     {faqs.length > 0 && (<section class="mt-12" id="faq"><h2 class="mb-6 text-2xl font-bold text-navy-900">{ui.faqTitle}</h2><div class="space-y-3">
