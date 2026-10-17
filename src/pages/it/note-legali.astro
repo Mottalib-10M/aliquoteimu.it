@@ -2,6 +2,7 @@
 import PageLayout from '../../layouts/PageLayout.astro';
 import LegalIdentity from '../../components/LegalIdentity.astro';
 import { route } from '../../i18n/routes';
+import { GA4_ID } from '../../data/site-config';
 import { breadcrumbSchema } from '../../lib/seo';
 const lang = 'it';
 ---
@@ -19,7 +20,7 @@ const lang = 'it';
     <h2>Riutilizzo</h2>
     <p>Testi, tabelle e codice sono protetti dal diritto d’autore. Puoi citarne brevi estratti con un link alla pagina. Il calcolatore può essere inserito gratuitamente in un altro sito con il codice della pagina <a href={route('widget', lang)}>widget</a>, purché il link di credito resti visibile.</p>
     <h2>Dati personali e cookie</h2>
-    <p>I valori inseriti nel calcolatore non lasciano il browser. Il sito non imposta cookie e l’editore non registra dati personali; la stabilità è verificata in modo anonimo, senza cookie, con Microsoft Clarity. Dettagli nell’<a href={route('privacy', lang)}>informativa privacy</a> e nella pagina <a href={route('cookies', lang)}>cookie</a>.</p>
+    <p>I valori inseriti nel calcolatore non lasciano il browser. Il sito imposta i cookie di misurazione del pubblico di Google Analytics (<code>_ga</code>, <code>_ga_{GA4_ID.replace('G-', '')}</code>, 13 mesi al massimo), senza pubblicità; la stabilità è verificata con Microsoft Clarity, in modalità senza cookie. Dettagli nell’<a href={route('privacy', lang)}>informativa privacy</a> e nella pagina <a href={route('cookies', lang)}>cookie</a>.</p>
     <h2>Legge applicabile</h2>
     <p>Queste condizioni sono regolate dal diritto francese, legge del luogo di stabilimento dell’editore, fatte salve le norme imperative a tutela dei consumatori del paese di residenza.</p>
   </div>

@@ -1,39 +1,53 @@
 ---
 import PageLayout from '../../layouts/PageLayout.astro';
 import LegalIdentity from '../../components/LegalIdentity.astro';
+import { CLARITY_ID, CONTACT_EMAIL, GA4_ID, LAST_UPDATED, LEGAL, SITE_NAMES, SITE_URL } from '../../data/site-config';
 import { route } from '../../i18n/routes';
-import { breadcrumbSchema } from '../../lib/seo';
-import { CONTACT_EMAIL, LEGAL } from '../../data/site-config';
 const lang = 'en';
+const title = `Privacy policy – ${SITE_NAMES[lang]}`;
+const description = GA4_ID ? 'Google Analytics audience measurement with cookies and no advertising; inputs kept in your browser; host logs; your rights and the supervisory authority.' : 'Inputs kept in your browser, no cookies, host logs: the data processing behind the site, your rights and the supervisory authority you can contact.';
 ---
-<PageLayout title="IMU Calculator Privacy in Italy: Data, No Cookies, Stability" description="IMU calculator privacy in Italy: inputs stay in your browser, no cookies and no personal data recorded; cookie-free Microsoft Clarity only checks the site is stable." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Privacy', path: route('privacy', lang) }])]} breadcrumbs={[{ label: 'Privacy' }]}>
-  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Privacy policy</h1></header>
+{/* Page générée par scripts/gen-legal-pages.py (trame, décision GA4 du 2026-10-17). Ne pas
+     retoucher à la main : relancer le script. Un passage propre au site se garde entre
+     les marqueurs site:debut et site:fin. */}
+<PageLayout title={title} description={description} lang={lang} noindex={true} breadcrumbs={[{ label: 'Privacy' }]} showAuthor={false}>
   <div class="prose prose-slate max-w-none">
-    <p>This notice, given under articles 13 and 14 of the General Data Protection Regulation (GDPR, EU Regulation 2016/679), explains what data is processed when you look up IMU rates or use the calculators on this site.</p>
-
-    <h2>Controller</h2>
-    <LegalIdentity lang="en" />
-    <p>For privacy questions, write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. No data protection officer has been appointed, as the scale of processing does not require one.</p>
-
-    <h2>The calculators do not send your figures</h2>
-    <p>The IMU calculation runs entirely in your browser. The comune, cadastral income, category, ownership share and rate you enter are not sent to us or anyone else, are not stored on a server and are not linked to you. There is no account, no newsletter and no form collecting personal data.</p>
-    <p>When you change a field, the calculator writes the values into the page address so you can share the calculation. That address update is not passed to anyone. If you open a link that already contains values, such as one someone sent you, those values are part of the address of the page you visit.</p>
-
-    <h2>Hosting logs</h2>
-    <p>The site is hosted by {LEGAL.hosting.name}. Like any web server, the host records the IP address, page requested, date and browser type of each request to deliver the site and protect it from abuse. Legal basis: legitimate interest in running the site securely (GDPR art. 6(1)(f)). We have no access to these logs and do not use them to identify visitors.</p>
-
-    <h2>Anonymous stability check with Microsoft Clarity, without cookies</h2>
-    <p>The publisher records no personal data about people who look up IMU rates. To check that pages and the calculator work, we use Microsoft Clarity, a service of Microsoft Ireland Operations Limited (One Microsoft Place, South County Business Park, Leopardstown, Dublin 18, Ireland), in cookie-free mode: before Clarity loads, the site tells it not to use cookies, and Clarity sets none. For each page view it records errors, load times, clicks that lead nowhere and scrolling, without linking visits together; page text and typed values are masked. Microsoft receives the technical data of the request, including the IP address from which it derives an approximate location, and keeps recordings for 30 days and aggregated data for up to 13 months.</p>
-    <h3>Legal basis and how to object</h3>
-    <p>Legal basis: legitimate interest in offering a site that works (GDPR art. 6(1)(f)); no cookie or identifier remains on your device. You can object at any time by blocking the <code>clarity.ms</code> domain or writing to us. The site uses no other measurement or tracking tool. Details on the <a href={route('cookies', lang)}>cookies page</a>.</p>
-    <h3>Advertising</h3>
-    <p>The site shows no advertising.</p>
-
-    <h2>Recipients and transfers</h2>
-    <p>We do not sell or share data. The only recipients are the host, for technical logs, and Microsoft, for the stability check. The Microsoft group is headquartered in the United States: technical data may be transferred there under the EU-US Data Privacy Framework, under which Microsoft Corporation is certified, and standard contractual clauses. See the <a href="https://privacy.microsoft.com/privacystatement" rel="nofollow noopener" target="_blank">Microsoft privacy statement</a>.</p>
-
-    <h2>Your rights</h2>
-    <p>The GDPR gives you rights of access, rectification, erasure, restriction, portability and objection (articles 15 to 21). For any request, write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>; we reply within one month. As we keep no accounts, we usually hold nothing that identifies you, and we will tell you so. You may complain to the Italian data protection authority (Garante per la protezione dei dati personali) or to the authority of the publisher’s country, the {LEGAL.supervisoryAuthority}.</p>
-    <p>Last updated: 6 October 2026.</p>
+    <h1>Privacy policy</h1>
+    <p>This page describes the processing of personal data linked to the use of {SITE_URL}, under Articles 12 to 14 of Regulation (EU) 2016/679 (GDPR) and the Italian Personal Data Protection Code (Legislative Decree 196/2003).</p>
+    <h2>1. Controller</h2>
+    <LegalIdentity lang={lang} />
+    <p>For any question about your data: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. No data protection officer has been appointed, as the conditions of Article 37 GDPR are not met.</p>
+    <h2>2. What you type stays in your browser</h2>
+    <p>The site’s calculations run in your browser. The amounts, dates and circumstances you enter <strong>are sent to no server</strong>, are stored nowhere and are linked to no identifier. The site asks for no account, name or email address. A share link carries your inputs in the page address: only send it to people you choose.</p>
+    <h2>3. Processing carried out</h2>
+    <h3>Host access logs</h3>
+    <p>For each request the host records the IP address, date and time, the page requested, the browser and the referring page. Purpose: security of the service and fault diagnosis. Legal basis: the publisher’s legitimate interests (Article 6(1)(f) GDPR). Retention: as set by the host’s own policy.</p>
+    {GA4_ID ? (<>
+    <h3>Audience measurement with Google Analytics</h3>
+    <p>The site uses Google Analytics 4 to count visits and see which pages are useful: pages viewed, referring page, visit length, device and browser type, approximate country and city. To do so Google Analytics sets two cookies on your device: <code>_ga</code>, which tells visitors apart with a random identifier, and <code>_ga_{GA4_ID.replace('G-', '')}</code>, which keeps the state of the visit. Their lifetime is set to 13 months at most (390 days) and is not extended on each visit; Google’s default is 2 years.</p>
+    <p>The IP address is anonymised: Google Analytics 4 neither logs nor stores it, and only uses it at collection time to derive an approximate country and city. The page address sent to Google Analytics is stripped of its parameters, so the inputs carried by a share link are not included. The site shows no advertising: ad storage, ad user data, ad personalisation and Google signals are switched off, and measurement data is shared with no advertiser.</p>
+    <p>Purpose: audience measurement. Legal basis: the publisher’s legitimate interests (Article 6(1)(f) GDPR). Provider: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Ireland. Retention at Google: 14 months for visit-level and identifier-level data, then deletion; only anonymous totals remain.</p>
+    </>) : (<>
+    <h3>No audience measurement</h3>
+    <p>The site sets no cookies and uses no analytics or advertising tool.</p>
+    </>)}
+    {CLARITY_ID && (<>
+    <h3>Technical stability monitoring with Microsoft Clarity, cookie-free</h3>
+    <p>To spot errors, slow pages and buttons that do not respond, the site uses Microsoft Clarity in cookie-free mode: Clarity sets no cookies, each page view gets its own identifier, and page text and your inputs are masked. Clarity receives the page structure, clicks, scrolling, device type, load times and errors. Purpose: site stability. Legal basis: the publisher’s legitimate interests (Article 6(1)(f) GDPR). Provider: Microsoft Ireland Operations Limited, One Microsoft Place, South County Business Park, Leopardstown, Dublin 18, Ireland. Retention: 30 days for page recordings, 13 months at most for aggregated data.</p>
+    </>)}
+    <h3>Messages you send us</h3>
+    <p>If you write to the contact address, your email address and message are kept for as long as needed to reply and, where relevant, fix an error, then deleted no later than three years after the last exchange. Legal basis: the publisher’s legitimate interests (Article 6(1)(f) GDPR).</p>
+    <h2>4. Recipients</h2>
+    <p>No data is sold, rented or passed on. Access is limited to the host{GA4_ID && ', Google Ireland Limited for Google Analytics'}{CLARITY_ID && ', Microsoft Ireland Operations Limited for Clarity'}, acting as processors under Article 28 GDPR. No advertising network operates on the site.</p>
+    <h2>5. Transfers outside the European Union</h2>
+    <p>Host logs may be processed in the United States.{GA4_ID && ' Google Analytics data may be transferred to Google LLC in the United States.'}{CLARITY_ID && ' Clarity data may be transferred to Microsoft Corporation in the United States.'} These transfers rely on the EU–U.S. Data Privacy Framework and the European Commission’s standard contractual clauses.</p>
+    <h2>6. Your rights</h2>
+    <p>You have the rights of access, rectification, erasure, restriction, objection and portability set out in Articles 15 to 22 GDPR. Write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>; we reply within one month. With no user accounts, we usually hold no data that identifies you, and we will tell you so.</p>
+    {GA4_ID && (<p>To object to audience measurement without writing to us: block or delete cookies in your browser settings, or install the <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">Google Analytics opt-out browser add-on</a>. The site works the same way.</p>)}
+    {CLARITY_ID && (<p>For stability monitoring: block the <code>clarity.ms</code> domain in your browser or with a content blocker.</p>)}
+    <p>You may lodge a complaint with the supervisory authority: {LEGAL.supervisoryAuthority} (<a href={LEGAL.supervisoryAuthorityUrl} rel="nofollow noopener" target="_blank">{LEGAL.supervisoryAuthorityUrl}</a>).</p>
+    <h2>7. No automated decision-making</h2>
+    <p>A calculation result is an estimate produced at your request, from your inputs, in your browser. It has no legal effect and is not an automated decision under Article 22 GDPR. No profiling takes place.</p>
+    <p>See also the <a href={route('cookies', lang)}>cookies</a> page. Last updated: {LAST_UPDATED}.</p>
   </div>
 </PageLayout>

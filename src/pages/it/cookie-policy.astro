@@ -1,30 +1,28 @@
 ---
 import PageLayout from '../../layouts/PageLayout.astro';
+import { CLARITY_ID, CONTACT_EMAIL, GA4_ID, LAST_UPDATED } from '../../data/site-config';
 import { route } from '../../i18n/routes';
-import { breadcrumbSchema } from '../../lib/seo';
 const lang = 'it';
+const title = 'Cookie del calcolo IMU in Italia: solo Google Analytics';
+const description = 'Cookie del calcolo IMU: solo i cookie di misurazione del pubblico di Google Analytics, 13 mesi al massimo, nessuna pubblicità. Nomi, finalità, fornitore e opposizione.';
 ---
-<PageLayout title="Cookie del calcolo IMU in Italia: nessun cookie sul sito" description="Cookie del calcolo IMU: il sito non ne imposta nessuno e non conserva rendita né aliquota. Microsoft Clarity, senza cookie, controlla solo in modo anonimo che funzioni." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Cookie', path: route('cookies', lang) }])]} breadcrumbs={[{ label: 'Cookie' }]}>
-  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Cookie</h1></header>
+{/* Pagina scritta a mano sui fatti dei modelli fr/en di scripts/gen-legal-pages.py (decisione GA4 del 2026-10-17). */}
+<PageLayout title={title} description={description} lang={lang} noindex={true} breadcrumbs={[{ label: 'Cookie' }]} showAuthor={false}>
   <div class="prose prose-slate max-w-none">
-    <p>AliquoteIMU.it non imposta alcun cookie, né tecnico né di terze parti. Rendita catastale, categoria, quota di possesso e aliquota restano nella pagina aperta (e, se usi il link di condivisione, nel suo indirizzo): nulla viene salvato sul dispositivo, nemmeno nella memoria locale del browser, e chiudendo la scheda non resta traccia. Proprio perché non c’è niente da accettare, non trovi alcun banner sui cookie. Il quadro giuridico completo è nell’<a href={route('privacy', lang)}>informativa privacy</a>.</p>
-
-    <h2>Categorie</h2>
-    <table>
-      <thead><tr><th>Categoria</th><th>Stato</th></tr></thead>
-      <tbody>
-        <tr><td>Cookie tecnici</td><td>nessuno</td></tr>
-        <tr><td>Cookie di statistica o profilazione</td><td>nessuno</td></tr>
-        <tr><td>Pubblicità</td><td>nessuno</td></tr>
-        <tr><td>Controllo tecnico del funzionamento (Microsoft Clarity)</td><td>senza cookie, contenuti mascherati</td></tr>
-      </tbody>
-    </table>
-
-    <h2>Controllo anonimo del funzionamento</h2>
-    <p>Per accorgerci se una pagina delle aliquote comunali non si carica, se il calcolatore va in errore o se un pulsante non risponde, il sito usa Microsoft Clarity in modalità senza cookie. In questa modalità Clarity non imposta <code>_clck</code>, <code>_clsk</code>, <code>MUID</code> né <code>CLID</code>: ogni pagina vista riceve un identificativo usa e getta, le visite non vengono collegate tra loro e il testo della pagina e i valori digitati sono mascherati prima di qualsiasi invio. Misura soltanto errori, tempi di caricamento, clic senza effetto e scorrimento. L’editore non registra alcun dato personale.</p>
-
-    <h2>Per bloccarlo comunque</h2>
-    <p>Basta bloccare il dominio <code>clarity.ms</code> nel browser o con un blocco dei contenuti: il calcolo dell’IMU funziona esattamente allo stesso modo. Domande: scrivi all’indirizzo indicato nell’informativa privacy.</p>
-    <p>Ultimo aggiornamento: 6 ottobre 2026.</p>
+    <h1>Cookie</h1>
+    <p>Il sito imposta soltanto i cookie di misurazione del pubblico di Google Analytics: nessun cookie pubblicitario, nessun cookie di social network. Rendita catastale, categoria, quota di possesso e aliquota che inserisci non vengono salvate sul dispositivo. Il dettaglio dei trattamenti è nell’<a href={route('privacy', lang)}>informativa privacy</a>.</p>
+    <h2>Cookie impostati</h2>
+    <table><thead><tr><th>Nome</th><th>Fornitore</th><th>Finalità</th><th>Durata</th></tr></thead><tbody>
+    <tr><td><code>_ga</code></td><td>Google Analytics</td><td>Distinguere i visitatori con un identificativo casuale</td><td>13 mesi al massimo (390 giorni)</td></tr>
+    <tr><td><code>_ga_{GA4_ID.replace('G-', '')}</code></td><td>Google Analytics</td><td>Conservare lo stato della visita in corso</td><td>13 mesi al massimo (390 giorni)</td></tr>
+    </tbody></table>
+    <p>Queste durate non vengono prolungate a ogni visita; la durata predefinita di Google è di 2 anni e il sito la riduce. Finalità: misurazione del pubblico (pagine viste, pagina di provenienza, dispositivo, paese approssimativo). L’indirizzo IP è anonimizzato: Google Analytics 4 non lo registra né lo conserva. Nessuna pubblicità: memorizzazione pubblicitaria, personalizzazione degli annunci e Google signals sono disattivati.</p>
+    <p>Fornitore: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irlanda, responsabile del trattamento (art. 28 GDPR). I dati possono essere trasferiti a Google LLC negli Stati Uniti nell’ambito del Data Privacy Framework UE-USA e delle clausole contrattuali tipo della Commissione europea. Conservazione presso Google: 14 mesi. Base giuridica: legittimo interesse dell’editore (art. 6, par. 1, lett. f GDPR).</p>
+    <h2>Opporsi a questi cookie</h2>
+    <p>Blocca o cancella i cookie dalle impostazioni del browser, oppure installa il <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">componente aggiuntivo per la disattivazione di Google Analytics</a>. Il sito e il calcolatore funzionano allo stesso modo.</p>
+    {CLARITY_ID && (<><h2>Microsoft Clarity, in modalità senza cookie</h2><p>La stabilità delle pagine è controllata con Microsoft Clarity in modalità senza cookie: Clarity non imposta cookie, ogni pagina vista riceve un identificativo usa e getta, e il testo della pagina e i valori digitati sono mascherati. Bloccando il dominio <code>clarity.ms</code> il controllo si ferma.</p></>)}
+    <h2>Quello che digiti</h2>
+    <p>I calcoli avvengono nel browser: ciò che inserisci non viene inviato ad alcun server e scompare alla chiusura della pagina.</p>
+    <p>Domande: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Ultimo aggiornamento: {LAST_UPDATED}.</p>
   </div>
 </PageLayout>

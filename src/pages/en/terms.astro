@@ -2,6 +2,7 @@
 import PageLayout from '../../layouts/PageLayout.astro';
 import LegalIdentity from '../../components/LegalIdentity.astro';
 import { route } from '../../i18n/routes';
+import { GA4_ID } from '../../data/site-config';
 import { breadcrumbSchema } from '../../lib/seo';
 const lang = 'en';
 ---
@@ -19,7 +20,7 @@ const lang = 'en';
     <h2>Reuse</h2>
     <p>Texts, tables and code are protected by copyright. You may quote short extracts with a link to the page. The calculator may be embedded free of charge using the code on the <a href={route('widget', lang)}>widget page</a>, provided the credit link stays visible.</p>
     <h2>Personal data and cookies</h2>
-    <p>Values entered in the calculator never leave your browser. The site sets no cookie and the publisher records no personal data; stability is checked anonymously, without cookies, with Microsoft Clarity. See the <a href={route('privacy', lang)}>privacy policy</a> and the <a href={route('cookies', lang)}>cookies page</a>.</p>
+    <p>Values entered in the calculator never leave your browser. The site sets Google Analytics audience measurement cookies (<code>_ga</code>, <code>_ga_{GA4_ID.replace('G-', '')}</code>, 13 months at most), with no advertising; stability is checked with Microsoft Clarity, cookie-free. See the <a href={route('privacy', lang)}>privacy policy</a> and the <a href={route('cookies', lang)}>cookies page</a>.</p>
     <h2>Applicable law</h2>
     <p>These terms are governed by French law, the law of the publisher’s establishment, without prejudice to mandatory consumer protection rules of your country of residence.</p>
   </div>

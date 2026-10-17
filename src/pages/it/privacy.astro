@@ -1,39 +1,46 @@
 ---
 import PageLayout from '../../layouts/PageLayout.astro';
 import LegalIdentity from '../../components/LegalIdentity.astro';
+import { CLARITY_ID, CONTACT_EMAIL, GA4_ID, LAST_UPDATED, LEGAL, SITE_URL } from '../../data/site-config';
 import { route } from '../../i18n/routes';
-import { breadcrumbSchema } from '../../lib/seo';
-import { CONTACT_EMAIL, LEGAL } from '../../data/site-config';
 const lang = 'it';
+const title = 'Informativa privacy del calcolo IMU: dati e cookie';
+const description = 'Misurazione del pubblico con Google Analytics, senza pubblicità; i valori inseriti restano nel browser; log dell’hosting; i tuoi diritti e il Garante a cui rivolgerti.';
 ---
-<PageLayout title="Privacy calcolo IMU in Italia: dati, nessun cookie, stabilità" description="Privacy del calcolo IMU: i valori restano nel browser, nessun cookie e nessun dato personale registrato; Microsoft Clarity senza cookie verifica solo la stabilità del sito." lang={lang} noindex={true} jsonLd={[breadcrumbSchema([{ name: 'Home', path: route('home', lang) }, { name: 'Privacy', path: route('privacy', lang) }])]} breadcrumbs={[{ label: 'Privacy' }]}>
-  <header class="mb-6"><h1 class="text-3xl font-bold text-navy-900 md:text-4xl">Informativa sulla privacy</h1></header>
+{/* Pagina scritta a mano sui fatti dei modelli fr/en di scripts/gen-legal-pages.py (decisione GA4 del 2026-10-17). */}
+<PageLayout title={title} description={description} lang={lang} noindex={true} breadcrumbs={[{ label: 'Privacy' }]} showAuthor={false}>
   <div class="prose prose-slate max-w-none">
-    <p>Questa informativa, resa ai sensi degli articoli 13 e 14 del Regolamento generale sulla protezione dei dati (RGPD, Regolamento UE 2016/679), spiega quali dati vengono trattati quando consulti le aliquote IMU o usi i calcolatori del sito.</p>
-
-    <h2>Titolare</h2>
-    <LegalIdentity lang="it" />
-    <p>Per le questioni di privacy scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Non è stato nominato un responsabile della protezione dei dati, perché il volume di trattamento non lo richiede.</p>
-
-    <h2>I calcolatori non inviano i tuoi valori</h2>
-    <p>Il calcolo dell’IMU avviene interamente nel tuo browser. Comune, rendita catastale, categoria, percentuale di possesso e aliquota non vengono inviati a noi né a terzi, non sono conservati su un server e non sono collegati alla tua persona. Non ci sono account, newsletter o moduli che raccolgono dati personali.</p>
-    <p>Quando modifichi un campo, il calcolatore scrive i valori nell’indirizzo della pagina, così puoi condividere il calcolo. Questo aggiornamento dell’indirizzo non viene trasmesso a nessuno. Se però apri un link che contiene già dei valori, per esempio uno ricevuto da qualcuno, quei valori fanno parte dell’indirizzo della pagina visitata.</p>
-
-    <h2>Log dell’hosting</h2>
-    <p>Il sito è ospitato da {LEGAL.hosting.name}. Come ogni server web, l’hosting registra per ogni richiesta l’indirizzo IP, la pagina richiesta, la data e il tipo di browser, per servire il sito e proteggerlo dagli abusi. Base giuridica: legittimo interesse al funzionamento sicuro del sito (art. 6, par. 1, lett. f RGPD). Non abbiamo accesso a questi log e non li usiamo per identificare i visitatori.</p>
-
-    <h2>Controllo anonimo della stabilità con Microsoft Clarity, senza cookie</h2>
-    <p>L’editore non registra alcun dato personale di chi consulta le aliquote IMU. Per verificare che pagine e calcolatore funzionino usiamo Microsoft Clarity, servizio di Microsoft Ireland Operations Limited (One Microsoft Place, South County Business Park, Leopardstown, Dublino 18, Irlanda), in modalità senza cookie: prima che Clarity si carichi, il sito gli comunica di non usare cookie, e Clarity non ne imposta alcuno. Per ogni pagina vista rileva errori, tempi di caricamento, clic che non producono nulla e scorrimento, senza collegare tra loro le visite; il testo delle pagine e i valori digitati sono mascherati. Microsoft riceve i dati tecnici della richiesta, compreso l’indirizzo IP da cui ricava una posizione approssimativa, e conserva le registrazioni 30 giorni e i dati aggregati fino a 13 mesi.</p>
-    <h3>Base giuridica e opposizione</h3>
-    <p>Base giuridica: legittimo interesse a offrire un sito che funzioni (art. 6, par. 1, lett. f RGPD); sul tuo dispositivo non resta alcun cookie né identificativo. Puoi opporti in qualsiasi momento bloccando il dominio <code>clarity.ms</code> o scrivendoci. Il sito non usa altri strumenti di misura o tracciamento. Dettagli nella pagina <a href={route('cookies', lang)}>cookie</a>.</p>
-    <h3>Pubblicità</h3>
-    <p>Il sito non mostra pubblicità.</p>
-
-    <h2>Destinatari e trasferimenti</h2>
-    <p>Non vendiamo né cediamo dati. Li ricevono solo l’hosting, per i log tecnici, e Microsoft, per il controllo della stabilità. Il gruppo Microsoft ha sede negli Stati Uniti: i dati tecnici possono esservi trasferiti nell’ambito del Data Privacy Framework UE-USA, al quale Microsoft Corporation aderisce, e delle clausole contrattuali standard. Vedi l’<a href="https://privacy.microsoft.com/privacystatement" rel="nofollow noopener" target="_blank">informativa di Microsoft</a>.</p>
-
-    <h2>I tuoi diritti</h2>
-    <p>Il RGPD ti riconosce i diritti di accesso, rettifica, cancellazione, limitazione, portabilità e opposizione (articoli da 15 a 21). Per qualsiasi richiesta scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>: rispondiamo entro un mese. Non tenendo account, di solito non disponiamo di dati che ti identificano, e in quel caso te lo diciamo. Puoi presentare reclamo al Garante per la protezione dei dati personali o all’autorità del paese dell’editore, la {LEGAL.supervisoryAuthority}.</p>
-    <p>Ultimo aggiornamento: 6 ottobre 2026.</p>
+    <h1>Informativa privacy</h1>
+    <p>Questa pagina descrive i trattamenti di dati personali legati all’uso di {SITE_URL}, ai sensi degli articoli 12-14 del Regolamento (UE) 2016/679 (GDPR) e del Codice in materia di protezione dei dati personali (d.lgs. 196/2003).</p>
+    <h2>1. Titolare del trattamento</h2>
+    <LegalIdentity lang={lang} />
+    <p>Per qualsiasi domanda sui tuoi dati: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Non è stato nominato un responsabile della protezione dei dati, perché le condizioni dell’art. 37 GDPR non ricorrono.</p>
+    <h2>2. Ciò che digiti resta nel browser</h2>
+    <p>I calcoli del sito avvengono nel browser. Rendita catastale, categoria, quota di possesso e aliquota che inserisci <strong>non vengono inviate ad alcun server</strong>, non sono conservate e non sono collegate ad alcun identificativo. Il sito non chiede account, nome o indirizzo e-mail. Un link di condivisione contiene i valori nell’indirizzo della pagina: invialo solo a chi vuoi.</p>
+    <h2>3. Trattamenti effettuati</h2>
+    <h3>Log di accesso dell’hosting</h3>
+    <p>Per ogni richiesta l’hosting registra indirizzo IP, data e ora, pagina richiesta, browser e pagina di provenienza. Finalità: sicurezza del servizio e diagnosi dei guasti. Base giuridica: legittimo interesse dell’editore (art. 6, par. 1, lett. f GDPR). Conservazione: secondo la politica dell’hosting.</p>
+    <h3>Misurazione del pubblico con Google Analytics</h3>
+    <p>Il sito usa Google Analytics 4 per contare le visite e capire quali pagine sono utili: pagine viste, pagina di provenienza, durata della visita, tipo di dispositivo e di browser, paese e città approssimativi. Per farlo Google Analytics imposta due cookie sul dispositivo: <code>_ga</code>, che distingue i visitatori con un identificativo casuale, e <code>_ga_{GA4_ID.replace('G-', '')}</code>, che conserva lo stato della visita. La loro durata è fissata a 13 mesi al massimo (390 giorni) e non viene prolungata a ogni visita; la durata predefinita di Google è di 2 anni.</p>
+    <p>L’indirizzo IP è anonimizzato: Google Analytics 4 non lo registra né lo conserva, e lo usa solo al momento della raccolta per ricavare paese e città approssimativi. L’indirizzo della pagina inviato a Google Analytics è privo di parametri, quindi i valori contenuti in un link di condivisione non sono inclusi. Il sito non mostra pubblicità: memorizzazione pubblicitaria, dati utente pubblicitari, personalizzazione degli annunci e Google signals sono disattivati, e i dati di misurazione non sono condivisi con alcun inserzionista.</p>
+    <p>Finalità: misurazione del pubblico. Base giuridica: legittimo interesse dell’editore (art. 6, par. 1, lett. f GDPR). Fornitore: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irlanda. Conservazione presso Google: 14 mesi per i dati a livello di visita e di identificativo, poi cancellazione; restano solo totali anonimi.</p>
+    {CLARITY_ID && (<>
+    <h3>Controllo tecnico della stabilità con Microsoft Clarity, senza cookie</h3>
+    <p>Per individuare errori, pagine lente e pulsanti che non rispondono, il sito usa Microsoft Clarity in modalità senza cookie: Clarity non imposta cookie, ogni pagina vista riceve un proprio identificativo, e il testo delle pagine e i valori inseriti sono mascherati. Clarity riceve la struttura della pagina, clic, scorrimento, tipo di dispositivo, tempi di caricamento ed errori. Finalità: stabilità del sito. Base giuridica: legittimo interesse dell’editore (art. 6, par. 1, lett. f GDPR). Fornitore: Microsoft Ireland Operations Limited, One Microsoft Place, South County Business Park, Leopardstown, Dublin 18, Irlanda. Conservazione: 30 giorni per le registrazioni, 13 mesi al massimo per i dati aggregati.</p>
+    </>)}
+    <h3>Messaggi che ci invii</h3>
+    <p>Se scrivi all’indirizzo di contatto, il tuo indirizzo e-mail e il messaggio sono conservati per il tempo necessario a rispondere ed eventualmente correggere un errore, poi cancellati al più tardi tre anni dopo l’ultimo scambio. Base giuridica: legittimo interesse dell’editore (art. 6, par. 1, lett. f GDPR).</p>
+    <h2>4. Destinatari</h2>
+    <p>Nessun dato è venduto, affittato o ceduto. L’accesso è limitato all’hosting, a Google Ireland Limited per Google Analytics{CLARITY_ID && ' e a Microsoft Ireland Operations Limited per Clarity'}, in qualità di responsabili del trattamento ai sensi dell’art. 28 GDPR. Nessuna rete pubblicitaria opera sul sito.</p>
+    <h2>5. Trasferimenti fuori dall’Unione europea</h2>
+    <p>I log dell’hosting possono essere trattati negli Stati Uniti. I dati di Google Analytics possono essere trasferiti a Google LLC negli Stati Uniti.{CLARITY_ID && ' I dati di Clarity possono essere trasferiti a Microsoft Corporation negli Stati Uniti.'} Questi trasferimenti si basano sul Data Privacy Framework UE-USA e sulle clausole contrattuali tipo della Commissione europea.</p>
+    <h2>6. I tuoi diritti</h2>
+    <p>Hai i diritti di accesso, rettifica, cancellazione, limitazione, opposizione e portabilità previsti dagli articoli 15-22 GDPR. Scrivi a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>; rispondiamo entro un mese. Non essendoci account utente, di solito non deteniamo dati che ti identificano, e te lo diremo.</p>
+    <p>Per opporti alla misurazione del pubblico senza scriverci: blocca o cancella i cookie dalle impostazioni del browser, oppure installa il <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">componente aggiuntivo per la disattivazione di Google Analytics</a>. Il sito funziona allo stesso modo.</p>
+    {CLARITY_ID && (<p>Per il controllo della stabilità: blocca il dominio <code>clarity.ms</code> nel browser o con un blocco dei contenuti.</p>)}
+    <p>Puoi proporre reclamo all’autorità di controllo: {LEGAL.supervisoryAuthority} (<a href={LEGAL.supervisoryAuthorityUrl} rel="nofollow noopener" target="_blank">{LEGAL.supervisoryAuthorityUrl}</a>) oppure al Garante per la protezione dei dati personali (<a href="https://www.garanteprivacy.it" rel="nofollow noopener" target="_blank">garanteprivacy.it</a>).</p>
+    <h2>7. Nessuna decisione automatizzata</h2>
+    <p>Il risultato di un calcolo è una stima prodotta su tua richiesta, con i tuoi dati, nel tuo browser. Non produce effetti giuridici e non è una decisione automatizzata ai sensi dell’art. 22 GDPR. Non viene effettuata alcuna profilazione.</p>
+    <p>Vedi anche la pagina <a href={route('cookies', lang)}>cookie</a>. Ultimo aggiornamento: {LAST_UPDATED}.</p>
   </div>
 </PageLayout>
